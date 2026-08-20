@@ -1,0 +1,68 @@
+{
+  "last_sync": "2026-08-20T11:38:22.118490+00:00",
+  "results": {
+    "英超": {
+      "status": "current",
+      "added": 0,
+      "total": 7980,
+      "latest_date": "2026-05-24",
+      "models_retrained": 0
+    },
+    "西甲": {
+      "status": "current",
+      "added": 0,
+      "total": 7985,
+      "latest_date": "2026-08-17",
+      "models_retrained": 0
+    },
+    "德甲": {
+      "status": "current",
+      "added": 0,
+      "total": 6426,
+      "latest_date": "2026-05-16",
+      "models_retrained": 0
+    },
+    "意甲": {
+      "status": "current",
+      "added": 0,
+      "total": 7980,
+      "latest_date": "2026-05-24",
+      "models_retrained": 0
+    },
+    "法甲": {
+      "status": "current",
+      "added": 0,
+      "total": 7657,
+      "latest_date": "2026-05-17",
+      "models_retrained": 0
+    },
+    "瑞超": {
+      "status": "current",
+      "added": 0,
+      "total": 3519,
+      "latest_date": "2026-08-17",
+      "models_retrained": 0
+    },
+    "葡超": {
+      "status": "current",
+      "added": 0,
+      "total": 5883,
+      "latest_date": "2026-08-17",
+      "models_retrained": 0
+    },
+    "日职": {
+      "status": "current",
+      "added": 0,
+      "total": 4543,
+      "latest_date": "2026-08-15",
+      "models_retrained": 0
+    },
+    "韩职": {
+      "status": "current",
+      "added": 0,
+      "total": 1955,
+      "latest_date": "2026-08-16",
+      "models_retrained": 0
+    }
+  }
+}

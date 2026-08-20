@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Virtual environment
+.venv/
+
+# macOS
+.DS_Store
+
+# Runtime caches and scratch
+storage/matplotlib/
+work/
+dist/
+windows-update-backups/
+
+# Backups / snapshots
+.codex-backup-*/
+*.bak-*
+
+# Nested duplicate project copy inside tests/ (keep only test_*.py)
+tests/src/
+tests/scripts/
+tests/storage/
+tests/deployment/
+tests/__pycache__/
+tests/app.py
+tests/app.bat
+tests/install_windows.bat
+tests/install-wsl.sh
+tests/update_windows.bat
+tests/start.sh
+tests/requirements-windows.txt
+tests/requirements-wsl.txt
+tests/rebuild_missing_models.py
+tests/repair_storage_names.py
+tests/README-Windows.md

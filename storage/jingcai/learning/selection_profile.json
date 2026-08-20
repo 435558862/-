@@ -1,0 +1,41 @@
+{
+  "learned_at": "2026-08-20T20:51:59",
+  "as_of": "2026-08-20",
+  "total_samples": 4901,
+  "recent_samples": 1000,
+  "period": "2026-04-26至2026-08-20",
+  "rows": [
+    {
+      "threshold": 0.675,
+      "grade": "精选主推",
+      "accuracy": 0.7591240875912408,
+      "coverage": 0.137,
+      "samples": 137,
+      "full_samples": 670
+    },
+    {
+      "threshold": 0.645,
+      "grade": "高置信主推",
+      "accuracy": 0.7150537634408602,
+      "coverage": 0.186,
+      "samples": 186,
+      "full_samples": 899
+    },
+    {
+      "threshold": 0.555,
+      "grade": "观察",
+      "accuracy": 0.6421319796954315,
+      "coverage": 0.394,
+      "samples": 394,
+      "full_samples": 1834
+    },
+    {
+      "threshold": 0.0,
+      "grade": "跳过",
+      "accuracy": 0.514,
+      "coverage": 1.0,
+      "samples": 1000,
+      "full_samples": 4901
+    }
+  ]
+}

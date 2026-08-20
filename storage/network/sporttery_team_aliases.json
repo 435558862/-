@@ -1,0 +1,86 @@
+{
+  "英超": {
+    "阿森纳": "Arsenal", "阿斯顿维拉": "Aston Villa", "伯恩茅斯": "Bournemouth",
+    "布伦特福德": "Brentford", "布赖顿": "Brighton", "布莱顿": "Brighton",
+    "伯恩利": "Burnley", "切尔西": "Chelsea", "考文垂": "Coventry",
+    "考文垂城": "Coventry", "水晶宫": "Crystal Palace",
+    "埃弗顿": "Everton", "富勒姆": "Fulham", "利兹联": "Leeds",
+    "利物浦": "Liverpool", "曼城": "Man City", "曼联": "Man United",
+    "纽卡斯尔": "Newcastle", "诺丁汉森林": "Nott'm Forest", "桑德兰": "Sunderland",
+    "热刺": "Tottenham", "托特纳姆热刺": "Tottenham", "西汉姆联": "West Ham",
+    "狼队": "Wolves", "伊普斯维奇": "Ipswich", "赫尔城": "Hull"
+  },
+  "西甲": {
+    "阿拉维斯": "Alaves", "毕尔巴鄂竞技": "Ath Bilbao", "马德里竞技": "Ath Madrid",
+    "巴塞罗那": "Barcelona", "皇家贝蒂斯": "Betis", "塞尔塔": "Celta",
+    "埃尔切": "Elche", "西班牙人": "Espanol", "赫塔费": "Getafe",
+    "赫罗纳": "Girona", "莱万特": "Levante", "马略卡": "Mallorca",
+    "奥萨苏纳": "Osasuna", "皇家奥维耶多": "Oviedo", "皇家马德里": "Real Madrid",
+    "塞维利亚": "Sevilla", "皇家社会": "Sociedad", "巴伦西亚": "Valencia",
+    "瓦伦西亚": "Valencia", "巴列卡诺": "Vallecano", "比利亚雷亚尔": "Villarreal", "拉科鲁尼亚": "La Coruna", "桑坦德竞技": "Santander", "马拉加": "Malaga"
+  },
+  "德甲": {
+    "奥格斯堡": "Augsburg", "拜仁慕尼黑": "Bayern Munich", "多特蒙德": "Dortmund",
+    "法兰克福": "Ein Frankfurt", "科隆": "FC Koln", "弗赖堡": "Freiburg",
+    "汉堡": "Hamburg", "海登海姆": "Heidenheim", "霍芬海姆": "Hoffenheim",
+    "勒沃库森": "Leverkusen", "门兴": "M'gladbach", "门兴格拉德巴赫": "M'gladbach",
+    "美因茨": "Mainz", "莱比锡红牛": "RB Leipzig", "圣保利": "St Pauli",
+    "斯图加特": "Stuttgart", "柏林联合": "Union Berlin", "不来梅": "Werder Bremen",
+    "沃尔夫斯堡": "Wolfsburg", "沙尔克04": "Schalke 04", "埃弗斯堡": "Elversberg", "帕德博恩": "Paderborn"
+  },
+  "意甲": {
+    "亚特兰大": "Atalanta", "博洛尼亚": "Bologna", "卡利亚里": "Cagliari",
+    "科莫": "Como", "克雷莫纳": "Cremonese", "佛罗伦萨": "Fiorentina",
+    "热那亚": "Genoa", "国际米兰": "Inter", "尤文图斯": "Juventus",
+    "拉齐奥": "Lazio", "莱切": "Lecce", "AC米兰": "Milan", "米兰": "Milan",
+    "那不勒斯": "Napoli", "帕尔马": "Parma", "比萨": "Pisa", "罗马": "Roma",
+    "萨索洛": "Sassuolo", "都灵": "Torino", "乌迪内斯": "Udinese",
+    "维罗纳": "Verona", "威尼斯": "Venezia", "弗罗西诺内": "Frosinone", "蒙扎": "Monza"
+  },
+  "法甲": {
+    "昂热": "Angers", "欧塞尔": "Auxerre", "布雷斯特": "Brest",
+    "勒阿弗尔": "Le Havre", "朗斯": "Lens", "里尔": "Lille", "洛里昂": "Lorient",
+    "里昂": "Lyon", "马赛": "Marseille", "梅斯": "Metz", "摩纳哥": "Monaco",
+    "南特": "Nantes", "尼斯": "Nice", "巴黎FC": "Paris FC",
+    "巴黎圣日耳曼": "Paris SG", "雷恩": "Rennes", "斯特拉斯堡": "Strasbourg",
+    "图卢兹": "Toulouse", "特鲁瓦": "Troyes", "勒芒": "Le Mans"
+  },
+  "瑞超": {
+    "AIK索尔纳": "AIK", "索尔纳": "AIK", "布鲁马波卡纳": "Brommapojkarna",
+    "代格福什": "Degerfors", "佐加顿斯": "Djurgarden", "埃尔夫斯堡": "Elfsborg",
+    "盖斯": "GAIS", "哥德堡": "Goteborg", "赫根": "Hacken",
+    "哈尔姆斯塔德": "Halmstad", "哈马比": "Hammarby", "卡尔马": "Kalmar",
+    "马尔默": "Malmo FF", "米亚尔比": "Mjallby", "奥尔格里特": "Orgryte",
+    "天狼星": "Sirius", "韦斯特罗斯": "Vasteras SK", "IFK哥德堡": "Goteborg", "厄尔格里特": "Orgryte", "哥德堡盖斯": "GAIS"
+  },
+  "葡超": {
+    "AVS": "AVS", "阿维什镇": "AVS", "阿尔韦卡": "Alverca",
+    "阿罗卡": "Arouca", "本菲卡": "Benfica", "卡萨皮亚": "Casa Pia",
+    "埃斯托里尔": "Estoril", "阿马多拉之星": "Estrela", "法马利康": "Famalicao",
+    "吉尔维森特": "Gil Vicente", "吉马良斯": "Guimaraes", "摩雷伦斯": "Moreirense",
+    "葡萄牙国民": "Nacional", "葡国民": "Nacional", "波尔图": "Porto",
+    "里奥阿维": "Rio Ave", "圣克拉拉": "Santa Clara", "布拉加": "Sp Braga",
+    "葡萄牙体育": "Sp Lisbon", "里斯本竞技": "Sp Lisbon", "通德拉": "Tondela", "吉维森特": "Gil Vicente", "维塞乌": "Academico Viseu", "阿尔维卡": "Alverca", "阿马多拉": "Estrela", "马里迪莫": "Maritimo"
+  },
+  "日职": {
+    "新泻天鹅": "Albirex Niigata", "福冈黄蜂": "Avispa Fukuoka",
+    "大阪樱花": "Cerezo Osaka", "东京FC": "FC Tokyo", "FC东京": "FC Tokyo",
+    "大阪钢巴": "Gamba Osaka", "鹿岛鹿角": "Kashima Antlers",
+    "柏太阳神": "Kashiwa Reysol", "川崎前锋": "Kawasaki Frontale",
+    "京都不死鸟": "Kyoto", "町田泽维亚": "Machida",
+    "名古屋鲸八": "Nagoya Grampus", "名古屋鲸": "Nagoya Grampus",
+    "冈山绿雉": "Okayama", "广岛三箭": "Sanfrecce Hiroshima",
+    "清水鼓动": "Shimizu S-Pulse", "湘南海洋": "Shonan Bellmare",
+    "浦和红钻": "Urawa Reds", "东京绿茵": "Verdy",
+    "神户胜利船": "Vissel Kobe", "横滨水手": "Yokohama F. Marinos",
+    "横滨FC": "Yokohama FC"
+  },
+  "韩职": {
+    "安养FC": "Anyang", "富川FC": "Bucheon", "富川1995": "Bucheon",
+    "大田市民": "Daejeon", "江原FC": "Gangwon", "光州FC": "Gwangju FC",
+    "仁川联": "Incheon", "济州SK": "Jeju", "济州联": "Jeju",
+    "全北现代": "Jeonbuk", "浦项制铁": "Pohang", "浦项铁人": "Pohang",
+    "金泉尚武": "Sangmu", "尚州尚武": "Sangmu", "首尔FC": "Seoul",
+    "蔚山现代": "Ulsan", "蔚山HD": "Ulsan"
+  }
+}

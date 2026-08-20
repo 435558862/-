@@ -1,0 +1,1357 @@
+{
+  "data_source": "Kaggle rayenjlassi/more-than-20k-footballsoccer-match v7",
+  "license": "CC BY-NC-SA 4.0",
+  "validation_seasons": [
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+  ],
+  "final_test_seasons": [
+    2022,
+    2024
+  ],
+  "market_final": {
+    "samples": 120,
+    "score_nll": 3.0654177427629556,
+    "score_top1_accuracy": 0.10833333333333334,
+    "over_under_accuracy": 0.6083333333333333,
+    "result_accuracy": 0.5833333333333334,
+    "goal_mae": 1.0404166666666668
+  },
+  "candidates": [
+    {
+      "name": "ucl-poisson-A0.03",
+      "scope": "ucl",
+      "kind": "poisson",
+      "params": {
+        "alpha": 0.03
+      },
+      "rolling_score_nll": 2.9042908600954767,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5955056179775281,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.10299625468164794,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.046645018716946,
+          "score_top1_accuracy": 0.07777777777777778,
+          "over_under_accuracy": 0.7222222222222222,
+          "result_accuracy": 0.5666666666666667,
+          "goal_mae": 1.0261482215361786,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0295430682930014,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.5833333333333334,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 0.9975095026629277,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.842887039208076,
+          "score_top1_accuracy": 0.14615384615384616,
+          "over_under_accuracy": 0.5384615384615384,
+          "result_accuracy": 0.6230769230769231,
+          "goal_mae": 0.8857338603716527,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8631412121981974,
+          "score_top1_accuracy": 0.0603448275862069,
+          "over_under_accuracy": 0.5862068965517241,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.9141977308735012,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.849427447803178,
+          "score_top1_accuracy": 0.10869565217391304,
+          "over_under_accuracy": 0.5797101449275363,
+          "result_accuracy": 0.5797101449275363,
+          "goal_mae": 0.8928420403967617,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.0656542543080434,
+        "score_top1_accuracy": 0.10833333333333334,
+        "over_under_accuracy": 0.575,
+        "result_accuracy": 0.5833333333333334,
+        "goal_mae": 1.0537573270055636
+      }
+    },
+    {
+      "name": "ucl-poisson-A0.1",
+      "scope": "ucl",
+      "kind": "poisson",
+      "params": {
+        "alpha": 0.1
+      },
+      "rolling_score_nll": 2.9020376495572195,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5786516853932584,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.09925093632958802,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.045463606799447,
+          "score_top1_accuracy": 0.06666666666666667,
+          "over_under_accuracy": 0.6666666666666666,
+          "result_accuracy": 0.5666666666666667,
+          "goal_mae": 1.025036302187651,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0287877217158807,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.55,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 0.9963988620336539,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.834598019118557,
+          "score_top1_accuracy": 0.13846153846153847,
+          "over_under_accuracy": 0.5230769230769231,
+          "result_accuracy": 0.6307692307692307,
+          "goal_mae": 0.8798877800602535,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8607082034357947,
+          "score_top1_accuracy": 0.0603448275862069,
+          "over_under_accuracy": 0.5862068965517241,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.9100685890338128,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8516610352513596,
+          "score_top1_accuracy": 0.10869565217391304,
+          "over_under_accuracy": 0.5797101449275363,
+          "result_accuracy": 0.5869565217391305,
+          "goal_mae": 0.8953940855797088,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.0680133674013583,
+        "score_top1_accuracy": 0.10833333333333334,
+        "over_under_accuracy": 0.5583333333333333,
+        "result_accuracy": 0.5833333333333334,
+        "goal_mae": 1.0556147176342987
+      }
+    },
+    {
+      "name": "ucl-poisson-A0.3",
+      "scope": "ucl",
+      "kind": "poisson",
+      "params": {
+        "alpha": 0.3
+      },
+      "rolling_score_nll": 2.903678477741698,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5767790262172284,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.11235955056179775,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.048528751263839,
+          "score_top1_accuracy": 0.06666666666666667,
+          "over_under_accuracy": 0.6555555555555556,
+          "result_accuracy": 0.5666666666666667,
+          "goal_mae": 1.0242358113695917,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.030994749486239,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.5833333333333334,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 0.998890360990927,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.8362256993081947,
+          "score_top1_accuracy": 0.15384615384615385,
+          "over_under_accuracy": 0.5230769230769231,
+          "result_accuracy": 0.6384615384615384,
+          "goal_mae": 0.8792107418400981,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8573044349906858,
+          "score_top1_accuracy": 0.09482758620689655,
+          "over_under_accuracy": 0.5775862068965517,
+          "result_accuracy": 0.6810344827586207,
+          "goal_mae": 0.9057999452252355,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8563795591461014,
+          "score_top1_accuracy": 0.11594202898550725,
+          "over_under_accuracy": 0.572463768115942,
+          "result_accuracy": 0.5942028985507246,
+          "goal_mae": 0.8981860667021746,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.068725221799234,
+        "score_top1_accuracy": 0.1,
+        "over_under_accuracy": 0.575,
+        "result_accuracy": 0.5833333333333334,
+        "goal_mae": 1.0522631187437335
+      }
+    },
+    {
+      "name": "ucl-poisson-A1.0",
+      "scope": "ucl",
+      "kind": "poisson",
+      "params": {
+        "alpha": 1.0
+      },
+      "rolling_score_nll": 2.90845018648594,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5767790262172284,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.11423220973782772,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.0538899851410095,
+          "score_top1_accuracy": 0.07777777777777778,
+          "over_under_accuracy": 0.6555555555555556,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.021566622497432,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.035888868429605,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.55,
+          "result_accuracy": 0.6,
+          "goal_mae": 1.005458630346055,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.845585078510831,
+          "score_top1_accuracy": 0.16153846153846155,
+          "over_under_accuracy": 0.5461538461538461,
+          "result_accuracy": 0.6384615384615384,
+          "goal_mae": 0.8791805776282963,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.854539038317132,
+          "score_top1_accuracy": 0.10344827586206896,
+          "over_under_accuracy": 0.5862068965517241,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.9009430983765822,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8627273924915175,
+          "score_top1_accuracy": 0.10869565217391304,
+          "over_under_accuracy": 0.5579710144927537,
+          "result_accuracy": 0.5942028985507246,
+          "goal_mae": 0.9005875862282927,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.0697676278478014,
+        "score_top1_accuracy": 0.1,
+        "over_under_accuracy": 0.5583333333333333,
+        "result_accuracy": 0.6,
+        "goal_mae": 1.0498869708923684
+      }
+    },
+    {
+      "name": "ucl-hist-L7-N60",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 60
+      },
+      "rolling_score_nll": 2.9149603732993006,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5730337078651685,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.10299625468164794,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.0648863118340275,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.6333333333333333,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.0040222788804476,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0304315644275976,
+          "score_top1_accuracy": 0.05,
+          "over_under_accuracy": 0.55,
+          "result_accuracy": 0.6,
+          "goal_mae": 1.019190356508743,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.8426146969205024,
+          "score_top1_accuracy": 0.14615384615384616,
+          "over_under_accuracy": 0.5846153846153846,
+          "result_accuracy": 0.6307692307692307,
+          "goal_mae": 0.902039873277155,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8566228581624467,
+          "score_top1_accuracy": 0.06896551724137931,
+          "over_under_accuracy": 0.5775862068965517,
+          "result_accuracy": 0.6724137931034483,
+          "goal_mae": 0.9206571747100408,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.884166777279703,
+          "score_top1_accuracy": 0.11594202898550725,
+          "over_under_accuracy": 0.5289855072463768,
+          "result_accuracy": 0.5869565217391305,
+          "goal_mae": 0.906458334859471,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.101729587173789,
+        "score_top1_accuracy": 0.058333333333333334,
+        "over_under_accuracy": 0.5666666666666667,
+        "result_accuracy": 0.55,
+        "goal_mae": 1.0950848400506916
+      }
+    },
+    {
+      "name": "ucl-hist-L7-N120",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 120
+      },
+      "rolling_score_nll": 2.9112527964709805,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5955056179775281,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.10486891385767791,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.057686495158833,
+          "score_top1_accuracy": 0.044444444444444446,
+          "over_under_accuracy": 0.6444444444444445,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.0065517802747281,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0372711233017835,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.5666666666666667,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 1.0238948786980742,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.8346870334588403,
+          "score_top1_accuracy": 0.16923076923076924,
+          "over_under_accuracy": 0.6076923076923076,
+          "result_accuracy": 0.6461538461538462,
+          "goal_mae": 0.8839921064542156,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.859300302897894,
+          "score_top1_accuracy": 0.034482758620689655,
+          "over_under_accuracy": 0.5948275862068966,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.9130696155693702,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8767593613572213,
+          "score_top1_accuracy": 0.13768115942028986,
+          "over_under_accuracy": 0.5652173913043478,
+          "result_accuracy": 0.5797101449275363,
+          "goal_mae": 0.9009106691203129,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.1279347744106363,
+        "score_top1_accuracy": 0.06666666666666667,
+        "over_under_accuracy": 0.5916666666666667,
+        "result_accuracy": 0.5416666666666666,
+        "goal_mae": 1.1064164704431017
+      }
+    },
+    {
+      "name": "ucl-hist-L15-N120",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 120
+      },
+      "rolling_score_nll": 2.910721732476613,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5917602996254682,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.10674157303370786,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.057686495158833,
+          "score_top1_accuracy": 0.044444444444444446,
+          "over_under_accuracy": 0.6444444444444445,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.0065517802747281,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0372711233017835,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.5666666666666667,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 1.0238948786980742,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.8368047282009314,
+          "score_top1_accuracy": 0.16153846153846155,
+          "over_under_accuracy": 0.5923076923076923,
+          "result_accuracy": 0.6461538461538462,
+          "goal_mae": 0.8867884772530852,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.856789344800309,
+          "score_top1_accuracy": 0.05172413793103448,
+          "over_under_accuracy": 0.5948275862068966,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.9125327116295895,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8748201051967555,
+          "score_top1_accuracy": 0.13768115942028986,
+          "over_under_accuracy": 0.5652173913043478,
+          "result_accuracy": 0.572463768115942,
+          "goal_mae": 0.8996683714587461,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.13987095679316,
+        "score_top1_accuracy": 0.06666666666666667,
+        "over_under_accuracy": 0.5833333333333334,
+        "result_accuracy": 0.5416666666666666,
+        "goal_mae": 1.1126746704951982
+      }
+    },
+    {
+      "name": "euro_cups-poisson-A0.03",
+      "scope": "euro_cups",
+      "kind": "poisson",
+      "params": {
+        "alpha": 0.03
+      },
+      "rolling_score_nll": 2.891252854347431,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5842696629213483,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.11797752808988764,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.022404603468631,
+          "score_top1_accuracy": 0.1111111111111111,
+          "over_under_accuracy": 0.7111111111111111,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.006942607725346,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0175098327506515,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.5833333333333334,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 0.9933078574212323,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.824244211148712,
+          "score_top1_accuracy": 0.16923076923076924,
+          "over_under_accuracy": 0.5230769230769231,
+          "result_accuracy": 0.6461538461538462,
+          "goal_mae": 0.8624022532482072,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8487182089499723,
+          "score_top1_accuracy": 0.10344827586206896,
+          "over_under_accuracy": 0.5775862068965517,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.8961686287142879,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8497026105563985,
+          "score_top1_accuracy": 0.09420289855072464,
+          "over_under_accuracy": 0.5652173913043478,
+          "result_accuracy": 0.5797101449275363,
+          "goal_mae": 0.8927996727586738,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.06982034454674,
+        "score_top1_accuracy": 0.10833333333333334,
+        "over_under_accuracy": 0.575,
+        "result_accuracy": 0.5833333333333334,
+        "goal_mae": 1.0511668164134025
+      }
+    },
+    {
+      "name": "euro_cups-poisson-A0.1",
+      "scope": "euro_cups",
+      "kind": "poisson",
+      "params": {
+        "alpha": 0.1
+      },
+      "rolling_score_nll": 2.892282717830385,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5805243445692884,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.1198501872659176,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.02271666818523,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.7,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.0064351971556496,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0229039394125303,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.5833333333333334,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 0.9965633495928051,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.8249994807684544,
+          "score_top1_accuracy": 0.16923076923076924,
+          "over_under_accuracy": 0.5,
+          "result_accuracy": 0.6461538461538462,
+          "goal_mae": 0.8618005415483113,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.847077295641957,
+          "score_top1_accuracy": 0.11206896551724138,
+          "over_under_accuracy": 0.5948275862068966,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.8958852242753896,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.851806782794472,
+          "score_top1_accuracy": 0.09420289855072464,
+          "over_under_accuracy": 0.5652173913043478,
+          "result_accuracy": 0.5797101449275363,
+          "goal_mae": 0.8950818810505113,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.069380313262801,
+        "score_top1_accuracy": 0.10833333333333334,
+        "over_under_accuracy": 0.5916666666666667,
+        "result_accuracy": 0.5833333333333334,
+        "goal_mae": 1.0513088344791557
+      }
+    },
+    {
+      "name": "euro_cups-poisson-A0.3",
+      "scope": "euro_cups",
+      "kind": "poisson",
+      "params": {
+        "alpha": 0.3
+      },
+      "rolling_score_nll": 2.896453940931876,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5805243445692884,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.12172284644194757,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.0286805169502657,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.6555555555555556,
+          "result_accuracy": 0.5666666666666667,
+          "goal_mae": 1.0067226253072112,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0305489391722853,
+          "score_top1_accuracy": 0.11666666666666667,
+          "over_under_accuracy": 0.6166666666666667,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 1.0016032119868377,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.83132180282057,
+          "score_top1_accuracy": 0.16923076923076924,
+          "over_under_accuracy": 0.5230769230769231,
+          "result_accuracy": 0.6461538461538462,
+          "goal_mae": 0.8623363466474785,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.845640050729344,
+          "score_top1_accuracy": 0.11206896551724138,
+          "over_under_accuracy": 0.5862068965517241,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.8944101348464263,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.85598653138031,
+          "score_top1_accuracy": 0.10144927536231885,
+          "over_under_accuracy": 0.5652173913043478,
+          "result_accuracy": 0.5942028985507246,
+          "goal_mae": 0.897332434287816,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.069687227024937,
+        "score_top1_accuracy": 0.10833333333333334,
+        "over_under_accuracy": 0.575,
+        "result_accuracy": 0.5833333333333334,
+        "goal_mae": 1.049053115234411
+      }
+    },
+    {
+      "name": "euro_cups-poisson-A1.0",
+      "scope": "euro_cups",
+      "kind": "poisson",
+      "params": {
+        "alpha": 1.0
+      },
+      "rolling_score_nll": 2.90519381708594,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5692883895131086,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.11610486891385768,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.040829250294637,
+          "score_top1_accuracy": 0.1111111111111111,
+          "over_under_accuracy": 0.6222222222222222,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 1.0052208566763756,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.0413277637956884,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.55,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 1.0091351132049247,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.846319078824559,
+          "score_top1_accuracy": 0.15384615384615385,
+          "over_under_accuracy": 0.5461538461538461,
+          "result_accuracy": 0.6461538461538462,
+          "goal_mae": 0.8676104386187433,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8469348329982624,
+          "score_top1_accuracy": 0.11206896551724138,
+          "over_under_accuracy": 0.5775862068965517,
+          "result_accuracy": 0.6810344827586207,
+          "goal_mae": 0.8915029060320757,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8619802832945074,
+          "score_top1_accuracy": 0.09420289855072464,
+          "over_under_accuracy": 0.5579710144927537,
+          "result_accuracy": 0.5942028985507246,
+          "goal_mae": 0.8978460129394112,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.072396060147141,
+        "score_top1_accuracy": 0.09166666666666666,
+        "over_under_accuracy": 0.5833333333333334,
+        "result_accuracy": 0.5916666666666667,
+        "goal_mae": 1.0478070898095961
+      }
+    },
+    {
+      "name": "euro_cups-hist-L7-N60",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 60
+      },
+      "rolling_score_nll": 2.8973049251557517,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5880149812734082,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.11235955056179775,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.0008855142570017,
+          "score_top1_accuracy": 0.07777777777777778,
+          "over_under_accuracy": 0.6666666666666666,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 0.9674658013482128,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.00308850801236,
+          "score_top1_accuracy": 0.08333333333333333,
+          "over_under_accuracy": 0.6166666666666667,
+          "result_accuracy": 0.6166666666666667,
+          "goal_mae": 1.0002805352032036,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.870427588156515,
+          "score_top1_accuracy": 0.16923076923076924,
+          "over_under_accuracy": 0.5230769230769231,
+          "result_accuracy": 0.6153846153846154,
+          "goal_mae": 0.8978848464821141,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.834491369180144,
+          "score_top1_accuracy": 0.09482758620689655,
+          "over_under_accuracy": 0.6206896551724138,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.8966250949095472,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.861878536116349,
+          "score_top1_accuracy": 0.10869565217391304,
+          "over_under_accuracy": 0.5579710144927537,
+          "result_accuracy": 0.5942028985507246,
+          "goal_mae": 0.8979079658056982,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.103789120633706,
+        "score_top1_accuracy": 0.10833333333333334,
+        "over_under_accuracy": 0.6,
+        "result_accuracy": 0.575,
+        "goal_mae": 1.0807739601076785
+      }
+    },
+    {
+      "name": "euro_cups-hist-L7-N120",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 120
+      },
+      "rolling_score_nll": 2.899379502811726,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5973782771535581,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.1198501872659176,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 3.0010758595604754,
+          "score_top1_accuracy": 0.08888888888888889,
+          "over_under_accuracy": 0.7,
+          "result_accuracy": 0.5555555555555556,
+          "goal_mae": 0.9760187777253958,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 3.006770689474158,
+          "score_top1_accuracy": 0.08333333333333333,
+          "over_under_accuracy": 0.6,
+          "result_accuracy": 0.6,
+          "goal_mae": 1.0080770748025392,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.851710811404383,
+          "score_top1_accuracy": 0.16923076923076924,
+          "over_under_accuracy": 0.5538461538461539,
+          "result_accuracy": 0.6076923076923076,
+          "goal_mae": 0.8898221118795073,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.84706662756268,
+          "score_top1_accuracy": 0.12931034482758622,
+          "over_under_accuracy": 0.6293103448275862,
+          "result_accuracy": 0.6896551724137931,
+          "goal_mae": 0.8988035961493768,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.875242402121224,
+          "score_top1_accuracy": 0.10144927536231885,
+          "over_under_accuracy": 0.5434782608695652,
+          "result_accuracy": 0.5869565217391305,
+          "goal_mae": 0.8993827456274908,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.103954314008821,
+        "score_top1_accuracy": 0.09166666666666666,
+        "over_under_accuracy": 0.6,
+        "result_accuracy": 0.5666666666666667,
+        "goal_mae": 1.0832750759571919
+      }
+    },
+    {
+      "name": "euro_cups-hist-L15-N120",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 120
+      },
+      "rolling_score_nll": 2.90264287420339,
+      "rolling_market_score_nll": 2.9012624864172922,
+      "rolling_over_under_accuracy": 0.5861423220973783,
+      "rolling_market_over_under_accuracy": 0.5655430711610487,
+      "rolling_score_top1_accuracy": 0.11797752808988764,
+      "rolling_market_score_top1_accuracy": 0.10861423220973783,
+      "folds": [
+        {
+          "samples": 90,
+          "score_nll": 2.9962891914814893,
+          "score_top1_accuracy": 0.07777777777777778,
+          "over_under_accuracy": 0.6888888888888889,
+          "result_accuracy": 0.5666666666666667,
+          "goal_mae": 0.9735475149764347,
+          "season": 2017,
+          "market_score_nll": 3.0512881103491174,
+          "market_over_under_accuracy": 0.5666666666666667,
+          "market_score_top1_accuracy": 0.07777777777777778
+        },
+        {
+          "samples": 60,
+          "score_nll": 2.999697758091939,
+          "score_top1_accuracy": 0.1,
+          "over_under_accuracy": 0.6,
+          "result_accuracy": 0.5833333333333334,
+          "goal_mae": 1.0086615411731699,
+          "season": 2018,
+          "market_score_nll": 3.049506535760115,
+          "market_over_under_accuracy": 0.6,
+          "market_score_top1_accuracy": 0.1
+        },
+        {
+          "samples": 130,
+          "score_nll": 2.861099249335377,
+          "score_top1_accuracy": 0.14615384615384616,
+          "over_under_accuracy": 0.5307692307692308,
+          "result_accuracy": 0.5923076923076923,
+          "goal_mae": 0.8938074964638663,
+          "season": 2019,
+          "market_score_nll": 2.844927987884336,
+          "market_over_under_accuracy": 0.5384615384615384,
+          "market_score_top1_accuracy": 0.16153846153846155
+        },
+        {
+          "samples": 116,
+          "score_nll": 2.8501604692816063,
+          "score_top1_accuracy": 0.1206896551724138,
+          "over_under_accuracy": 0.5862068965517241,
+          "result_accuracy": 0.7068965517241379,
+          "goal_mae": 0.901798706963665,
+          "season": 2020,
+          "market_score_nll": 2.845941687364256,
+          "market_over_under_accuracy": 0.5258620689655172,
+          "market_score_top1_accuracy": 0.11206896551724138
+        },
+        {
+          "samples": 138,
+          "score_nll": 2.8826223569238723,
+          "score_top1_accuracy": 0.12318840579710146,
+          "over_under_accuracy": 0.5652173913043478,
+          "result_accuracy": 0.5869565217391305,
+          "goal_mae": 0.9002038986722247,
+          "season": 2021,
+          "market_score_nll": 2.838536025439052,
+          "market_over_under_accuracy": 0.6086956521739131,
+          "market_score_top1_accuracy": 0.07971014492753623
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "score_nll": 3.110850582729486,
+        "score_top1_accuracy": 0.09166666666666666,
+        "over_under_accuracy": 0.575,
+        "result_accuracy": 0.55,
+        "goal_mae": 1.0904371005031905
+      }
+    }
+  ],
+  "selected": "euro_cups-poisson-A0.03",
+  "blend_search": [
+    {
+      "model_weight": 0.0,
+      "score_nll": 2.9012624864172922,
+      "over_under_accuracy": 0.5655430711610487,
+      "score_top1_accuracy": 0.10861423220973783
+    },
+    {
+      "model_weight": 0.05,
+      "score_nll": 2.8998701680064083,
+      "over_under_accuracy": 0.5674157303370787,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.1,
+      "score_nll": 2.8985683305522634,
+      "over_under_accuracy": 0.5730337078651685,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.15000000000000002,
+      "score_nll": 2.8973575037377253,
+      "over_under_accuracy": 0.5730337078651685,
+      "score_top1_accuracy": 0.12172284644194757
+    },
+    {
+      "model_weight": 0.2,
+      "score_nll": 2.8962382257391255,
+      "over_under_accuracy": 0.5805243445692884,
+      "score_top1_accuracy": 0.1198501872659176
+    },
+    {
+      "model_weight": 0.25,
+      "score_nll": 2.89521104324578,
+      "over_under_accuracy": 0.5805243445692884,
+      "score_top1_accuracy": 0.12172284644194757
+    },
+    {
+      "model_weight": 0.30000000000000004,
+      "score_nll": 2.8942765114811433,
+      "over_under_accuracy": 0.5767790262172284,
+      "score_top1_accuracy": 0.1198501872659176
+    },
+    {
+      "model_weight": 0.35000000000000003,
+      "score_nll": 2.8934351942255843,
+      "over_under_accuracy": 0.5692883895131086,
+      "score_top1_accuracy": 0.1198501872659176
+    },
+    {
+      "model_weight": 0.4,
+      "score_nll": 2.8926876638407717,
+      "over_under_accuracy": 0.5655430711610487,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.45,
+      "score_nll": 2.8920345012956576,
+      "over_under_accuracy": 0.5655430711610487,
+      "score_top1_accuracy": 0.11610486891385768
+    },
+    {
+      "model_weight": 0.5,
+      "score_nll": 2.891476296194049,
+      "over_under_accuracy": 0.5730337078651685,
+      "score_top1_accuracy": 0.11610486891385768
+    },
+    {
+      "model_weight": 0.55,
+      "score_nll": 2.891013646803751,
+      "over_under_accuracy": 0.5767790262172284,
+      "score_top1_accuracy": 0.1198501872659176
+    },
+    {
+      "model_weight": 0.6000000000000001,
+      "score_nll": 2.89064716008728,
+      "over_under_accuracy": 0.5805243445692884,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.65,
+      "score_nll": 2.8903774517341287,
+      "over_under_accuracy": 0.5749063670411985,
+      "score_top1_accuracy": 0.1198501872659176
+    },
+    {
+      "model_weight": 0.7000000000000001,
+      "score_nll": 2.890205146194581,
+      "over_under_accuracy": 0.5805243445692884,
+      "score_top1_accuracy": 0.1198501872659176
+    },
+    {
+      "model_weight": 0.75,
+      "score_nll": 2.8901308767150615,
+      "over_under_accuracy": 0.5823970037453183,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.8,
+      "score_nll": 2.890155285375019,
+      "over_under_accuracy": 0.5786516853932584,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.8500000000000001,
+      "score_nll": 2.8902790231253297,
+      "over_under_accuracy": 0.5861423220973783,
+      "score_top1_accuracy": 0.11797752808988764
+    },
+    {
+      "model_weight": 0.9,
+      "score_nll": 2.8905027498282174,
+      "over_under_accuracy": 0.5880149812734082,
+      "score_top1_accuracy": 0.11610486891385768
+    },
+    {
+      "model_weight": 0.9500000000000001,
+      "score_nll": 2.8908271342986813,
+      "over_under_accuracy": 0.5823970037453183,
+      "score_top1_accuracy": 0.11610486891385768
+    },
+    {
+      "model_weight": 1.0,
+      "score_nll": 2.891252854347431,
+      "over_under_accuracy": 0.5842696629213483,
+      "score_top1_accuracy": 0.11797752808988764
+    }
+  ],
+  "selected_blend": {
+    "model_weight": 0.75,
+    "score_nll": 2.8901308767150615,
+    "over_under_accuracy": 0.5823970037453183,
+    "score_top1_accuracy": 0.11797752808988764
+  },
+  "blended_final": {
+    "samples": 120,
+    "score_nll": 3.0660336073291945,
+    "score_top1_accuracy": 0.10833333333333334,
+    "over_under_accuracy": 0.6083333333333333,
+    "result_accuracy": 0.5833333333333334,
+    "goal_mae": 1.0475085812641487
+  },
+  "deployment_gate": {
+    "passed": false,
+    "non_losing_folds": 3,
+    "requires_rolling_nll_gain": 0.005,
+    "requires_final_nll_gain": 0.002,
+    "requires_final_ou_not_below_market": true
+  }
+}

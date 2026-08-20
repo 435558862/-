@@ -1,0 +1,538 @@
+{
+  "attempted_at": "2026-08-20T19:34:43",
+  "training_mode": "autonomous_champion_challenger",
+  "evaluation_version": 3,
+  "evolution_attempt": 5,
+  "samples": 4901,
+  "split": {
+    "initial_train": 2941,
+    "validation_folds": 3,
+    "validation_each": 490,
+    "validation_total": 1470,
+    "pretest_train": 4411,
+    "test": 490
+  },
+  "selected_on_validation": {
+    "feature_profile": "market_shape_v2",
+    "C": 0.1,
+    "half_life_rows": null,
+    "model_weight": 0.35000000000000003,
+    "samples": 1470,
+    "accuracy": 0.5034013605442177,
+    "log_loss": 1.0109055155583804,
+    "worst_fold_edge": 0.0,
+    "folds": [
+      {
+        "fold": 1,
+        "samples": 490,
+        "accuracy": 0.49183673469387756,
+        "log_loss": 1.0219917723171197,
+        "market_accuracy": 0.49183673469387756,
+        "accuracy_edge": 0.0
+      },
+      {
+        "fold": 2,
+        "samples": 490,
+        "accuracy": 0.5244897959183673,
+        "log_loss": 0.9978475819189911,
+        "market_accuracy": 0.5163265306122449,
+        "accuracy_edge": 0.008163265306122436
+      },
+      {
+        "fold": 3,
+        "samples": 490,
+        "accuracy": 0.49387755102040815,
+        "log_loss": 1.01287719243903,
+        "market_accuracy": 0.49183673469387756,
+        "accuracy_edge": 0.002040816326530581
+      }
+    ]
+  },
+  "validation_market": {
+    "samples": 1470,
+    "accuracy": 0.5,
+    "log_loss": 1.01040903085333
+  },
+  "test_market": {
+    "samples": 490,
+    "accuracy": 0.536734693877551,
+    "log_loss": 0.975921934004925
+  },
+  "test_challenger": {
+    "samples": 490,
+    "accuracy": 0.5285714285714286,
+    "log_loss": 0.978905817838237
+  },
+  "test_champion": null,
+  "passed": false,
+  "candidates": [
+    {
+      "feature_profile": "market_league_v1",
+      "C": 0.03,
+      "half_life_rows": null,
+      "model_weight": 0.2,
+      "samples": 1470,
+      "accuracy": 0.5020408163265306,
+      "log_loss": 1.0097996882561135,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.017537144173663,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5204081632653061,
+          "log_loss": 0.9975255119026042,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.004081632653061273
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.014336408692074,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_league_v1",
+      "C": 0.1,
+      "half_life_rows": null,
+      "model_weight": 0.225,
+      "samples": 1470,
+      "accuracy": 0.5020408163265306,
+      "log_loss": 1.0097495485720414,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.017820979080001,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5204081632653061,
+          "log_loss": 0.9974921794092705,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.004081632653061273
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.0139354872268522,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_league_v1",
+      "C": 0.3,
+      "half_life_rows": null,
+      "model_weight": 0.15000000000000002,
+      "samples": 1470,
+      "accuracy": 0.501360544217687,
+      "log_loss": 1.0100596177070862,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0177382315431371,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5204081632653061,
+          "log_loss": 0.9978181793647897,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.004081632653061273
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0146224422133316,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_league_v1",
+      "C": 1.0,
+      "half_life_rows": null,
+      "model_weight": 0.2,
+      "samples": 1470,
+      "accuracy": 0.501360544217687,
+      "log_loss": 1.0103865424819736,
+      "worst_fold_edge": -0.0020408163265306367,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.4897959183673469,
+          "log_loss": 1.0183072986621144,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": -0.0020408163265306367
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5224489795918368,
+          "log_loss": 0.9986419709491157,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.00612244897959191
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0142103578346904,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_league_v1",
+      "C": 0.1,
+      "half_life_rows": 1200,
+      "model_weight": 0.35000000000000003,
+      "samples": 1470,
+      "accuracy": 0.501360544217687,
+      "log_loss": 1.009407337029717,
+      "worst_fold_edge": -0.0020408163265306367,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.4897959183673469,
+          "log_loss": 1.0175857998220008,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": -0.0020408163265306367
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5163265306122449,
+          "log_loss": 0.9983673364493971,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49795918367346936,
+          "log_loss": 1.0122688748177526,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.006122448979591799
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_league_v1",
+      "C": 0.3,
+      "half_life_rows": 2400,
+      "model_weight": 0.225,
+      "samples": 1470,
+      "accuracy": 0.5006802721088436,
+      "log_loss": 1.009811819138963,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0178307819948218,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5163265306122449,
+          "log_loss": 0.9981177631647044,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.0134869122573624,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_shape_v2",
+      "C": 0.01,
+      "half_life_rows": null,
+      "model_weight": 0.025,
+      "samples": 1470,
+      "accuracy": 0.5006802721088436,
+      "log_loss": 1.010342486825945,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0172177792956996,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5163265306122449,
+          "log_loss": 0.9977909283930725,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.0160187527890627,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_shape_v2",
+      "C": 0.03,
+      "half_life_rows": null,
+      "model_weight": 0.15000000000000002,
+      "samples": 1470,
+      "accuracy": 0.5020408163265306,
+      "log_loss": 1.0101007409759803,
+      "worst_fold_edge": -0.0020408163265306367,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.4897959183673469,
+          "log_loss": 1.0179872945549058,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": -0.0020408163265306367
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5204081632653061,
+          "log_loss": 0.9976757735643522,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.004081632653061273
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.4959183673469388,
+          "log_loss": 1.014639154808683,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.004081632653061218
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_shape_v2",
+      "C": 0.1,
+      "half_life_rows": null,
+      "model_weight": 0.35000000000000003,
+      "samples": 1470,
+      "accuracy": 0.5034013605442177,
+      "log_loss": 1.0109055155583804,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0219917723171197,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5244897959183673,
+          "log_loss": 0.9978475819189911,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.008163265306122436
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.01287719243903,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_shape_v2",
+      "C": 0.1,
+      "half_life_rows": 1200,
+      "model_weight": 0.325,
+      "samples": 1470,
+      "accuracy": 0.5020408163265306,
+      "log_loss": 1.0107350904364056,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.0210067401247265,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5163265306122449,
+          "log_loss": 0.9984870938753847,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.4959183673469388,
+          "log_loss": 1.0127114373091055,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.004081632653061218
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_team_v2",
+      "C": 0.01,
+      "half_life_rows": null,
+      "model_weight": 0.225,
+      "samples": 1470,
+      "accuracy": 0.5006802721088436,
+      "log_loss": 1.009901051143207,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0179599205882894,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5183673469387755,
+          "log_loss": 0.9979016395184281,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.0020408163265306367
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.013841593322903,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_team_v2",
+      "C": 0.03,
+      "half_life_rows": null,
+      "model_weight": 0.325,
+      "samples": 1470,
+      "accuracy": 0.5006802721088436,
+      "log_loss": 1.0099181395405108,
+      "worst_fold_edge": -0.0020408163265306367,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.4897959183673469,
+          "log_loss": 1.019711287249836,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": -0.0020408163265306367
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5183673469387755,
+          "log_loss": 0.9985632377830319,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.0020408163265306367
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49387755102040815,
+          "log_loss": 1.0114798935886642,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.002040816326530581
+        }
+      ]
+    },
+    {
+      "feature_profile": "market_team_v2",
+      "C": 0.1,
+      "half_life_rows": 1200,
+      "model_weight": 0.15000000000000002,
+      "samples": 1470,
+      "accuracy": 0.501360544217687,
+      "log_loss": 1.0102043523304158,
+      "worst_fold_edge": 0.0,
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0185406527783938,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        },
+        {
+          "fold": 2,
+          "samples": 490,
+          "accuracy": 0.5204081632653061,
+          "log_loss": 0.9987640576798892,
+          "market_accuracy": 0.5163265306122449,
+          "accuracy_edge": 0.004081632653061273
+        },
+        {
+          "fold": 3,
+          "samples": 490,
+          "accuracy": 0.49183673469387756,
+          "log_loss": 1.0133083465329649,
+          "market_accuracy": 0.49183673469387756,
+          "accuracy_edge": 0.0
+        }
+      ]
+    }
+  ]
+}

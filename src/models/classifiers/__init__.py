@@ -1,0 +1,16 @@
+from src.models.classifiers.decisiontree import DecisionTree
+from src.models.classifiers.discriminant import DiscriminantAnalysisClassifier
+from src.models.classifiers.extremeboosting import XGBoost
+from src.models.classifiers.football import (
+    ConditionalHalfFullModel,
+    GoalDistributionModel,
+    MarketBlendResultModel,
+    WeightedLogisticModel,
+)
+from src.models.classifiers.knn import KNN
+from src.models.classifiers.logistic import LogisticRegressor
+from src.models.classifiers.naivebayes import NaiveBayes
+from src.models.classifiers.neuralnets.nn import NeuralNetwork
+from src.models.classifiers.optimized import OptimizedEnsemble
+from src.models.classifiers.randomforest import RandomForest
+from src.models.classifiers.svm import SVM

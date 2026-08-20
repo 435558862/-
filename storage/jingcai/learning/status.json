@@ -1,0 +1,128 @@
+{
+  "last_review": "2026-08-20T20:51:59",
+  "newly_settled": 0,
+  "settled_samples": 111,
+  "new_official_history": 0,
+  "official_history_samples": 4901,
+  "total_training_samples": 4901,
+  "pending_samples": 2,
+  "result_accuracy": 0.4774774774774775,
+  "selected_accuracy": 0.5,
+  "score_accuracy": 0.08108108108108109,
+  "over_under_accuracy": 0.4864864864864865,
+  "accuracy_by_model": {
+    "市场基线": {
+      "samples": 60,
+      "window": 60,
+      "accuracy": 0.48333333333333334,
+      "market_accuracy": 0.48333333333333334,
+      "edge_vs_market": 0.0,
+      "action": "active",
+      "status": "继续启用"
+    },
+    "欧战校准模型": {
+      "samples": 26,
+      "window": 60,
+      "accuracy": 0.4230769230769231,
+      "market_accuracy": 0.4230769230769231,
+      "edge_vs_market": 0.0,
+      "action": "active",
+      "status": "样本积累中"
+    },
+    "瑞超专用模型": {
+      "samples": 4,
+      "window": 60,
+      "accuracy": 0.5,
+      "market_accuracy": 0.5,
+      "edge_vs_market": 0.0,
+      "action": "active",
+      "status": "样本积累中"
+    },
+    "葡超专用模型": {
+      "samples": 4,
+      "window": 60,
+      "accuracy": 1.0,
+      "market_accuracy": 1.0,
+      "edge_vs_market": 0.0,
+      "action": "active",
+      "status": "样本积累中"
+    },
+    "西甲专用模型": {
+      "samples": 4,
+      "window": 60,
+      "accuracy": 1.0,
+      "market_accuracy": 1.0,
+      "edge_vs_market": 0.0,
+      "action": "active",
+      "status": "样本积累中"
+    },
+    "韩职专用模型": {
+      "samples": 2,
+      "window": 60,
+      "accuracy": 0.0,
+      "market_accuracy": 0.0,
+      "edge_vs_market": 0.0,
+      "action": "active",
+      "status": "样本积累中"
+    }
+  },
+  "selection_profile": {
+    "learned_at": "2026-08-20T20:51:59",
+    "as_of": "2026-08-20",
+    "total_samples": 4901,
+    "recent_samples": 1000,
+    "period": "2026-04-26至2026-08-20",
+    "rows": [
+      {
+        "threshold": 0.675,
+        "grade": "精选主推",
+        "accuracy": 0.7591240875912408,
+        "coverage": 0.137,
+        "samples": 137,
+        "full_samples": 670
+      },
+      {
+        "threshold": 0.645,
+        "grade": "高置信主推",
+        "accuracy": 0.7150537634408602,
+        "coverage": 0.186,
+        "samples": 186,
+        "full_samples": 899
+      },
+      {
+        "threshold": 0.555,
+        "grade": "观察",
+        "accuracy": 0.6421319796954315,
+        "coverage": 0.394,
+        "samples": 394,
+        "full_samples": 1834
+      },
+      {
+        "threshold": 0.0,
+        "grade": "跳过",
+        "accuracy": 0.514,
+        "coverage": 1.0,
+        "samples": 1000,
+        "full_samples": 4901
+      }
+    ]
+  },
+  "review_error": "",
+  "model_status": "自主进化候选未稳定胜出，保留当前冠军/市场基线",
+  "model_samples": 4901,
+  "minimum_training_samples": 300,
+  "next_training_at": 4911,
+  "last_training_attempt_rows": 4901,
+  "training_evaluation_version": 3,
+  "last_training_passed": false,
+  "challenger_test_accuracy": 0.5285714285714286,
+  "market_test_accuracy": 0.536734693877551,
+  "evolution_attempts": 5,
+  "champion_generation": 0,
+  "selected_candidate": {
+    "feature_profile": "market_shape_v2",
+    "C": 0.1,
+    "half_life_rows": null,
+    "model_weight": 0.35000000000000003
+  }
+}

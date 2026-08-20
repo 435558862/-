@@ -1,0 +1,2062 @@
+Date,Home,Away,SourceHome,SourceAway,HG,AG,HTHG,HTAG,MatchScore
+2026-08-02,Goteborg,Degerfors,IFK Göteborg,Degerfors IF,2,0,1,0,0.8710526315789473
+2026-08-02,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,1,2,0,0,0.9666666666666667
+2026-08-02,AIK,Orgryte,AIK,Örgryte IS,0,3,0,2,0.9375
+2026-08-01,Hacken,Kalmar,BK Häcken,Kalmar FF,1,1,1,1,0.8571428571428571
+2026-07-26,Sirius,Goteborg,IK Sirius,IFK Göteborg,4,1,2,1,0.849624060150376
+2026-07-26,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,1,2,1,2,0.9444444444444444
+2026-07-26,GAIS,Halmstad,GAIS,Halmstads BK,1,1,0,0,0.9210526315789473
+2026-07-26,Brommapojkarna,Hammarby,IF Brommapojkarna,Hammarby IF,1,1,0,0,0.9111111111111111
+2026-07-25,Kalmar,Mjallby,Kalmar FF,Mjällby AIF,2,1,1,1,0.8403361344537814
+2026-07-25,Degerfors,Djurgarden,Degerfors IF,Djurgården,0,1,0,1,0.95
+2026-07-19,Hammarby,Degerfors,Hammarby IF,Degerfors IF,4,0,1,0,0.8944444444444444
+2026-07-19,Halmstad,Hacken,Halmstads BK,BK Häcken,0,2,0,0,0.849624060150376
+2026-07-19,Elfsborg,Sirius,IF Elfsborg,IK Sirius,1,3,0,0,0.873015873015873
+2026-07-18,AIK,GAIS,AIK,GAIS,2,0,0,0,1.0
+2026-07-12,Vasteras SK,Degerfors,Västerås SK,Degerfors IF,2,0,1,0,0.95
+2026-07-12,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,4,0,3,0,0.9210526315789473
+2026-07-12,Hammarby,Kalmar,Hammarby IF,Kalmar FF,2,0,1,0,0.873015873015873
+2026-07-12,GAIS,Elfsborg,GAIS,IF Elfsborg,1,0,0,0,0.9444444444444444
+2026-07-12,Brommapojkarna,Sirius,IF Brommapojkarna,IK Sirius,1,2,0,2,0.8952380952380952
+2026-07-11,Orgryte,Hacken,Örgryte IS,BK Häcken,4,3,1,2,0.8660714285714286
+2026-07-11,Mjallby,AIK,Mjällby AIF,AIK,1,2,0,0,0.9117647058823529
+2026-07-05,Kalmar,Orgryte,Kalmar FF,Örgryte IS,3,0,1,0,0.8660714285714286
+2026-07-05,Goteborg,AIK,IFK Göteborg,AIK,1,2,1,1,0.9210526315789473
+2026-07-05,Elfsborg,Hammarby,IF Elfsborg,Hammarby IF,1,2,0,0,0.8888888888888888
+2026-07-04,Halmstad,Vasteras SK,Halmstads BK,Västerås SK,1,3,1,2,0.9210526315789473
+2026-07-04,Degerfors,Malmo FF,Degerfors IF,Malmö FF,0,1,0,0,0.95
+2026-05-31,Vasteras SK,Goteborg,Västerås SK,IFK Göteborg,4,5,2,4,0.9210526315789473
+2026-05-31,Hacken,Hammarby,BK Häcken,Hammarby IF,3,2,0,2,0.873015873015873
+2026-05-31,Degerfors,Brommapojkarna,Degerfors IF,IF Brommapojkarna,2,2,0,1,0.9166666666666667
+2026-05-30,Malmo FF,Halmstad,Malmö FF,Halmstads BK,5,2,2,2,0.9210526315789473
+2026-05-30,GAIS,Kalmar,GAIS,Kalmar FF,3,0,1,0,0.9285714285714286
+2026-05-30,AIK,Sirius,AIK,IK Sirius,0,3,0,2,0.9285714285714286
+2026-05-24,Sirius,GAIS,IK Sirius,GAIS,2,1,2,1,0.9285714285714286
+2026-05-24,Malmo FF,Vasteras SK,Malmö FF,Västerås SK,2,3,1,2,1.0
+2026-05-24,Hammarby,AIK,Hammarby IF,AIK,1,2,0,0,0.9444444444444444
+2026-05-23,Kalmar,Degerfors,Kalmar FF,Degerfors IF,2,1,1,0,0.8785714285714286
+2026-05-23,Halmstad,Orgryte,Halmstads BK,Örgryte IS,2,0,1,0,0.8585526315789473
+2026-05-19,Orgryte,Goteborg,Örgryte IS,IFK Göteborg,2,3,1,2,0.8585526315789473
+2026-05-17,Vasteras SK,AIK,Västerås SK,AIK,1,1,1,1,1.0
+2026-05-17,Mjallby,Hacken,Mjällby AIF,BK Häcken,0,1,0,0,0.8403361344537814
+2026-05-17,Hammarby,Malmo FF,Hammarby IF,Malmö FF,4,1,3,1,0.9444444444444444
+2026-05-17,Brommapojkarna,Kalmar,IF Brommapojkarna,Kalmar FF,1,0,1,0,0.8952380952380952
+2026-05-16,Halmstad,Elfsborg,Halmstads BK,IF Elfsborg,1,1,1,0,0.8654970760233918
+2026-05-16,GAIS,Degerfors,GAIS,Degerfors IF,1,1,1,0,0.95
+2026-05-10,Kalmar,Halmstad,Kalmar FF,Halmstads BK,2,0,0,0,0.849624060150376
+2026-05-10,Hacken,Malmo FF,BK Häcken,Malmö FF,3,2,3,2,0.9285714285714286
+2026-05-10,AIK,Djurgarden,AIK,Djurgården,2,4,1,3,1.0
+2026-05-09,Vasteras SK,GAIS,Västerås SK,GAIS,0,1,0,0,1.0
+2026-05-09,Goteborg,Hammarby,IFK Göteborg,Hammarby IF,0,1,0,0,0.8654970760233918
+2026-05-09,Degerfors,Mjallby,Degerfors IF,Mjällby AIF,1,4,0,3,0.861764705882353
+2026-05-03,Malmo FF,Mjallby,Malmö FF,Mjällby AIF,2,3,0,1,0.9117647058823529
+2026-05-03,Hammarby,Vasteras SK,Hammarby IF,Västerås SK,3,0,0,0,0.9444444444444444
+2026-05-03,GAIS,Orgryte,GAIS,Örgryte IS,4,0,1,0,0.9375
+2026-05-03,Elfsborg,AIK,IF Elfsborg,AIK,1,1,1,1,0.9444444444444444
+2026-05-02,Sirius,Kalmar,IK Sirius,Kalmar FF,3,2,0,2,0.8571428571428571
+2026-05-02,Degerfors,Hacken,Degerfors IF,BK Häcken,1,1,0,1,0.8785714285714286
+2026-04-26,Goteborg,GAIS,IFK Göteborg,GAIS,2,2,1,0,0.9210526315789473
+2026-04-26,Djurgarden,Hammarby,Djurgården,Hammarby IF,1,1,1,0,0.9444444444444444
+2026-04-26,Brommapojkarna,Vasteras SK,IF Brommapojkarna,Västerås SK,1,2,1,1,0.9666666666666667
+2026-04-19,Hacken,GAIS,BK Häcken,GAIS,2,1,0,0,0.9285714285714286
+2026-04-19,AIK,Kalmar,AIK,Kalmar FF,1,0,1,0,0.9285714285714286
+2026-04-18,Sirius,Vasteras SK,IK Sirius,Västerås SK,4,1,3,0,0.9285714285714286
+2026-04-18,Mjallby,Brommapojkarna,Mjällby AIF,IF Brommapojkarna,3,0,3,0,0.8784313725490196
+2026-04-18,Hammarby,Orgryte,Hammarby IF,Örgryte IS,8,1,4,1,0.8819444444444444
+2026-04-18,Halmstad,Goteborg,Halmstads BK,IFK Göteborg,1,1,0,0,0.8421052631578947
+2026-04-12,Malmo FF,GAIS,Malmö FF,GAIS,3,1,3,0,1.0
+2026-04-12,Halmstad,Degerfors,Halmstads BK,Degerfors IF,0,3,0,1,0.8710526315789473
+2026-04-12,Djurgarden,Kalmar,Djurgården,Kalmar FF,3,2,2,2,0.9285714285714286
+2026-04-11,Vasteras SK,Elfsborg,Västerås SK,IF Elfsborg,2,2,0,0,0.9444444444444444
+2026-04-11,Mjallby,Orgryte,Mjällby AIF,Örgryte IS,0,2,0,2,0.8492647058823529
+2026-04-11,Goteborg,Hacken,IFK Göteborg,BK Häcken,0,2,0,1,0.849624060150376
+2026-04-06,Hacken,Brommapojkarna,BK Häcken,IF Brommapojkarna,2,2,0,1,0.8952380952380952
+2026-04-06,GAIS,Djurgarden,GAIS,Djurgården,0,1,0,0,1.0
+2026-04-06,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,2,0,0,0,0.8654970760233918
+2026-04-05,Orgryte,Malmo FF,Örgryte IS,Malmö FF,1,1,0,0,0.9375
+2026-04-05,Kalmar,Vasteras SK,Kalmar FF,Västerås SK,0,1,0,1,0.9285714285714286
+2026-04-05,AIK,Halmstad,AIK,Halmstads BK,2,1,1,0,0.9210526315789473
+2026-04-04,Hammarby,Mjallby,Hammarby IF,Mjällby AIF,3,0,2,0,0.8562091503267973
+2026-04-04,Degerfors,Sirius,Degerfors IF,IK Sirius,0,3,0,0,0.8785714285714286
+2025-11-09,Sirius,Varnamo,IK Sirius,IFK Värnamo,3,1,2,0,0.8403361344537814
+2025-11-09,Oster,Djurgarden,Östers IF,Djurgården,1,3,1,0,0.8846153846153846
+2025-11-09,Mjallby,Hacken,Mjällby AIF,BK Häcken,1,0,0,0,0.8403361344537814
+2025-11-09,Malmo FF,GAIS,Malmö FF,GAIS,2,1,0,1,1.0
+2025-11-09,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,3,0,1,0,0.8888888888888888
+2025-11-09,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,2,0,0,0,0.8558352402745995
+2025-11-09,Brommapojkarna,Degerfors,IF Brommapojkarna,Degerfors IF,1,3,0,1,0.9166666666666667
+2025-11-09,AIK,Halmstad,AIK,Halmstads BK,0,2,0,1,0.9210526315789473
+2025-11-02,Halmstad,Brommapojkarna,Halmstads BK,IF Brommapojkarna,0,0,0,0,0.887719298245614
+2025-11-02,GAIS,Oster,GAIS,Östers IF,1,1,1,1,0.8846153846153846
+2025-11-02,Elfsborg,AIK,IF Elfsborg,AIK,0,3,0,1,0.9444444444444444
+2025-11-02,Djurgarden,Goteborg,Djurgården,IFK Göteborg,0,0,0,0,0.9210526315789473
+2025-11-01,Hacken,Malmo FF,BK Häcken,Malmö FF,1,1,0,1,0.9285714285714286
+2025-10-26,Sirius,Elfsborg,IK Sirius,IF Elfsborg,4,0,2,0,0.873015873015873
+2025-10-26,Mjallby,Norrkoping,Mjällby AIF,IFK Norrköping,2,1,0,1,0.8465473145780051
+2025-10-26,Halmstad,Goteborg,Halmstads BK,IFK Göteborg,0,3,0,1,0.8421052631578947
+2025-10-26,AIK,Hacken,AIK,BK Häcken,2,2,2,1,0.9285714285714286
+2025-10-25,Oster,Degerfors,Östers IF,Degerfors IF,1,2,0,0,0.8346153846153846
+2025-10-25,Djurgarden,Varnamo,Djurgården,IFK Värnamo,6,2,2,0,0.9117647058823529
+2025-10-19,Varnamo,Brommapojkarna,IFK Värnamo,IF Brommapojkarna,1,1,0,0,0.8784313725490196
+2025-10-19,Hammarby,AIK,Hammarby IF,AIK,2,1,1,0,0.9444444444444444
+2025-10-19,GAIS,Djurgarden,GAIS,Djurgården,3,2,2,1,1.0
+2025-10-19,Elfsborg,Oster,IF Elfsborg,Östers IF,5,1,2,1,0.829059829059829
+2025-10-18,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,0,2,0,1,0.9347826086956521
+2025-10-18,Hacken,Sirius,BK Häcken,IK Sirius,1,1,1,1,0.8571428571428571
+2025-10-05,Sirius,Malmo FF,IK Sirius,Malmö FF,5,1,2,1,0.9285714285714286
+2025-10-05,Goteborg,Hammarby,IFK Göteborg,Hammarby IF,1,2,0,1,0.8654970760233918
+2025-10-05,Brommapojkarna,Hacken,IF Brommapojkarna,BK Häcken,1,3,1,1,0.8952380952380952
+2025-10-05,AIK,Varnamo,AIK,IFK Värnamo,2,3,0,3,0.9117647058823529
+2025-10-04,Oster,Halmstad,Östers IF,Halmstads BK,3,0,2,0,0.8056680161943319
+2025-10-04,Mjallby,Elfsborg,Mjällby AIF,IF Elfsborg,2,0,1,0,0.8562091503267973
+2025-10-04,GAIS,Norrkoping,GAIS,IFK Norrköping,2,1,2,0,0.9347826086956521
+2025-10-04,Degerfors,Djurgarden,Degerfors IF,Djurgården,1,1,0,0,0.95
+2025-09-28,Malmo FF,Varnamo,Malmö FF,IFK Värnamo,3,2,1,1,0.9117647058823529
+2025-09-28,Halmstad,Hammarby,Halmstads BK,Hammarby IF,1,0,0,0,0.8654970760233918
+2025-09-28,Brommapojkarna,Mjallby,IF Brommapojkarna,Mjällby AIF,0,1,0,0,0.8784313725490196
+2025-09-28,AIK,GAIS,AIK,GAIS,1,1,0,1,1.0
+2025-09-27,Hacken,Norrkoping,BK Häcken,IFK Norrköping,2,0,0,0,0.8633540372670807
+2025-09-27,Elfsborg,Degerfors,IF Elfsborg,Degerfors IF,1,2,0,2,0.8944444444444444
+2025-09-21,Sirius,Degerfors,IK Sirius,Degerfors IF,1,3,1,0,0.8785714285714286
+2025-09-21,Hammarby,Hacken,Hammarby IF,BK Häcken,4,0,0,0,0.873015873015873
+2025-09-21,Goteborg,Brommapojkarna,IFK Göteborg,IF Brommapojkarna,0,1,0,0,0.887719298245614
+2025-09-20,Mjallby,Oster,Mjällby AIF,Östers IF,1,1,1,0,0.7963800904977376
+2025-09-20,Malmo FF,Djurgarden,Malmö FF,Djurgården,0,1,0,0,1.0
+2025-09-20,GAIS,Elfsborg,GAIS,IF Elfsborg,2,0,1,0,0.9444444444444444
+2025-09-14,Sirius,GAIS,IK Sirius,GAIS,3,0,1,0,0.9285714285714286
+2025-09-14,Oster,Varnamo,Östers IF,IFK Värnamo,4,3,2,2,0.7963800904977376
+2025-09-14,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,2,2,0,2,0.9444444444444444
+2025-09-14,Djurgarden,Hammarby,Djurgården,Hammarby IF,3,3,1,2,0.9444444444444444
+2025-09-13,Halmstad,Norrkoping,Halmstads BK,IFK Norrköping,1,1,1,0,0.8558352402745995
+2025-09-13,Degerfors,Mjallby,Degerfors IF,Mjällby AIF,0,1,0,1,0.861764705882353
+2025-08-31,Norrkoping,Djurgarden,IFK Norrköping,Djurgården,0,4,0,2,0.9347826086956521
+2025-08-31,Malmo FF,Degerfors,Malmö FF,Degerfors IF,1,1,1,1,0.95
+2025-08-31,Hammarby,Oster,Hammarby IF,Östers IF,4,0,3,0,0.829059829059829
+2025-08-31,GAIS,Hacken,GAIS,BK Häcken,2,1,1,0,0.9285714285714286
+2025-08-31,AIK,Sirius,AIK,IK Sirius,2,1,0,1,0.9285714285714286
+2025-08-30,Mjallby,Halmstad,Mjällby AIF,Halmstads BK,1,0,0,0,0.8328173374613003
+2025-08-30,Goteborg,Varnamo,IFK Göteborg,IFK Värnamo,1,0,1,0,0.8328173374613003
+2025-08-30,Brommapojkarna,Elfsborg,IF Brommapojkarna,IF Elfsborg,3,0,0,0,0.9111111111111111
+2025-08-24,Varnamo,Hacken,IFK Värnamo,BK Häcken,1,5,1,2,0.8403361344537814
+2025-08-24,Sirius,Hammarby,IK Sirius,Hammarby IF,3,1,1,0,0.873015873015873
+2025-08-24,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,0,0,0,0,0.9210526315789473
+2025-08-24,Elfsborg,Halmstad,IF Elfsborg,Halmstads BK,1,2,0,1,0.8654970760233918
+2025-08-24,Djurgarden,Brommapojkarna,Djurgården,IF Brommapojkarna,1,0,1,0,0.9666666666666667
+2025-08-24,Degerfors,AIK,Degerfors IF,AIK,0,1,0,1,0.95
+2025-08-17,Mjallby,Djurgarden,Mjällby AIF,Djurgården,1,1,0,1,0.9117647058823529
+2025-08-17,Hammarby,GAIS,Hammarby IF,GAIS,1,2,1,1,0.9444444444444444
+2025-08-17,Hacken,Oster,BK Häcken,Östers IF,0,2,0,1,0.8131868131868132
+2025-08-17,Goteborg,AIK,IFK Göteborg,AIK,2,1,1,0,0.9210526315789473
+2025-08-17,Brommapojkarna,Sirius,IF Brommapojkarna,IK Sirius,2,4,0,0,0.8952380952380952
+2025-08-16,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,2,1,1,0,0.8792270531400965
+2025-08-16,Halmstad,Malmo FF,Halmstads BK,Malmö FF,0,4,0,3,0.9210526315789473
+2025-08-10,Oster,Brommapojkarna,Östers IF,IF Brommapojkarna,1,1,1,0,0.8512820512820514
+2025-08-10,Norrkoping,Hammarby,IFK Norrköping,Hammarby IF,0,2,0,0,0.8792270531400965
+2025-08-10,Degerfors,Hacken,Degerfors IF,BK Häcken,0,0,0,0,0.8785714285714286
+2025-08-10,AIK,Djurgarden,AIK,Djurgården,0,0,0,0,1.0
+2025-08-09,Malmo FF,Mjallby,Malmö FF,Mjällby AIF,1,3,0,0,0.9117647058823529
+2025-08-09,Halmstad,Sirius,Halmstads BK,IK Sirius,0,1,0,0,0.849624060150376
+2025-08-03,Sirius,Oster,IK Sirius,Östers IF,1,1,0,0,0.8131868131868132
+2025-08-03,Hacken,Elfsborg,BK Häcken,IF Elfsborg,1,2,0,0,0.873015873015873
+2025-08-03,Djurgarden,Halmstad,Djurgården,Halmstads BK,1,1,1,1,0.9210526315789473
+2025-08-02,Varnamo,GAIS,IFK Värnamo,GAIS,2,2,1,1,0.9117647058823529
+2025-07-27,Varnamo,Hammarby,IFK Värnamo,Hammarby IF,2,3,2,1,0.8562091503267973
+2025-07-27,Mjallby,Sirius,Mjällby AIF,IK Sirius,2,1,0,1,0.8403361344537814
+2025-07-27,Hacken,Djurgarden,BK Häcken,Djurgården,1,6,0,4,0.9285714285714286
+2025-07-27,AIK,Oster,AIK,Östers IF,0,0,0,0,0.8846153846153846
+2025-07-26,GAIS,Halmstad,GAIS,Halmstads BK,3,0,2,0,0.9210526315789473
+2025-07-26,Degerfors,Norrkoping,Degerfors IF,IFK Norrköping,0,0,0,0,0.8847826086956522
+2025-07-26,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,2,3,1,1,0.9666666666666667
+2025-07-20,Sirius,Goteborg,IK Sirius,IFK Göteborg,0,1,0,0,0.849624060150376
+2025-07-20,Mjallby,AIK,Mjällby AIF,AIK,2,0,0,0,0.9117647058823529
+2025-07-20,Hammarby,Brommapojkarna,Hammarby IF,IF Brommapojkarna,3,2,0,2,0.9111111111111111
+2025-07-20,Halmstad,Hacken,Halmstads BK,BK Häcken,0,0,0,0,0.849624060150376
+2025-07-19,Oster,Malmo FF,Östers IF,Malmö FF,0,2,0,1,0.8846153846153846
+2025-07-19,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,1,0,1,0,0.9444444444444444
+2025-07-19,Degerfors,GAIS,Degerfors IF,GAIS,0,3,0,1,0.95
+2025-07-13,Varnamo,Djurgarden,IFK Värnamo,Djurgården,1,0,0,0,0.9117647058823529
+2025-07-13,GAIS,Hammarby,GAIS,Hammarby IF,3,2,1,0,0.9444444444444444
+2025-07-13,Brommapojkarna,Oster,IF Brommapojkarna,Östers IF,2,0,0,0,0.8512820512820514
+2025-07-13,AIK,Degerfors,AIK,Degerfors IF,3,0,1,0,0.95
+2025-07-12,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,3,1,1,0,0.9347826086956521
+2025-07-12,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,1,2,1,2,0.8654970760233918
+2025-07-06,Halmstad,AIK,Halmstads BK,AIK,2,0,2,0,0.9210526315789473
+2025-07-06,Goteborg,Sirius,IFK Göteborg,IK Sirius,3,1,1,1,0.849624060150376
+2025-07-06,Elfsborg,Hacken,IF Elfsborg,BK Häcken,0,2,0,1,0.873015873015873
+2025-07-06,Djurgarden,Degerfors,Djurgården,Degerfors IF,5,1,3,0,0.95
+2025-07-05,Oster,Mjallby,Östers IF,Mjällby AIF,0,1,0,0,0.7963800904977376
+2025-07-05,Hammarby,Varnamo,Hammarby IF,IFK Värnamo,1,0,0,0,0.8562091503267973
+2025-07-05,GAIS,Malmo FF,GAIS,Malmö FF,0,0,0,0,1.0
+2025-06-29,Varnamo,Elfsborg,IFK Värnamo,IF Elfsborg,0,0,0,0,0.8562091503267973
+2025-06-29,Hacken,GAIS,BK Häcken,GAIS,1,3,0,2,0.9285714285714286
+2025-06-29,Degerfors,Brommapojkarna,Degerfors IF,IF Brommapojkarna,0,3,0,1,0.9166666666666667
+2025-06-28,Oster,Sirius,Östers IF,IK Sirius,2,2,0,0,0.8131868131868132
+2025-06-28,Hammarby,Halmstad,Hammarby IF,Halmstads BK,2,0,1,0,0.8654970760233918
+2025-06-01,Sirius,AIK,IK Sirius,AIK,3,1,2,0,0.9285714285714286
+2025-06-01,Mjallby,Varnamo,Mjällby AIF,IFK Värnamo,2,0,0,0,0.8235294117647058
+2025-06-01,Malmo FF,Hacken,Malmö FF,BK Häcken,3,0,2,0,0.9285714285714286
+2025-06-01,Halmstad,Djurgarden,Halmstads BK,Djurgården,1,0,0,0,0.9210526315789473
+2025-06-01,Brommapojkarna,Goteborg,IF Brommapojkarna,IFK Göteborg,1,3,0,2,0.887719298245614
+2025-05-31,Norrkoping,GAIS,IFK Norrköping,GAIS,0,3,0,1,0.9347826086956521
+2025-05-31,Elfsborg,Hammarby,IF Elfsborg,Hammarby IF,0,2,0,0,0.8888888888888888
+2025-05-31,Degerfors,Oster,Degerfors IF,Östers IF,1,2,1,2,0.8346153846153846
+2025-05-25,Halmstad,Elfsborg,Halmstads BK,IF Elfsborg,1,4,1,2,0.8654970760233918
+2025-05-25,Goteborg,Malmo FF,IFK Göteborg,Malmö FF,1,0,0,0,0.9210526315789473
+2025-05-25,Djurgarden,Hacken,Djurgården,BK Häcken,1,1,0,0,0.9285714285714286
+2025-05-25,Brommapojkarna,AIK,IF Brommapojkarna,AIK,0,1,0,1,0.9666666666666667
+2025-05-24,Varnamo,Oster,IFK Värnamo,Östers IF,1,1,1,0,0.7963800904977376
+2025-05-24,GAIS,Sirius,GAIS,IK Sirius,2,1,0,0,0.9285714285714286
+2025-05-18,Oster,GAIS,Östers IF,GAIS,1,1,0,0,0.8846153846153846
+2025-05-18,Malmo FF,Halmstad,Malmö FF,Halmstads BK,3,0,2,0,0.9210526315789473
+2025-05-18,Hacken,Varnamo,BK Häcken,IFK Värnamo,2,0,1,0,0.8403361344537814
+2025-05-18,AIK,Hammarby,AIK,Hammarby IF,0,0,0,0,0.9444444444444444
+2025-05-11,Oster,Elfsborg,Östers IF,IF Elfsborg,0,1,0,0,0.829059829059829
+2025-05-11,Hammarby,Norrkoping,Hammarby IF,IFK Norrköping,1,1,1,1,0.8792270531400965
+2025-05-11,Degerfors,Malmo FF,Degerfors IF,Malmö FF,1,4,0,2,0.95
+2025-05-11,AIK,Mjallby,AIK,Mjällby AIF,2,1,1,1,0.9117647058823529
+2025-05-10,Sirius,Hacken,IK Sirius,BK Häcken,2,0,1,0,0.8571428571428571
+2025-05-10,GAIS,Varnamo,GAIS,IFK Värnamo,1,1,1,0,0.9117647058823529
+2025-05-10,Brommapojkarna,Halmstad,IF Brommapojkarna,Halmstads BK,0,1,0,0,0.887719298245614
+2025-05-04,Oster,Hammarby,Östers IF,Hammarby IF,0,3,0,3,0.829059829059829
+2025-05-04,Norrkoping,Hacken,IFK Norrköping,BK Häcken,0,2,0,1,0.8633540372670807
+2025-05-04,Mjallby,Goteborg,Mjällby AIF,IFK Göteborg,1,0,1,0,0.8328173374613003
+2025-05-04,Djurgarden,AIK,Djurgården,AIK,1,1,1,0,1.0
+2025-05-03,Halmstad,Varnamo,Halmstads BK,IFK Värnamo,4,2,2,0,0.8328173374613003
+2025-05-03,Degerfors,Sirius,Degerfors IF,IK Sirius,1,1,1,1,0.8785714285714286
+2025-04-27,Varnamo,Norrkoping,IFK Värnamo,IFK Norrköping,1,3,0,2,0.8465473145780051
+2025-04-27,Sirius,Halmstad,IK Sirius,Halmstads BK,1,1,1,1,0.849624060150376
+2025-04-27,Mjallby,Degerfors,Mjällby AIF,Degerfors IF,4,1,3,0,0.861764705882353
+2025-04-27,Hacken,Hammarby,BK Häcken,Hammarby IF,1,1,0,0,0.873015873015873
+2025-04-27,AIK,Elfsborg,AIK,IF Elfsborg,2,0,2,0,0.9444444444444444
+2025-04-21,Djurgarden,GAIS,Djurgården,GAIS,0,0,0,0,1.0
+2025-04-20,Oster,AIK,Östers IF,AIK,0,1,0,0,0.8846153846153846
+2025-04-20,Goteborg,Hacken,IFK Göteborg,BK Häcken,2,3,2,2,0.849624060150376
+2025-04-20,Brommapojkarna,Varnamo,IF Brommapojkarna,IFK Värnamo,3,2,1,0,0.8784313725490196
+2025-04-19,Norrkoping,Halmstad,IFK Norrköping,Halmstads BK,3,0,0,0,0.8558352402745995
+2025-04-19,Degerfors,Elfsborg,Degerfors IF,IF Elfsborg,0,1,0,0,0.8944444444444444
+2025-04-18,Mjallby,Hammarby,Mjällby AIF,Hammarby IF,3,1,3,1,0.8562091503267973
+2025-04-18,Malmo FF,Sirius,Malmö FF,IK Sirius,1,1,0,1,0.9285714285714286
+2025-04-13,Varnamo,Goteborg,IFK Värnamo,IFK Göteborg,0,1,0,1,0.8328173374613003
+2025-04-13,Sirius,Brommapojkarna,IK Sirius,IF Brommapojkarna,0,3,0,0,0.8952380952380952
+2025-04-13,Hammarby,Djurgarden,Hammarby IF,Djurgården,2,0,1,0,0.9444444444444444
+2025-04-13,GAIS,Degerfors,GAIS,Degerfors IF,2,0,2,0,0.95
+2025-04-12,Hacken,Mjallby,BK Häcken,Mjällby AIF,0,3,0,1,0.8403361344537814
+2025-04-12,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,2,0,1,0,0.8792270531400965
+2025-04-06,Mjallby,GAIS,Mjällby AIF,GAIS,1,1,0,0,0.9117647058823529
+2025-04-06,Degerfors,Varnamo,Degerfors IF,IFK Värnamo,1,0,1,0,0.861764705882353
+2025-04-06,Brommapojkarna,Hammarby,IF Brommapojkarna,Hammarby IF,0,2,0,0,0.9111111111111111
+2025-04-06,AIK,Norrkoping,AIK,IFK Norrköping,4,3,0,1,0.9347826086956521
+2025-04-05,Sirius,Djurgarden,IK Sirius,Djurgården,0,1,0,0,0.9285714285714286
+2025-04-05,Oster,Hacken,Östers IF,BK Häcken,2,0,1,0,0.8131868131868132
+2025-04-05,Goteborg,Halmstad,IFK Göteborg,Halmstads BK,1,0,0,0,0.8421052631578947
+2025-03-30,Norrkoping,Oster,IFK Norrköping,Östers IF,4,3,2,1,0.8193979933110368
+2025-03-30,Hammarby,Goteborg,Hammarby IF,IFK Göteborg,4,0,2,0,0.8654970760233918
+2025-03-30,Halmstad,Degerfors,Halmstads BK,Degerfors IF,0,5,0,1,0.8710526315789473
+2025-03-30,Elfsborg,Mjallby,IF Elfsborg,Mjällby AIF,2,2,0,2,0.8562091503267973
+2025-03-29,Djurgarden,Malmo FF,Djurgården,Malmö FF,0,1,0,1,1.0
+2024-11-10,Vasteras SK,Hammarby,Västerås SK,Hammarby IF,1,0,0,0,0.9444444444444444
+2024-11-10,Varnamo,Elfsborg,IFK Värnamo,IF Elfsborg,0,0,0,0,0.8562091503267973
+2024-11-10,Mjallby,Goteborg,Mjällby AIF,IFK Göteborg,1,0,1,0,0.8328173374613003
+2024-11-10,Malmo FF,Brommapojkarna,Malmö FF,IF Brommapojkarna,2,1,2,1,0.9666666666666667
+2024-11-10,GAIS,Sirius,GAIS,IK Sirius,2,1,1,0,0.9285714285714286
+2024-11-10,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,3,1,1,0,0.9347826086956521
+2024-11-03,Sirius,Mjallby,IK Sirius,Mjällby AIF,1,1,1,1,0.8403361344537814
+2024-11-03,Halmstad,Djurgarden,Halmstads BK,Djurgården,1,0,0,0,0.9210526315789473
+2024-11-03,Hacken,GAIS,BK Häcken,GAIS,1,2,1,1,0.9285714285714286
+2024-11-03,Brommapojkarna,Varnamo,IF Brommapojkarna,IFK Värnamo,0,1,0,1,0.8784313725490196
+2024-11-02,Hammarby,Malmo FF,Hammarby IF,Malmö FF,2,2,2,0,0.9444444444444444
+2024-11-02,Elfsborg,Vasteras SK,IF Elfsborg,Västerås SK,1,0,1,0,0.9444444444444444
+2024-10-27,Varnamo,Norrkoping,IFK Värnamo,IFK Norrköping,1,2,0,1,0.8465473145780051
+2024-10-27,Hacken,Halmstad,BK Häcken,Halmstads BK,0,1,0,0,0.849624060150376
+2024-10-27,AIK,Elfsborg,AIK,IF Elfsborg,2,1,1,0,0.9444444444444444
+2024-10-26,Sirius,Hammarby,IK Sirius,Hammarby IF,0,3,0,2,0.873015873015873
+2024-10-26,Mjallby,GAIS,Mjällby AIF,GAIS,1,1,0,0,0.9117647058823529
+2024-10-26,Brommapojkarna,Kalmar,IF Brommapojkarna,Kalmar FF,1,2,0,0,0.8952380952380952
+2024-10-21,Hammarby,Djurgarden,Hammarby IF,Djurgården,2,0,2,0,0.9444444444444444
+2024-10-20,Kalmar,Mjallby,Kalmar FF,Mjällby AIF,0,3,0,2,0.8403361344537814
+2024-10-20,GAIS,Varnamo,GAIS,IFK Värnamo,0,0,0,0,0.9117647058823529
+2024-10-19,Vasteras SK,Malmo FF,Västerås SK,Malmö FF,1,1,0,1,1.0
+2024-10-19,Halmstad,Sirius,Halmstads BK,IK Sirius,3,1,2,0,0.849624060150376
+2024-10-19,Elfsborg,Hacken,IF Elfsborg,BK Häcken,1,3,0,1,0.873015873015873
+2024-10-06,Sirius,Elfsborg,IK Sirius,IF Elfsborg,4,1,1,1,0.873015873015873
+2024-10-06,Norrkoping,Goteborg,IFK Norrköping,IFK Göteborg,0,2,0,1,0.8558352402745995
+2024-10-06,Malmo FF,Varnamo,Malmö FF,IFK Värnamo,1,1,0,0,0.9117647058823529
+2024-10-06,Djurgarden,Kalmar,Djurgården,Kalmar FF,1,1,0,1,0.9285714285714286
+2024-10-06,AIK,Hacken,AIK,BK Häcken,0,2,0,0,0.9285714285714286
+2024-10-05,Mjallby,Vasteras SK,Mjällby AIF,Västerås SK,2,1,1,1,0.9117647058823529
+2024-10-05,Hammarby,Halmstad,Hammarby IF,Halmstads BK,1,0,0,0,0.8654970760233918
+2024-10-05,Brommapojkarna,GAIS,IF Brommapojkarna,GAIS,2,0,0,0,0.9666666666666667
+2024-09-29,Varnamo,Djurgarden,IFK Värnamo,Djurgården,1,1,0,0,0.9117647058823529
+2024-09-29,Malmo FF,Mjallby,Malmö FF,Mjällby AIF,2,0,2,0,0.9117647058823529
+2024-09-29,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,1,3,1,2,0.873015873015873
+2024-09-29,Halmstad,Norrkoping,Halmstads BK,IFK Norrköping,0,0,0,0,0.8558352402745995
+2024-09-29,Hacken,Sirius,BK Häcken,IK Sirius,2,0,0,0,0.8571428571428571
+2024-09-29,AIK,Hammarby,AIK,Hammarby IF,1,0,0,0,0.9444444444444444
+2024-09-22,Varnamo,Vasteras SK,IFK Värnamo,Västerås SK,2,0,2,0,0.9117647058823529
+2024-09-22,Malmo FF,Hacken,Malmö FF,BK Häcken,4,0,1,0,0.9285714285714286
+2024-09-22,GAIS,Djurgarden,GAIS,Djurgården,3,0,1,0,1.0
+2024-09-22,Elfsborg,Hammarby,IF Elfsborg,Hammarby IF,0,0,0,0,0.8888888888888888
+2024-09-21,Kalmar,AIK,Kalmar FF,AIK,0,1,0,0,0.9285714285714286
+2024-09-21,Brommapojkarna,Mjallby,IF Brommapojkarna,Mjällby AIF,0,0,0,0,0.8784313725490196
+2024-09-15,Sirius,Brommapojkarna,IK Sirius,IF Brommapojkarna,3,2,1,1,0.8952380952380952
+2024-09-15,Kalmar,Varnamo,Kalmar FF,IFK Värnamo,3,1,1,0,0.8403361344537814
+2024-09-15,Halmstad,Elfsborg,Halmstads BK,IF Elfsborg,0,1,0,1,0.8654970760233918
+2024-09-15,Hacken,Goteborg,BK Häcken,IFK Göteborg,3,3,1,2,0.849624060150376
+2024-09-15,Djurgarden,Mjallby,Djurgården,Mjällby AIF,1,1,1,1,0.9117647058823529
+2024-09-15,AIK,Malmo FF,AIK,Malmö FF,0,0,0,0,1.0
+2024-09-14,Vasteras SK,GAIS,Västerås SK,GAIS,2,3,0,3,1.0
+2024-09-01,Norrkoping,Hacken,IFK Norrköping,BK Häcken,3,3,1,0,0.8633540372670807
+2024-09-01,Malmo FF,Djurgarden,Malmö FF,Djurgården,4,0,3,0,1.0
+2024-09-01,Goteborg,Hammarby,IFK Göteborg,Hammarby IF,0,1,0,0,0.8654970760233918
+2024-09-01,Brommapojkarna,Elfsborg,IF Brommapojkarna,IF Elfsborg,3,3,2,1,0.9111111111111111
+2024-08-31,Vasteras SK,Sirius,Västerås SK,IK Sirius,1,2,1,1,0.9285714285714286
+2024-08-31,Varnamo,AIK,IFK Värnamo,AIK,0,1,0,1,0.9117647058823529
+2024-08-31,Mjallby,Halmstad,Mjällby AIF,Halmstads BK,3,1,3,1,0.8328173374613003
+2024-08-31,GAIS,Kalmar,GAIS,Kalmar FF,1,1,1,1,0.9285714285714286
+2024-08-25,Sirius,Djurgarden,IK Sirius,Djurgården,0,1,0,0,0.9285714285714286
+2024-08-25,Hacken,Varnamo,BK Häcken,IFK Värnamo,1,1,1,0,0.8403361344537814
+2024-08-25,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,3,1,1,0,0.8654970760233918
+2024-08-25,AIK,Brommapojkarna,AIK,IF Brommapojkarna,2,1,2,1,0.9666666666666667
+2024-08-24,Kalmar,Malmo FF,Kalmar FF,Malmö FF,2,2,0,1,0.9285714285714286
+2024-08-18,Mjallby,Elfsborg,Mjällby AIF,IF Elfsborg,1,1,1,1,0.8562091503267973
+2024-08-18,GAIS,Halmstad,GAIS,Halmstads BK,3,1,2,0,0.9210526315789473
+2024-08-18,Djurgarden,AIK,Djurgården,AIK,0,2,0,1,1.0
+2024-08-18,Brommapojkarna,Hacken,IF Brommapojkarna,BK Häcken,1,3,0,1,0.8952380952380952
+2024-08-17,Vasteras SK,Kalmar,Västerås SK,Kalmar FF,2,1,0,1,0.9285714285714286
+2024-08-17,Varnamo,Hammarby,IFK Värnamo,Hammarby IF,0,3,0,1,0.8562091503267973
+2024-08-17,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,2,1,1,1,0.9347826086956521
+2024-08-17,Goteborg,Sirius,IFK Göteborg,IK Sirius,1,1,0,0,0.849624060150376
+2024-08-11,Sirius,Kalmar,IK Sirius,Kalmar FF,3,1,0,0,0.8571428571428571
+2024-08-11,Elfsborg,GAIS,IF Elfsborg,GAIS,2,1,2,1,0.9444444444444444
+2024-08-11,AIK,Mjallby,AIK,Mjällby AIF,1,0,0,0,0.9117647058823529
+2024-08-10,Norrkoping,Vasteras SK,IFK Norrköping,Västerås SK,2,1,0,0,0.9347826086956521
+2024-08-10,Halmstad,Malmo FF,Halmstads BK,Malmö FF,0,1,0,1,0.9210526315789473
+2024-08-10,Goteborg,Varnamo,IFK Göteborg,IFK Värnamo,0,0,0,0,0.8328173374613003
+2024-08-04,Varnamo,Sirius,IFK Värnamo,IK Sirius,2,4,0,2,0.8403361344537814
+2024-08-04,Kalmar,Hammarby,Kalmar FF,Hammarby IF,1,4,0,1,0.873015873015873
+2024-08-04,Djurgarden,Goteborg,Djurgården,IFK Göteborg,1,1,0,0,0.9210526315789473
+2024-08-03,Vasteras SK,AIK,Västerås SK,AIK,1,2,1,2,1.0
+2024-08-03,GAIS,Norrkoping,GAIS,IFK Norrköping,0,1,0,0,0.9347826086956521
+2024-08-03,Brommapojkarna,Halmstad,IF Brommapojkarna,Halmstads BK,4,1,3,1,0.887719298245614
+2024-07-28,Hammarby,Mjallby,Hammarby IF,Mjällby AIF,3,0,0,0,0.8562091503267973
+2024-07-28,Hacken,Vasteras SK,BK Häcken,Västerås SK,4,0,2,0,0.9285714285714286
+2024-07-28,Elfsborg,Djurgarden,IF Elfsborg,Djurgården,1,2,1,1,0.9444444444444444
+2024-07-27,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,2,0,1,0,0.8633540372670807
+2024-07-27,Malmo FF,Sirius,Malmö FF,IK Sirius,0,1,0,0,0.9285714285714286
+2024-07-27,Goteborg,Brommapojkarna,IFK Göteborg,IF Brommapojkarna,3,4,1,1,0.887719298245614
+2024-07-21,Norrkoping,Halmstad,IFK Norrköping,Halmstads BK,1,0,1,0,0.8558352402745995
+2024-07-21,Goteborg,Vasteras SK,IFK Göteborg,Västerås SK,1,1,0,0,0.9210526315789473
+2024-07-21,Elfsborg,Mjallby,IF Elfsborg,Mjällby AIF,3,1,2,1,0.8562091503267973
+2024-07-20,Varnamo,Hacken,IFK Värnamo,BK Häcken,2,2,0,2,0.8403361344537814
+2024-07-20,Kalmar,Djurgarden,Kalmar FF,Djurgården,2,1,1,1,0.9285714285714286
+2024-07-20,Brommapojkarna,Hammarby,IF Brommapojkarna,Hammarby IF,0,2,0,0,0.9111111111111111
+2024-07-14,Vasteras SK,Norrkoping,Västerås SK,IFK Norrköping,2,1,0,0,0.9347826086956521
+2024-07-14,Kalmar,Brommapojkarna,Kalmar FF,IF Brommapojkarna,0,1,0,0,0.8952380952380952
+2024-07-14,Hacken,Elfsborg,BK Häcken,IF Elfsborg,3,5,2,1,0.873015873015873
+2024-07-14,Djurgarden,Varnamo,Djurgården,IFK Värnamo,1,0,1,0,0.9117647058823529
+2024-07-13,Sirius,GAIS,IK Sirius,GAIS,3,1,1,0,0.9285714285714286
+2024-07-13,Mjallby,Malmo FF,Mjällby AIF,Malmö FF,2,1,1,0,0.9117647058823529
+2024-07-07,Varnamo,Goteborg,IFK Värnamo,IFK Göteborg,2,0,0,0,0.8328173374613003
+2024-07-07,Malmo FF,Halmstad,Malmö FF,Halmstads BK,5,1,2,1,0.9210526315789473
+2024-07-07,GAIS,Hammarby,GAIS,Hammarby IF,0,0,0,0,0.9444444444444444
+2024-07-07,AIK,Kalmar,AIK,Kalmar FF,1,2,0,1,0.9285714285714286
+2024-07-06,Elfsborg,Brommapojkarna,IF Elfsborg,IF Brommapojkarna,3,0,1,0,0.9111111111111111
+2024-06-02,Varnamo,Mjallby,IFK Värnamo,Mjällby AIF,1,2,0,1,0.8235294117647058
+2024-06-02,Kalmar,Vasteras SK,Kalmar FF,Västerås SK,0,4,0,1,0.9285714285714286
+2024-06-02,Hacken,AIK,BK Häcken,AIK,4,1,2,0,0.9285714285714286
+2024-06-02,Djurgarden,Hammarby,Djurgården,Hammarby IF,0,3,0,2,0.9444444444444444
+2024-06-01,Sirius,Norrkoping,IK Sirius,IFK Norrköping,5,1,3,0,0.8633540372670807
+2024-06-01,Halmstad,GAIS,Halmstads BK,GAIS,4,0,2,0,0.9210526315789473
+2024-06-01,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,1,0,1,0,0.8654970760233918
+2024-06-01,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,2,2,1,1,0.9666666666666667
+2024-05-26,Vasteras SK,Brommapojkarna,Västerås SK,IF Brommapojkarna,1,1,1,1,0.9666666666666667
+2024-05-26,Hammarby,Sirius,Hammarby IF,IK Sirius,3,0,1,0,0.873015873015873
+2024-05-25,Mjallby,Djurgarden,Mjällby AIF,Djurgården,1,3,0,2,0.9117647058823529
+2024-05-25,GAIS,Hacken,GAIS,BK Häcken,3,0,2,0,0.9285714285714286
+2024-05-19,Varnamo,Kalmar,IFK Värnamo,Kalmar FF,0,2,0,2,0.8403361344537814
+2024-05-19,Hammarby,AIK,Hammarby IF,AIK,2,1,0,0,0.9444444444444444
+2024-05-19,GAIS,Elfsborg,GAIS,IF Elfsborg,2,1,2,1,0.9444444444444444
+2024-05-19,Brommapojkarna,Norrkoping,IF Brommapojkarna,IFK Norrköping,2,1,2,1,0.9014492753623189
+2024-05-12,Varnamo,Brommapojkarna,IFK Värnamo,IF Brommapojkarna,1,1,1,0,0.8784313725490196
+2024-05-12,Norrkoping,Hammarby,IFK Norrköping,Hammarby IF,1,2,1,1,0.8792270531400965
+2024-05-12,Hacken,Kalmar,BK Häcken,Kalmar FF,3,1,1,1,0.8571428571428571
+2024-05-12,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,2,0,0,0,0.9444444444444444
+2024-05-11,Halmstad,Mjallby,Halmstads BK,Mjällby AIF,1,3,0,3,0.8328173374613003
+2024-05-11,GAIS,Vasteras SK,GAIS,Västerås SK,2,0,2,0,1.0
+2024-05-11,AIK,Sirius,AIK,IK Sirius,1,3,0,1,0.9285714285714286
+2024-05-05,Vasteras SK,Djurgarden,Västerås SK,Djurgården,0,2,0,1,1.0
+2024-05-05,Hammarby,Varnamo,Hammarby IF,IFK Värnamo,1,2,0,0,0.8562091503267973
+2024-05-05,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,3,1,1,0,0.9444444444444444
+2024-05-05,AIK,Norrkoping,AIK,IFK Norrköping,6,2,3,0,0.9347826086956521
+2024-05-04,Sirius,Hacken,IK Sirius,BK Häcken,0,3,0,3,0.8571428571428571
+2024-05-04,Mjallby,Brommapojkarna,Mjällby AIF,IF Brommapojkarna,1,1,1,0,0.8784313725490196
+2024-05-04,Kalmar,Halmstad,Kalmar FF,Halmstads BK,5,2,1,2,0.849624060150376
+2024-04-28,Varnamo,Halmstad,IFK Värnamo,Halmstads BK,1,3,0,3,0.8328173374613003
+2024-04-28,Malmo FF,AIK,Malmö FF,AIK,5,0,3,0,1.0
+2024-04-28,Hacken,Norrkoping,BK Häcken,IFK Norrköping,1,2,0,1,0.8633540372670807
+2024-04-28,Djurgarden,GAIS,Djurgården,GAIS,1,0,0,0,1.0
+2024-04-21,Halmstad,Brommapojkarna,Halmstads BK,IF Brommapojkarna,0,2,0,1,0.887719298245614
+2024-04-21,Hacken,Hammarby,BK Häcken,Hammarby IF,2,1,0,1,0.873015873015873
+2024-04-21,GAIS,Mjallby,GAIS,Mjällby AIF,2,1,0,0,0.9117647058823529
+2024-04-21,AIK,Djurgarden,AIK,Djurgården,2,0,0,0,1.0
+2024-04-20,Sirius,Varnamo,IK Sirius,IFK Värnamo,0,1,0,1,0.8403361344537814
+2024-04-20,Malmo FF,Vasteras SK,Malmö FF,Västerås SK,1,0,0,0,1.0
+2024-04-20,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,1,1,1,1,0.8558352402745995
+2024-04-14,Norrkoping,GAIS,IFK Norrköping,GAIS,1,0,0,0,0.9347826086956521
+2024-04-14,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,0,1,0,0,0.849624060150376
+2024-04-14,Djurgarden,Sirius,Djurgården,IK Sirius,2,0,1,0,0.9285714285714286
+2024-04-13,Vasteras SK,Halmstad,Västerås SK,Halmstads BK,0,1,0,1,0.9210526315789473
+2024-04-13,Mjallby,AIK,Mjällby AIF,AIK,1,1,0,0,0.9117647058823529
+2024-04-07,Vasteras SK,Elfsborg,Västerås SK,IF Elfsborg,0,1,0,0,0.9444444444444444
+2024-04-07,Malmo FF,Hammarby,Malmö FF,Hammarby IF,2,0,1,0,0.9444444444444444
+2024-04-07,Halmstad,Goteborg,Halmstads BK,IFK Göteborg,1,0,1,0,0.8421052631578947
+2024-04-06,Mjallby,Norrkoping,Mjällby AIF,IFK Norrköping,3,0,2,0,0.8465473145780051
+2024-04-06,Brommapojkarna,AIK,IF Brommapojkarna,AIK,2,2,1,0,0.9666666666666667
+2024-04-01,Sirius,Halmstad,IK Sirius,Halmstads BK,3,0,1,0,0.849624060150376
+2024-04-01,Goteborg,Djurgarden,IFK Göteborg,Djurgården,1,4,0,2,0.9210526315789473
+2024-04-01,Elfsborg,Varnamo,IF Elfsborg,IFK Värnamo,2,2,2,1,0.8562091503267973
+2024-04-01,AIK,Vasteras SK,AIK,Västerås SK,1,0,0,0,1.0
+2024-03-31,Hammarby,Kalmar,Hammarby IF,Kalmar FF,3,1,2,1,0.873015873015873
+2024-03-31,Hacken,Mjallby,BK Häcken,Mjällby AIF,0,1,0,0,0.8403361344537814
+2024-03-31,GAIS,Brommapojkarna,GAIS,IF Brommapojkarna,0,4,0,2,0.9666666666666667
+2024-03-30,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,1,5,0,3,0.9347826086956521
+2023-11-12,Varberg,Goteborg,Varbergs BoIS FC,IFK Göteborg,1,2,0,0,0.7543859649122806
+2023-11-12,Sirius,Norrkoping,IK Sirius,IFK Norrköping,2,0,0,0,0.8633540372670807
+2023-11-12,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,1,0,0,0,0.9444444444444444
+2023-11-12,Kalmar,Djurgarden,Kalmar FF,Djurgården,2,1,0,0,0.9285714285714286
+2023-11-12,Hammarby,Halmstad,Hammarby IF,Halmstads BK,2,2,1,1,0.8654970760233918
+2023-11-12,Degerfors,Mjallby,Degerfors IF,Mjällby AIF,1,2,0,0,0.861764705882353
+2023-11-12,Brommapojkarna,Hacken,IF Brommapojkarna,BK Häcken,2,1,0,1,0.8952380952380952
+2023-11-12,AIK,Varnamo,AIK,IFK Värnamo,3,1,3,0,0.9117647058823529
+2023-11-05,Halmstad,Kalmar,Halmstads BK,Kalmar FF,3,0,1,0,0.849624060150376
+2023-11-05,Hacken,Malmo FF,BK Häcken,Malmö FF,4,2,1,1,0.9285714285714286
+2023-11-04,Varnamo,Hammarby,IFK Värnamo,Hammarby IF,0,0,0,0,0.8562091503267973
+2023-10-29,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,0,1,0,0,0.9347826086956521
+2023-10-29,Mjallby,Hacken,Mjällby AIF,BK Häcken,2,1,0,0,0.8403361344537814
+2023-10-29,Kalmar,Varnamo,Kalmar FF,IFK Värnamo,1,3,0,1,0.8403361344537814
+2023-10-28,Varberg,Degerfors,Varbergs BoIS FC,Degerfors IF,1,1,1,1,0.7833333333333333
+2023-10-28,Brommapojkarna,Djurgarden,IF Brommapojkarna,Djurgården,1,2,0,1,0.9666666666666667
+2023-10-22,Malmo FF,Varberg,Malmö FF,Varbergs BoIS FC,5,0,1,0,0.8333333333333333
+2023-10-22,Halmstad,Mjallby,Halmstads BK,Mjällby AIF,1,1,1,0,0.8328173374613003
+2023-10-22,Hacken,Norrkoping,BK Häcken,IFK Norrköping,4,1,2,1,0.8633540372670807
+2023-10-22,Djurgarden,Hammarby,Djurgården,Hammarby IF,0,0,0,0,0.9444444444444444
+2023-10-21,Sirius,Brommapojkarna,IK Sirius,IF Brommapojkarna,3,2,1,1,0.8952380952380952
+2023-10-21,Degerfors,Kalmar,Degerfors IF,Kalmar FF,1,3,0,3,0.8785714285714286
+2023-10-08,Varnamo,Norrkoping,IFK Värnamo,IFK Norrköping,2,1,0,1,0.8465473145780051
+2023-10-08,Varberg,Djurgarden,Varbergs BoIS FC,Djurgården,0,1,0,0,0.8333333333333333
+2023-10-08,Kalmar,Malmo FF,Kalmar FF,Malmö FF,1,0,0,0,0.9285714285714286
+2023-10-08,Hammarby,Hacken,Hammarby IF,BK Häcken,2,2,1,0,0.873015873015873
+2023-10-08,Brommapojkarna,Elfsborg,IF Brommapojkarna,IF Elfsborg,0,3,0,0,0.9111111111111111
+2023-10-07,Halmstad,Degerfors,Halmstads BK,Degerfors IF,0,0,0,0,0.8710526315789473
+2023-10-07,Goteborg,Sirius,IFK Göteborg,IK Sirius,0,1,0,0,0.849624060150376
+2023-10-07,AIK,Mjallby,AIK,Mjällby AIF,1,0,1,0,0.9117647058823529
+2023-10-01,Sirius,Degerfors,IK Sirius,Degerfors IF,3,2,0,1,0.8785714285714286
+2023-10-01,Mjallby,Varnamo,Mjällby AIF,IFK Värnamo,2,3,2,1,0.8235294117647058
+2023-10-01,Hammarby,Goteborg,Hammarby IF,IFK Göteborg,1,1,0,0,0.8654970760233918
+2023-10-01,Hacken,AIK,BK Häcken,AIK,2,0,0,0,0.9285714285714286
+2023-09-30,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,1,0,1,0,0.8633540372670807
+2023-09-30,Djurgarden,Halmstad,Djurgården,Halmstads BK,1,0,0,0,0.9210526315789473
+2023-09-24,Varberg,Hammarby,Varbergs BoIS FC,Hammarby IF,0,1,0,0,0.7777777777777777
+2023-09-24,Mjallby,Goteborg,Mjällby AIF,IFK Göteborg,0,1,0,0,0.8328173374613003
+2023-09-24,Kalmar,Hacken,Kalmar FF,BK Häcken,1,0,1,0,0.8571428571428571
+2023-09-24,AIK,Djurgarden,AIK,Djurgården,2,0,0,0,1.0
+2023-09-23,Degerfors,Malmo FF,Degerfors IF,Malmö FF,1,2,0,1,0.95
+2023-09-23,Brommapojkarna,Norrkoping,IF Brommapojkarna,IFK Norrköping,2,2,0,2,0.9014492753623189
+2023-09-17,Hammarby,Malmo FF,Hammarby IF,Malmö FF,1,3,0,2,0.9444444444444444
+2023-09-17,Hacken,Halmstad,BK Häcken,Halmstads BK,3,2,1,0,0.849624060150376
+2023-09-17,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,0,3,0,3,0.873015873015873
+2023-09-16,Sirius,Varberg,IK Sirius,Varbergs BoIS FC,7,0,5,0,0.7619047619047619
+2023-09-16,Goteborg,Brommapojkarna,IFK Göteborg,IF Brommapojkarna,1,0,0,0,0.887719298245614
+2023-09-16,Djurgarden,Varnamo,Djurgården,IFK Värnamo,1,2,0,1,0.9117647058823529
+2023-09-03,Varberg,Brommapojkarna,Varbergs BoIS FC,IF Brommapojkarna,4,3,2,1,0.8
+2023-09-03,Norrkoping,Djurgarden,IFK Norrköping,Djurgården,0,2,0,0,0.9347826086956521
+2023-09-03,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,2,2,0,2,0.9210526315789473
+2023-09-03,Kalmar,Mjallby,Kalmar FF,Mjällby AIF,0,2,0,2,0.8403361344537814
+2023-09-03,Hammarby,AIK,Hammarby IF,AIK,4,2,1,1,0.9444444444444444
+2023-09-03,Degerfors,Hacken,Degerfors IF,BK Häcken,1,0,0,0,0.8785714285714286
+2023-09-02,Varnamo,Elfsborg,IFK Värnamo,IF Elfsborg,1,0,1,0,0.8562091503267973
+2023-09-02,Halmstad,Sirius,Halmstads BK,IK Sirius,2,1,2,0,0.849624060150376
+2023-08-27,Varnamo,Halmstad,IFK Värnamo,Halmstads BK,0,0,0,0,0.8328173374613003
+2023-08-27,Mjallby,Hammarby,Mjällby AIF,Hammarby IF,0,3,0,0,0.8562091503267973
+2023-08-27,Goteborg,Hacken,IFK Göteborg,BK Häcken,4,2,3,0,0.849624060150376
+2023-08-27,Djurgarden,Degerfors,Djurgården,Degerfors IF,4,1,3,1,0.95
+2023-08-27,Brommapojkarna,Kalmar,IF Brommapojkarna,Kalmar FF,2,3,0,3,0.8952380952380952
+2023-08-20,Malmo FF,Djurgarden,Malmö FF,Djurgården,0,0,0,0,1.0
+2023-08-20,Kalmar,Hammarby,Kalmar FF,Hammarby IF,0,0,0,0,0.873015873015873
+2023-08-20,Hacken,Sirius,BK Häcken,IK Sirius,3,2,1,1,0.8571428571428571
+2023-08-20,Elfsborg,Mjallby,IF Elfsborg,Mjällby AIF,2,0,2,0,0.8562091503267973
+2023-08-19,Varberg,Varnamo,Varbergs BoIS FC,IFK Värnamo,0,3,0,2,0.7450980392156863
+2023-08-19,Degerfors,Goteborg,Degerfors IF,IFK Göteborg,1,2,0,0,0.8710526315789473
+2023-08-19,Brommapojkarna,Halmstad,IF Brommapojkarna,Halmstads BK,3,1,3,1,0.887719298245614
+2023-08-13,Sirius,Kalmar,IK Sirius,Kalmar FF,3,0,3,0,0.8571428571428571
+2023-08-13,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,1,0,1,0,0.8888888888888888
+2023-08-13,Halmstad,Norrkoping,Halmstads BK,IFK Norrköping,1,3,1,2,0.8558352402745995
+2023-08-13,Hacken,Varberg,BK Häcken,Varbergs BoIS FC,2,0,1,0,0.7619047619047619
+2023-08-13,Goteborg,Djurgarden,IFK Göteborg,Djurgården,2,1,0,1,0.9210526315789473
+2023-08-12,AIK,Brommapojkarna,AIK,IF Brommapojkarna,2,2,1,1,0.9666666666666667
+2023-08-06,Kalmar,AIK,Kalmar FF,AIK,1,1,1,0,0.9285714285714286
+2023-08-06,Elfsborg,Sirius,IF Elfsborg,IK Sirius,1,0,0,0,0.873015873015873
+2023-08-05,Brommapojkarna,Varnamo,IF Brommapojkarna,IFK Värnamo,0,2,0,1,0.8784313725490196
+2023-07-30,Mjallby,Djurgarden,Mjällby AIF,Djurgården,0,1,0,1,0.9117647058823529
+2023-07-30,Hammarby,Norrkoping,Hammarby IF,IFK Norrköping,2,1,0,0,0.8792270531400965
+2023-07-30,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,2,0,1,0,0.849624060150376
+2023-07-29,Hacken,Elfsborg,BK Häcken,IF Elfsborg,3,1,1,1,0.873015873015873
+2023-07-29,Degerfors,Brommapojkarna,Degerfors IF,IF Brommapojkarna,2,0,0,0,0.9166666666666667
+2023-07-23,Norrkoping,Degerfors,IFK Norrköping,Degerfors IF,1,0,0,0,0.8847826086956522
+2023-07-23,Kalmar,Varberg,Kalmar FF,Varbergs BoIS FC,1,0,0,0,0.7619047619047619
+2023-07-23,Goteborg,Halmstad,IFK Göteborg,Halmstads BK,0,0,0,0,0.8421052631578947
+2023-07-23,AIK,Malmo FF,AIK,Malmö FF,0,0,0,0,1.0
+2023-07-22,Varnamo,Hacken,IFK Värnamo,BK Häcken,1,0,0,0,0.8403361344537814
+2023-07-22,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,0,4,0,3,0.9444444444444444
+2023-07-16,Mjallby,Norrkoping,Mjällby AIF,IFK Norrköping,1,2,0,1,0.8465473145780051
+2023-07-16,Hammarby,Kalmar,Hammarby IF,Kalmar FF,3,1,2,0,0.873015873015873
+2023-07-16,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,1,1,0,1,0.8654970760233918
+2023-07-15,Halmstad,Varnamo,Halmstads BK,IFK Värnamo,2,2,1,2,0.8328173374613003
+2023-07-15,Hacken,Brommapojkarna,BK Häcken,IF Brommapojkarna,4,2,1,0,0.8952380952380952
+2023-07-15,Degerfors,Sirius,Degerfors IF,IK Sirius,0,3,0,2,0.8785714285714286
+2023-07-09,Sirius,Hammarby,IK Sirius,Hammarby IF,1,2,1,1,0.873015873015873
+2023-07-09,Malmo FF,Mjallby,Malmö FF,Mjällby AIF,1,2,0,2,0.9117647058823529
+2023-07-09,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,0,4,0,1,0.873015873015873
+2023-07-08,Varnamo,Djurgarden,IFK Värnamo,Djurgården,1,2,1,0,0.9117647058823529
+2023-07-08,Brommapojkarna,Degerfors,IF Brommapojkarna,Degerfors IF,1,2,1,0,0.9166666666666667
+2023-07-08,AIK,Hacken,AIK,BK Häcken,1,2,1,0,0.9285714285714286
+2023-07-02,Norrkoping,Hacken,IFK Norrköping,BK Häcken,2,2,1,1,0.8633540372670807
+2023-07-02,Halmstad,Goteborg,Halmstads BK,IFK Göteborg,0,0,0,0,0.8421052631578947
+2023-07-02,Djurgarden,Varberg,Djurgården,Varbergs BoIS FC,2,0,1,0,0.8333333333333333
+2023-07-01,Malmo FF,Sirius,Malmö FF,IK Sirius,3,0,1,0,0.9285714285714286
+2023-07-01,Degerfors,Varnamo,Degerfors IF,IFK Värnamo,0,2,0,1,0.861764705882353
+2023-07-01,Brommapojkarna,AIK,IF Brommapojkarna,AIK,0,2,0,2,0.9666666666666667
+2023-06-11,Sirius,Goteborg,IK Sirius,IFK Göteborg,2,0,1,0,0.849624060150376
+2023-06-11,Hacken,Mjallby,BK Häcken,Mjällby AIF,3,0,2,0,0.8403361344537814
+2023-06-11,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,2,2,1,2,0.9347826086956521
+2023-06-11,AIK,Elfsborg,AIK,IF Elfsborg,1,2,0,2,0.9444444444444444
+2023-06-10,Varnamo,Malmo FF,IFK Värnamo,Malmö FF,1,3,1,1,0.9117647058823529
+2023-06-10,Varberg,Halmstad,Varbergs BoIS FC,Halmstads BK,1,2,0,0,0.7543859649122806
+2023-06-10,Kalmar,Degerfors,Kalmar FF,Degerfors IF,2,1,2,1,0.8785714285714286
+2023-06-04,Sirius,Varnamo,IK Sirius,IFK Värnamo,2,0,2,0,0.8403361344537814
+2023-06-04,Halmstad,Hammarby,Halmstads BK,Hammarby IF,0,0,0,0,0.8654970760233918
+2023-06-04,Elfsborg,Djurgarden,IF Elfsborg,Djurgården,1,1,0,0,0.9444444444444444
+2023-06-04,AIK,Kalmar,AIK,Kalmar FF,1,1,0,0,0.9285714285714286
+2023-06-03,Norrkoping,Brommapojkarna,IFK Norrköping,IF Brommapojkarna,0,2,0,0,0.9014492753623189
+2023-06-03,Goteborg,Mjallby,IFK Göteborg,Mjällby AIF,0,1,0,0,0.8328173374613003
+2023-05-28,Kalmar,Norrkoping,Kalmar FF,IFK Norrköping,2,1,0,0,0.8633540372670807
+2023-05-28,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,3,0,2,0,0.9444444444444444
+2023-05-28,Djurgarden,AIK,Djurgården,AIK,1,0,0,0,1.0
+2023-05-27,Mjallby,Halmstad,Mjällby AIF,Halmstads BK,0,2,0,0,0.8328173374613003
+2023-05-27,Brommapojkarna,Sirius,IF Brommapojkarna,IK Sirius,1,2,1,1,0.8952380952380952
+2023-05-21,Sirius,Halmstad,IK Sirius,Halmstads BK,1,2,1,1,0.849624060150376
+2023-05-21,Malmo FF,Hacken,Malmö FF,BK Häcken,2,2,0,0,0.9285714285714286
+2023-05-21,Goteborg,Hammarby,IFK Göteborg,Hammarby IF,1,1,0,1,0.8654970760233918
+2023-05-21,Djurgarden,Mjallby,Djurgården,Mjällby AIF,2,0,0,0,0.9117647058823529
+2023-05-21,Brommapojkarna,Varberg,IF Brommapojkarna,Varbergs BoIS FC,2,1,2,0,0.8
+2023-05-20,Degerfors,AIK,Degerfors IF,AIK,2,1,1,1,0.95
+2023-05-14,Mjallby,Sirius,Mjällby AIF,IK Sirius,3,0,3,0,0.8403361344537814
+2023-05-14,Kalmar,Brommapojkarna,Kalmar FF,IF Brommapojkarna,1,3,1,1,0.8952380952380952
+2023-05-14,Hammarby,Djurgarden,Hammarby IF,Djurgården,4,3,2,0,0.9444444444444444
+2023-05-14,Halmstad,Malmo FF,Halmstads BK,Malmö FF,0,1,0,0,0.9210526315789473
+2023-05-14,Elfsborg,Varnamo,IF Elfsborg,IFK Värnamo,2,0,0,0,0.8562091503267973
+2023-05-13,Varberg,Norrkoping,Varbergs BoIS FC,IFK Norrköping,1,3,1,0,0.7681159420289855
+2023-05-13,Hacken,Degerfors,BK Häcken,Degerfors IF,6,1,4,1,0.8785714285714286
+2023-05-07,Malmo FF,AIK,Malmö FF,AIK,3,1,3,1,1.0
+2023-05-07,Halmstad,Hacken,Halmstads BK,BK Häcken,1,0,1,0,0.849624060150376
+2023-05-01,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,1,1,1,1,0.8558352402745995
+2023-04-30,Varberg,Kalmar,Varbergs BoIS FC,Kalmar FF,0,0,0,0,0.7619047619047619
+2023-04-30,Malmo FF,Hammarby,Malmö FF,Hammarby IF,4,2,3,0,0.9444444444444444
+2023-04-30,Degerfors,Djurgarden,Degerfors IF,Djurgården,2,1,1,1,0.95
+2023-04-29,Mjallby,Elfsborg,Mjällby AIF,IF Elfsborg,0,1,0,0,0.8562091503267973
+2023-04-29,Halmstad,Brommapojkarna,Halmstads BK,IF Brommapojkarna,0,2,0,1,0.887719298245614
+2023-04-29,Hacken,Varnamo,BK Häcken,IFK Värnamo,3,1,2,0,0.8403361344537814
+2023-04-29,AIK,Sirius,AIK,IK Sirius,0,0,0,0,0.9285714285714286
+2023-04-23,Sirius,Hacken,IK Sirius,BK Häcken,1,4,0,1,0.8571428571428571
+2023-04-23,Kalmar,Halmstad,Kalmar FF,Halmstads BK,2,0,1,0,0.849624060150376
+2023-04-23,Djurgarden,Goteborg,Djurgården,IFK Göteborg,1,0,1,0,0.9210526315789473
+2023-04-22,Hammarby,Varberg,Hammarby IF,Varbergs BoIS FC,2,0,1,0,0.7777777777777777
+2023-04-22,Degerfors,Elfsborg,Degerfors IF,IF Elfsborg,1,2,1,1,0.8944444444444444
+2023-04-16,Norrkoping,Varnamo,IFK Norrköping,IFK Värnamo,2,1,1,1,0.8465473145780051
+2023-04-16,Mjallby,Degerfors,Mjällby AIF,Degerfors IF,2,0,1,0,0.861764705882353
+2023-04-16,Halmstad,Djurgarden,Halmstads BK,Djurgården,2,0,1,0,0.9210526315789473
+2023-04-16,AIK,Hammarby,AIK,Hammarby IF,2,0,1,0,0.9444444444444444
+2023-04-15,Hacken,Kalmar,BK Häcken,Kalmar FF,1,3,0,2,0.8571428571428571
+2023-04-15,Elfsborg,Brommapojkarna,IF Elfsborg,IF Brommapojkarna,5,0,2,0,0.9111111111111111
+2023-04-10,Varnamo,Mjallby,IFK Värnamo,Mjällby AIF,0,1,0,1,0.8235294117647058
+2023-04-10,Varberg,Elfsborg,Varbergs BoIS FC,IF Elfsborg,0,0,0,0,0.7777777777777777
+2023-04-10,AIK,Norrkoping,AIK,IFK Norrköping,0,3,0,2,0.9347826086956521
+2023-04-09,Sirius,Djurgarden,IK Sirius,Djurgården,0,0,0,0,0.9285714285714286
+2023-04-09,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,2,0,1,0,0.849624060150376
+2023-04-09,Hacken,Hammarby,BK Häcken,Hammarby IF,3,1,3,0,0.873015873015873
+2023-04-08,Degerfors,Halmstad,Degerfors IF,Halmstads BK,3,1,1,1,0.8710526315789473
+2023-04-08,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,1,2,1,0,0.9666666666666667
+2023-04-02,Norrkoping,Sirius,IFK Norrköping,IK Sirius,1,1,0,1,0.8633540372670807
+2023-04-02,Hammarby,Degerfors,Hammarby IF,Degerfors IF,3,1,1,1,0.8944444444444444
+2023-04-02,Halmstad,AIK,Halmstads BK,AIK,2,1,1,0,0.9210526315789473
+2023-04-02,Goteborg,Varnamo,IFK Göteborg,IFK Värnamo,0,1,0,0,0.8328173374613003
+2023-04-01,Malmo FF,Kalmar,Malmö FF,Kalmar FF,1,0,0,0,0.9285714285714286
+2023-04-01,Djurgarden,Brommapojkarna,Djurgården,IF Brommapojkarna,3,1,2,0,0.9666666666666667
+2022-11-06,Varnamo,Goteborg,IFK Värnamo,IFK Göteborg,1,4,0,1,0.8328173374613003
+2022-11-06,Sirius,Varberg,IK Sirius,Varbergs BoIS FC,2,3,0,3,0.7619047619047619
+2022-11-06,Malmo FF,Degerfors,Malmö FF,Degerfors IF,2,2,1,1,0.95
+2022-11-06,Kalmar,Sundsvall,Kalmar FF,GIF Sundsvall,4,0,1,0,0.8571428571428571
+2022-11-06,Helsingborg,Hammarby,Helsingborg,Hammarby IF,0,2,0,0,0.9444444444444444
+2022-11-06,Hacken,Norrkoping,BK Häcken,IFK Norrköping,3,3,2,2,0.8633540372670807
+2022-11-06,Djurgarden,Mjallby,Djurgården,Mjällby AIF,0,1,0,1,0.9117647058823529
+2022-11-06,AIK,Elfsborg,AIK,IF Elfsborg,0,1,0,0,0.9444444444444444
+2022-10-30,Sundsvall,Sirius,GIF Sundsvall,IK Sirius,2,3,1,1,0.8571428571428571
+2022-10-30,Mjallby,AIK,Mjällby AIF,AIK,1,2,0,1,0.9117647058823529
+2022-10-30,Goteborg,Hacken,IFK Göteborg,BK Häcken,0,4,0,3,0.849624060150376
+2022-10-29,Degerfors,Varnamo,Degerfors IF,IFK Värnamo,0,0,0,0,0.861764705882353
+2022-10-23,Helsingborg,Degerfors,Helsingborg,Degerfors IF,1,2,0,1,0.95
+2022-10-23,Hacken,Malmo FF,BK Häcken,Malmö FF,2,1,1,0,0.9285714285714286
+2022-10-23,Elfsborg,Hammarby,IF Elfsborg,Hammarby IF,2,1,1,0,0.8888888888888888
+2022-10-16,Mjallby,Hammarby,Mjällby AIF,Hammarby IF,0,3,0,3,0.8562091503267973
+2022-10-16,Djurgarden,AIK,Djurgården,AIK,1,2,0,1,1.0
+2022-10-15,Varnamo,Kalmar,IFK Värnamo,Kalmar FF,1,3,1,1,0.8403361344537814
+2022-10-15,Sirius,Norrkoping,IK Sirius,IFK Norrköping,2,0,2,0,0.8633540372670807
+2022-10-15,Helsingborg,Varberg,Helsingborg,Varbergs BoIS FC,1,3,0,2,0.8333333333333333
+2022-10-15,Hacken,Sundsvall,BK Häcken,GIF Sundsvall,4,1,1,1,0.8571428571428571
+2022-10-09,Sundsvall,Goteborg,GIF Sundsvall,IFK Göteborg,3,2,3,0,0.849624060150376
+2022-10-09,Malmo FF,Varnamo,Malmö FF,IFK Värnamo,0,0,0,0,0.9117647058823529
+2022-10-09,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,0,2,0,2,0.873015873015873
+2022-10-09,Djurgarden,Hacken,Djurgården,BK Häcken,0,1,0,1,0.9285714285714286
+2022-10-09,AIK,Helsingborg,AIK,Helsingborg,2,0,0,0,1.0
+2022-10-08,Degerfors,Sirius,Degerfors IF,IK Sirius,0,0,0,0,0.8785714285714286
+2022-10-02,Varberg,Hacken,Varbergs BoIS FC,BK Häcken,1,1,1,0,0.7619047619047619
+2022-10-02,Sundsvall,Norrkoping,GIF Sundsvall,IFK Norrköping,1,3,0,2,0.8633540372670807
+2022-10-02,Sirius,AIK,IK Sirius,AIK,1,1,0,0,0.9285714285714286
+2022-10-02,Kalmar,Helsingborg,Kalmar FF,Helsingborg,2,0,1,0,0.9285714285714286
+2022-10-01,Malmo FF,Hammarby,Malmö FF,Hammarby IF,0,0,0,0,0.9444444444444444
+2022-10-01,Degerfors,Djurgarden,Degerfors IF,Djurgården,3,0,1,0,0.95
+2022-09-18,Mjallby,Sundsvall,Mjällby AIF,GIF Sundsvall,1,1,0,0,0.8403361344537814
+2022-09-18,Helsingborg,Malmo FF,Helsingborg,Malmö FF,1,2,1,1,1.0
+2022-09-18,Elfsborg,Sirius,IF Elfsborg,IK Sirius,3,0,2,0,0.873015873015873
+2022-09-18,Djurgarden,Goteborg,Djurgården,IFK Göteborg,3,0,2,0,0.9210526315789473
+2022-09-18,AIK,Degerfors,AIK,Degerfors IF,1,1,1,0,0.95
+2022-09-17,Varnamo,Varberg,IFK Värnamo,Varbergs BoIS FC,1,0,0,0,0.7450980392156863
+2022-09-17,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,2,2,1,0,0.8633540372670807
+2022-09-17,Hacken,Hammarby,BK Häcken,Hammarby IF,1,1,0,1,0.873015873015873
+2022-09-11,Varberg,AIK,Varbergs BoIS FC,AIK,2,0,0,0,0.8333333333333333
+2022-09-11,Sundsvall,Elfsborg,GIF Sundsvall,IF Elfsborg,0,2,0,2,0.873015873015873
+2022-09-11,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,2,1,0,1,0.9347826086956521
+2022-09-11,Hammarby,Djurgarden,Hammarby IF,Djurgården,0,0,0,0,0.9444444444444444
+2022-09-10,Sirius,Varnamo,IK Sirius,IFK Värnamo,2,3,0,2,0.8403361344537814
+2022-09-10,Degerfors,Mjallby,Degerfors IF,Mjällby AIF,0,0,0,0,0.861764705882353
+2022-09-04,Sirius,Djurgarden,IK Sirius,Djurgården,0,1,0,1,0.9285714285714286
+2022-09-04,Hacken,Degerfors,BK Häcken,Degerfors IF,2,2,1,0,0.8785714285714286
+2022-09-04,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,3,2,1,1,0.9444444444444444
+2022-09-04,AIK,Sundsvall,AIK,GIF Sundsvall,4,0,1,0,0.9285714285714286
+2022-08-28,Varberg,Norrkoping,Varbergs BoIS FC,IFK Norrköping,1,1,0,1,0.7681159420289855
+2022-08-28,Malmo FF,Kalmar,Malmö FF,Kalmar FF,0,1,0,0,0.9285714285714286
+2022-08-28,Helsingborg,Mjallby,Helsingborg,Mjällby AIF,0,1,0,0,0.9117647058823529
+2022-08-28,Goteborg,Sirius,IFK Göteborg,IK Sirius,2,0,1,0,0.849624060150376
+2022-08-28,AIK,Hammarby,AIK,Hammarby IF,2,2,1,1,0.9444444444444444
+2022-08-27,Hacken,Varnamo,BK Häcken,IFK Värnamo,4,1,1,0,0.8403361344537814
+2022-08-27,Degerfors,Sundsvall,Degerfors IF,GIF Sundsvall,3,1,1,1,0.8785714285714286
+2022-08-21,Varnamo,Elfsborg,IFK Värnamo,IF Elfsborg,1,1,1,0,0.8562091503267973
+2022-08-21,Sundsvall,Helsingborg,GIF Sundsvall,Helsingborg,1,2,0,1,0.9285714285714286
+2022-08-21,Norrkoping,AIK,IFK Norrköping,AIK,2,4,0,3,0.9347826086956521
+2022-08-21,Mjallby,Malmo FF,Mjällby AIF,Malmö FF,1,1,0,0,0.9117647058823529
+2022-08-20,Varberg,Djurgarden,Varbergs BoIS FC,Djurgården,2,2,2,0,0.8333333333333333
+2022-08-14,Malmo FF,Sundsvall,Malmö FF,GIF Sundsvall,3,1,3,0,0.9285714285714286
+2022-08-14,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,1,1,1,0,0.8792270531400965
+2022-08-14,Djurgarden,Kalmar,Djurgården,Kalmar FF,3,2,2,0,0.9285714285714286
+2022-08-14,Degerfors,Varberg,Degerfors IF,Varbergs BoIS FC,1,1,0,0,0.7833333333333333
+2022-08-14,AIK,Varnamo,AIK,IFK Värnamo,2,2,1,1,0.9117647058823529
+2022-08-13,Helsingborg,Sirius,Helsingborg,IK Sirius,0,0,0,0,0.9285714285714286
+2022-08-07,Varnamo,Djurgarden,IFK Värnamo,Djurgården,0,0,0,0,0.9117647058823529
+2022-08-07,Sirius,Malmo FF,IK Sirius,Malmö FF,2,1,1,1,0.9285714285714286
+2022-08-07,Mjallby,Elfsborg,Mjällby AIF,IF Elfsborg,1,1,1,0,0.8562091503267973
+2022-08-07,Kalmar,AIK,Kalmar FF,AIK,1,0,0,0,0.9285714285714286
+2022-08-07,Hammarby,Sundsvall,Hammarby IF,GIF Sundsvall,3,0,1,0,0.873015873015873
+2022-08-06,Norrkoping,Degerfors,IFK Norrköping,Degerfors IF,2,0,1,0,0.8847826086956522
+2022-07-31,Sirius,Mjallby,IK Sirius,Mjällby AIF,0,1,0,0,0.8403361344537814
+2022-07-31,Hammarby,Varnamo,Hammarby IF,IFK Värnamo,1,2,0,0,0.8562091503267973
+2022-07-31,Elfsborg,Hacken,IF Elfsborg,BK Häcken,4,4,2,1,0.873015873015873
+2022-07-30,Sundsvall,Varberg,GIF Sundsvall,Varbergs BoIS FC,1,3,0,3,0.7619047619047619
+2022-07-30,Degerfors,Kalmar,Degerfors IF,Kalmar FF,2,1,1,1,0.8785714285714286
+2022-07-24,Varnamo,AIK,IFK Värnamo,AIK,2,3,0,1,0.9117647058823529
+2022-07-24,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,1,0,0,0,0.873015873015873
+2022-07-24,Helsingborg,Sundsvall,Helsingborg,GIF Sundsvall,1,0,1,0,0.9285714285714286
+2022-07-24,Hacken,Djurgarden,BK Häcken,Djurgården,1,2,1,0,0.9285714285714286
+2022-07-23,Mjallby,Degerfors,Mjällby AIF,Degerfors IF,2,1,0,0,0.861764705882353
+2022-07-23,Malmo FF,Sirius,Malmö FF,IK Sirius,3,1,1,0,0.9285714285714286
+2022-07-17,Sirius,Degerfors,IK Sirius,Degerfors IF,2,0,1,0,0.8785714285714286
+2022-07-17,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,3,0,2,0,0.8888888888888888
+2022-07-17,Goteborg,Mjallby,IFK Göteborg,Mjällby AIF,1,1,1,0,0.8328173374613003
+2022-07-17,AIK,Kalmar,AIK,Kalmar FF,1,0,1,0,0.9285714285714286
+2022-07-16,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,0,2,0,1,0.9347826086956521
+2022-07-16,Djurgarden,Varnamo,Djurgården,IFK Värnamo,5,0,2,0,0.9117647058823529
+2022-07-10,Mjallby,Hacken,Mjällby AIF,BK Häcken,1,2,1,0,0.8403361344537814
+2022-07-10,Kalmar,Sirius,Kalmar FF,IK Sirius,1,1,1,1,0.8571428571428571
+2022-07-10,Elfsborg,AIK,IF Elfsborg,AIK,2,2,1,1,0.9444444444444444
+2022-07-09,Malmo FF,Varberg,Malmö FF,Varbergs BoIS FC,3,0,1,0,0.8333333333333333
+2022-07-09,Degerfors,Norrkoping,Degerfors IF,IFK Norrköping,1,1,0,1,0.8847826086956522
+2022-07-03,Varberg,Varnamo,Varbergs BoIS FC,IFK Värnamo,3,0,1,0,0.7450980392156863
+2022-07-03,Norrkoping,Sirius,IFK Norrköping,IK Sirius,0,1,0,0,0.8633540372670807
+2022-07-03,Hacken,Elfsborg,BK Häcken,IF Elfsborg,1,1,1,1,0.873015873015873
+2022-07-03,Djurgarden,Hammarby,Djurgården,Hammarby IF,1,0,0,0,0.9444444444444444
+2022-07-02,Helsingborg,Kalmar,Helsingborg,Kalmar FF,1,1,0,1,0.9285714285714286
+2022-07-02,AIK,Mjallby,AIK,Mjällby AIF,0,1,0,1,0.9117647058823529
+2022-06-26,Sundsvall,Djurgarden,GIF Sundsvall,Djurgården,2,5,1,4,0.9285714285714286
+2022-06-26,Mjallby,Norrkoping,Mjällby AIF,IFK Norrköping,1,1,0,0,0.8465473145780051
+2022-06-26,Degerfors,AIK,Degerfors IF,AIK,1,1,1,1,0.95
+2022-05-29,Varnamo,Hammarby,IFK Värnamo,Hammarby IF,1,0,0,0,0.8562091503267973
+2022-05-29,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,2,2,1,2,0.8792270531400965
+2022-05-29,Helsingborg,AIK,Helsingborg,AIK,1,2,1,0,1.0
+2022-05-29,Djurgarden,Varberg,Djurgården,Varbergs BoIS FC,4,0,2,0,0.8333333333333333
+2022-05-29,Degerfors,Malmo FF,Degerfors IF,Malmö FF,0,2,0,2,0.95
+2022-05-28,Mjallby,Kalmar,Mjällby AIF,Kalmar FF,1,1,1,0,0.8403361344537814
+2022-05-28,Hacken,Sirius,BK Häcken,IK Sirius,4,3,2,1,0.8571428571428571
+2022-05-28,Goteborg,Sundsvall,IFK Göteborg,GIF Sundsvall,2,0,0,0,0.849624060150376
+2022-05-22,Varberg,Degerfors,Varbergs BoIS FC,Degerfors IF,2,1,1,0,0.7833333333333333
+2022-05-22,Malmo FF,Hacken,Malmö FF,BK Häcken,1,2,0,0,0.9285714285714286
+2022-05-22,Kalmar,Djurgarden,Kalmar FF,Djurgården,1,0,0,0,0.9285714285714286
+2022-05-22,Hammarby,Norrkoping,Hammarby IF,IFK Norrköping,3,0,1,0,0.8792270531400965
+2022-05-22,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,3,1,2,1,0.8654970760233918
+2022-05-21,Helsingborg,Varnamo,Helsingborg,IFK Värnamo,1,4,1,0,0.9117647058823529
+2022-05-21,AIK,Sirius,AIK,IK Sirius,2,2,2,2,0.9285714285714286
+2022-05-15,Norrkoping,Sundsvall,IFK Norrköping,GIF Sundsvall,5,1,4,0,0.8633540372670807
+2022-05-15,Hammarby,AIK,Hammarby IF,AIK,3,3,2,1,0.9444444444444444
+2022-05-15,Hacken,Kalmar,BK Häcken,Kalmar FF,3,1,1,1,0.8571428571428571
+2022-05-15,Goteborg,Varberg,IFK Göteborg,Varbergs BoIS FC,1,1,1,0,0.7543859649122806
+2022-05-15,Degerfors,Helsingborg,Degerfors IF,Helsingborg,2,1,1,0,0.95
+2022-05-14,Sirius,Elfsborg,IK Sirius,IF Elfsborg,2,0,0,0,0.873015873015873
+2022-05-14,Mjallby,Varnamo,Mjällby AIF,IFK Värnamo,1,1,0,1,0.8235294117647058
+2022-05-08,Varberg,Sirius,Varbergs BoIS FC,IK Sirius,0,2,0,0,0.7619047619047619
+2022-05-08,Kalmar,Hammarby,Kalmar FF,Hammarby IF,2,0,2,0,0.873015873015873
+2022-05-07,Malmo FF,Mjallby,Malmö FF,Mjällby AIF,2,0,2,0,0.9117647058823529
+2022-05-07,AIK,Goteborg,AIK,IFK Göteborg,1,0,0,0,0.9210526315789473
+2022-05-01,Sundsvall,AIK,GIF Sundsvall,AIK,0,2,0,0,0.9285714285714286
+2022-05-01,Mjallby,Helsingborg,Mjällby AIF,Helsingborg,2,1,1,1,0.9117647058823529
+2022-05-01,Hacken,Varberg,BK Häcken,Varbergs BoIS FC,3,1,2,0,0.7619047619047619
+2022-05-01,Degerfors,Elfsborg,Degerfors IF,IF Elfsborg,0,6,0,4,0.8944444444444444
+2022-04-30,Djurgarden,Sirius,Djurgården,IK Sirius,4,0,2,0,0.9285714285714286
+2022-04-24,Varberg,Mjallby,Varbergs BoIS FC,Mjällby AIF,0,0,0,0,0.7450980392156863
+2022-04-24,Helsingborg,Hacken,Helsingborg,BK Häcken,1,1,0,0,0.9285714285714286
+2022-04-24,AIK,Djurgarden,AIK,Djurgården,1,0,1,0,1.0
+2022-04-17,Sirius,Helsingborg,IK Sirius,Helsingborg,1,0,1,0,0.9285714285714286
+2022-04-17,Malmo FF,AIK,Malmö FF,AIK,3,0,2,0,1.0
+2022-04-17,Kalmar,Degerfors,Kalmar FF,Degerfors IF,2,0,1,0,0.8785714285714286
+2022-04-17,Hacken,Goteborg,BK Häcken,IFK Göteborg,0,2,0,1,0.849624060150376
+2022-04-17,Elfsborg,Varnamo,IF Elfsborg,IFK Värnamo,4,1,1,0,0.8562091503267973
+2022-04-16,Varberg,Sundsvall,Varbergs BoIS FC,GIF Sundsvall,2,0,2,0,0.7619047619047619
+2022-04-16,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,2,1,0,1,0.9347826086956521
+2022-04-15,Hammarby,Mjallby,Hammarby IF,Mjällby AIF,2,0,0,0,0.8562091503267973
+2022-04-10,Varberg,Kalmar,Varbergs BoIS FC,Kalmar FF,0,3,0,2,0.7619047619047619
+2022-04-10,Mjallby,Djurgarden,Mjällby AIF,Djurgården,1,0,0,0,0.9117647058823529
+2022-04-10,Helsingborg,Goteborg,Helsingborg,IFK Göteborg,0,1,0,1,0.9210526315789473
+2022-04-10,AIK,Norrkoping,AIK,IFK Norrköping,1,0,1,0,0.9347826086956521
+2022-04-09,Sundsvall,Hammarby,GIF Sundsvall,Hammarby IF,1,5,1,4,0.873015873015873
+2022-04-09,Degerfors,Hacken,Degerfors IF,BK Häcken,1,2,0,1,0.8785714285714286
+2022-04-03,Sirius,Sundsvall,IK Sirius,GIF Sundsvall,2,1,0,1,0.8571428571428571
+2022-04-03,Norrkoping,Varberg,IFK Norrköping,Varbergs BoIS FC,0,1,0,0,0.7681159420289855
+2022-04-03,Kalmar,Malmo FF,Kalmar FF,Malmö FF,0,1,0,0,0.9285714285714286
+2022-04-03,Goteborg,Varnamo,IFK Göteborg,IFK Värnamo,2,1,1,0,0.8328173374613003
+2022-04-02,Hammarby,Helsingborg,Hammarby IF,Helsingborg,2,1,1,0,0.9444444444444444
+2022-04-02,Hacken,AIK,BK Häcken,AIK,4,2,2,1,0.9285714285714286
+2021-12-04,Varberg,Mjallby,Varbergs BoIS FC,Mjällby AIF,0,3,0,1,0.7450980392156863
+2021-12-04,Ostersunds,Degerfors,Östersunds FK,Degerfors IF,0,1,0,0,0.9045454545454545
+2021-12-04,Orebro,Elfsborg,Orebro SK,IF Elfsborg,2,3,1,0,0.873015873015873
+2021-12-04,Norrkoping,Goteborg,IFK Norrköping,IFK Göteborg,1,2,1,1,0.8558352402745995
+2021-12-04,Malmo FF,Halmstad,Malmö FF,Halmstads BK,0,0,0,0,0.9210526315789473
+2021-12-04,Hammarby,Kalmar,Hammarby IF,Kalmar FF,5,3,3,1,0.873015873015873
+2021-12-04,Hacken,Djurgarden,BK Häcken,Djurgården,0,1,0,1,0.9285714285714286
+2021-12-04,AIK,Sirius,AIK,IK Sirius,4,2,2,2,0.9285714285714286
+2021-11-28,Goteborg,Ostersunds,IFK Göteborg,Östersunds FK,4,0,2,0,0.8755980861244019
+2021-11-28,Djurgarden,Varberg,Djurgården,Varbergs BoIS FC,2,3,0,1,0.8333333333333333
+2021-11-28,Degerfors,Norrkoping,Degerfors IF,IFK Norrköping,4,1,4,0,0.8847826086956522
+2021-11-21,Halmstad,Elfsborg,Halmstads BK,IF Elfsborg,0,1,0,0,0.8654970760233918
+2021-11-21,Degerfors,Hammarby,Degerfors IF,Hammarby IF,1,4,0,2,0.8944444444444444
+2021-11-20,Malmo FF,Hacken,Malmö FF,BK Häcken,2,2,1,0,0.9285714285714286
+2021-11-07,Hammarby,Orebro,Hammarby IF,Orebro SK,3,2,0,1,0.873015873015873
+2021-11-07,Hacken,Degerfors,BK Häcken,Degerfors IF,2,0,0,0,0.8785714285714286
+2021-11-07,AIK,Ostersunds,AIK,Östersunds FK,3,0,1,0,0.9545454545454546
+2021-11-06,Elfsborg,Varberg,IF Elfsborg,Varbergs BoIS FC,0,0,0,0,0.7777777777777777
+2021-10-31,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,3,2,1,2,0.8792270531400965
+2021-10-30,Varberg,Ostersunds,Varbergs BoIS FC,Östersunds FK,3,0,1,0,0.7878787878787878
+2021-10-30,Sirius,Malmo FF,IK Sirius,Malmö FF,2,3,0,0,0.9285714285714286
+2021-10-30,Hacken,Kalmar,BK Häcken,Kalmar FF,1,4,0,3,0.8571428571428571
+2021-10-24,Varberg,Malmo FF,Varbergs BoIS FC,Malmö FF,1,1,1,1,0.8333333333333333
+2021-10-24,Mjallby,Goteborg,Mjällby AIF,IFK Göteborg,1,3,0,1,0.8328173374613003
+2021-10-24,Hammarby,Ostersunds,Hammarby IF,Östersunds FK,4,3,2,3,0.898989898989899
+2021-10-24,Elfsborg,Sirius,IF Elfsborg,IK Sirius,3,0,3,0,0.873015873015873
+2021-10-24,AIK,Norrkoping,AIK,IFK Norrköping,1,0,1,0,0.9347826086956521
+2021-10-23,Hacken,Halmstad,BK Häcken,Halmstads BK,2,3,2,1,0.849624060150376
+2021-10-23,Djurgarden,Kalmar,Djurgården,Kalmar FF,3,2,3,0,0.9285714285714286
+2021-10-17,Mjallby,Kalmar,Mjällby AIF,Kalmar FF,4,0,3,0,0.8403361344537814
+2021-10-17,Hammarby,AIK,Hammarby IF,AIK,1,0,0,0,0.9444444444444444
+2021-10-17,Goteborg,Orebro,IFK Göteborg,Orebro SK,2,0,1,0,0.849624060150376
+2021-10-16,Sirius,Varberg,IK Sirius,Varbergs BoIS FC,2,1,1,0,0.7619047619047619
+2021-10-16,Ostersunds,Malmo FF,Östersunds FK,Malmö FF,0,3,0,1,0.9545454545454546
+2021-10-16,Degerfors,Halmstad,Degerfors IF,Halmstads BK,2,1,2,1,0.8710526315789473
+2021-10-03,Orebro,Hacken,Orebro SK,BK Häcken,1,2,0,2,0.8571428571428571
+2021-10-03,Norrkoping,Hammarby,IFK Norrköping,Hammarby IF,3,1,2,0,0.8792270531400965
+2021-10-03,Malmo FF,Mjallby,Malmö FF,Mjällby AIF,0,1,0,1,0.9117647058823529
+2021-10-03,Kalmar,Sirius,Kalmar FF,IK Sirius,3,1,0,1,0.8571428571428571
+2021-10-03,AIK,Djurgarden,AIK,Djurgården,1,0,1,0,1.0
+2021-10-02,Varberg,Degerfors,Varbergs BoIS FC,Degerfors IF,0,0,0,0,0.7833333333333333
+2021-10-02,Halmstad,Ostersunds,Halmstads BK,Östersunds FK,1,1,1,1,0.8755980861244019
+2021-09-26,Ostersunds,Djurgarden,Östersunds FK,Djurgården,0,3,0,3,0.9545454545454546
+2021-09-26,Norrkoping,Varberg,IFK Norrköping,Varbergs BoIS FC,2,1,1,1,0.7681159420289855
+2021-09-26,Mjallby,Elfsborg,Mjällby AIF,IF Elfsborg,4,0,1,0,0.8562091503267973
+2021-09-26,Hacken,Hammarby,BK Häcken,Hammarby IF,1,1,1,1,0.873015873015873
+2021-09-25,Malmo FF,Orebro,Malmö FF,Orebro SK,5,1,2,1,0.9285714285714286
+2021-09-19,Ostersunds,Elfsborg,Östersunds FK,IF Elfsborg,3,1,2,0,0.898989898989899
+2021-09-19,Norrkoping,Orebro,IFK Norrköping,Orebro SK,3,0,1,0,0.8633540372670807
+2021-09-19,Halmstad,Kalmar,Halmstads BK,Kalmar FF,0,1,0,1,0.849624060150376
+2021-09-18,Malmo FF,Djurgarden,Malmö FF,Djurgården,1,1,1,0,1.0
+2021-09-18,Hacken,Mjallby,BK Häcken,Mjällby AIF,0,0,0,0,0.8403361344537814
+2021-09-18,Degerfors,Sirius,Degerfors IF,IK Sirius,1,2,0,1,0.8785714285714286
+2021-09-12,Kalmar,Degerfors,Kalmar FF,Degerfors IF,4,1,1,0,0.8785714285714286
+2021-09-12,Goteborg,Halmstad,IFK Göteborg,Halmstads BK,2,0,1,0,0.8421052631578947
+2021-09-12,Djurgarden,Hammarby,Djurgården,Hammarby IF,4,1,3,1,0.9444444444444444
+2021-09-11,Sirius,Ostersunds,IK Sirius,Östersunds FK,1,0,1,0,0.8831168831168831
+2021-09-11,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,1,1,0,0,0.9347826086956521
+2021-08-29,Sirius,Djurgarden,IK Sirius,Djurgården,1,0,0,0,0.9285714285714286
+2021-08-29,Norrkoping,Ostersunds,IFK Norrköping,Östersunds FK,3,0,2,0,0.8893280632411067
+2021-08-29,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,0,3,0,2,0.873015873015873
+2021-08-29,Hammarby,Malmo FF,Hammarby IF,Malmö FF,2,1,1,1,0.9444444444444444
+2021-08-29,Hacken,Goteborg,BK Häcken,IFK Göteborg,3,2,2,1,0.849624060150376
+2021-08-28,Varberg,Halmstad,Varbergs BoIS FC,Halmstads BK,1,0,0,0,0.7543859649122806
+2021-08-28,Degerfors,Mjallby,Degerfors IF,Mjällby AIF,0,2,0,1,0.861764705882353
+2021-08-28,AIK,Orebro,AIK,Orebro SK,2,0,2,0,0.9285714285714286
+2021-08-22,Orebro,Sirius,Orebro SK,IK Sirius,1,1,1,0,0.8571428571428571
+2021-08-22,Halmstad,Norrkoping,Halmstads BK,IFK Norrköping,2,1,1,0,0.8558352402745995
+2021-08-22,Elfsborg,Hammarby,IF Elfsborg,Hammarby IF,2,2,1,0,0.8888888888888888
+2021-08-22,AIK,Hacken,AIK,BK Häcken,2,1,1,0,0.9285714285714286
+2021-08-21,Malmo FF,Degerfors,Malmö FF,Degerfors IF,3,0,1,0,0.95
+2021-08-15,Ostersunds,Norrkoping,Östersunds FK,IFK Norrköping,1,2,0,1,0.8893280632411067
+2021-08-15,Mjallby,Djurgarden,Mjällby AIF,Djurgården,0,1,0,1,0.9117647058823529
+2021-08-15,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,0,2,0,1,0.8888888888888888
+2021-08-15,Degerfors,Hacken,Degerfors IF,BK Häcken,3,0,3,0,0.8785714285714286
+2021-08-14,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,2,3,1,1,0.9210526315789473
+2021-08-14,Kalmar,Halmstad,Kalmar FF,Halmstads BK,1,1,1,1,0.849624060150376
+2021-08-08,Hacken,Ostersunds,BK Häcken,Östersunds FK,5,0,2,0,0.8831168831168831
+2021-08-08,Goteborg,Hammarby,IFK Göteborg,Hammarby IF,0,0,0,0,0.8654970760233918
+2021-08-08,Elfsborg,Degerfors,IF Elfsborg,Degerfors IF,3,0,2,0,0.8944444444444444
+2021-08-08,Djurgarden,AIK,Djurgården,AIK,1,4,1,1,1.0
+2021-08-07,Orebro,Mjallby,Orebro SK,Mjällby AIF,2,2,1,1,0.8403361344537814
+2021-08-07,Halmstad,Malmo FF,Halmstads BK,Malmö FF,0,0,0,0,0.9210526315789473
+2021-08-01,Ostersunds,Hammarby,Östersunds FK,Hammarby IF,1,1,1,0,0.898989898989899
+2021-08-01,Kalmar,Mjallby,Kalmar FF,Mjällby AIF,1,0,0,0,0.8403361344537814
+2021-08-01,Djurgarden,Hacken,Djurgården,BK Häcken,2,1,0,0,0.9285714285714286
+2021-07-31,Degerfors,Varberg,Degerfors IF,Varbergs BoIS FC,1,1,0,0,0.7833333333333333
+2021-07-25,Kalmar,Djurgarden,Kalmar FF,Djurgården,0,1,0,0,0.9285714285714286
+2021-07-25,Hammarby,Norrkoping,Hammarby IF,IFK Norrköping,2,1,1,1,0.8792270531400965
+2021-07-25,Hacken,Elfsborg,BK Häcken,IF Elfsborg,1,1,1,1,0.873015873015873
+2021-07-24,Sirius,Degerfors,IK Sirius,Degerfors IF,2,0,2,0,0.8785714285714286
+2021-07-24,Mjallby,Malmo FF,Mjällby AIF,Malmö FF,0,2,0,0,0.9117647058823529
+2021-07-18,Orebro,Hammarby,Orebro SK,Hammarby IF,0,2,0,1,0.873015873015873
+2021-07-18,Norrkoping,Hacken,IFK Norrköping,BK Häcken,0,1,0,0,0.8633540372670807
+2021-07-18,AIK,Kalmar,AIK,Kalmar FF,2,0,0,0,0.9285714285714286
+2021-07-17,Elfsborg,Ostersunds,IF Elfsborg,Östersunds FK,3,0,1,0,0.898989898989899
+2021-07-17,Degerfors,Malmo FF,Degerfors IF,Malmö FF,0,5,0,2,0.95
+2021-07-11,Ostersunds,Goteborg,Östersunds FK,IFK Göteborg,2,3,0,2,0.8755980861244019
+2021-07-11,Mjallby,Norrkoping,Mjällby AIF,IFK Norrköping,0,1,0,1,0.8465473145780051
+2021-07-11,Hammarby,Degerfors,Hammarby IF,Degerfors IF,5,1,1,1,0.8944444444444444
+2021-07-11,Elfsborg,Orebro,IF Elfsborg,Orebro SK,2,1,0,0,0.873015873015873
+2021-07-10,Malmo FF,Sirius,Malmö FF,IK Sirius,4,0,2,0,0.9285714285714286
+2021-07-10,AIK,Varberg,AIK,Varbergs BoIS FC,2,1,1,1,0.8333333333333333
+2021-07-04,Varberg,Kalmar,Varbergs BoIS FC,Kalmar FF,1,1,0,0,0.7619047619047619
+2021-07-04,Sirius,Mjallby,IK Sirius,Mjällby AIF,2,1,1,1,0.8403361344537814
+2021-07-04,Hammarby,Halmstad,Hammarby IF,Halmstads BK,1,1,0,0,0.8654970760233918
+2021-07-04,Hacken,AIK,BK Häcken,AIK,2,1,0,0,0.9285714285714286
+2021-07-03,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,3,2,2,2,0.9347826086956521
+2021-07-03,Degerfors,Ostersunds,Degerfors IF,Östersunds FK,3,1,0,1,0.9045454545454545
+2021-05-23,Kalmar,Hammarby,Kalmar FF,Hammarby IF,2,1,1,1,0.873015873015873
+2021-05-23,Halmstad,Degerfors,Halmstads BK,Degerfors IF,0,0,0,0,0.8710526315789473
+2021-05-23,Hacken,Varberg,BK Häcken,Varbergs BoIS FC,3,1,3,0,0.7619047619047619
+2021-05-23,Djurgarden,Goteborg,Djurgården,IFK Göteborg,0,0,0,0,0.9210526315789473
+2021-05-22,Ostersunds,Sirius,Östersunds FK,IK Sirius,3,0,1,0,0.8831168831168831
+2021-05-22,AIK,Mjallby,AIK,Mjällby AIF,2,2,1,0,0.9117647058823529
+2021-05-16,Hammarby,Djurgarden,Hammarby IF,Djurgården,2,2,0,1,0.9444444444444444
+2021-05-13,Halmstad,Mjallby,Halmstads BK,Mjällby AIF,1,1,1,0,0.8328173374613003
+2021-05-09,Mjallby,Ostersunds,Mjällby AIF,Östersunds FK,1,0,1,0,0.8663101604278074
+2021-05-09,Malmo FF,Varberg,Malmö FF,Varbergs BoIS FC,3,2,1,1,0.8333333333333333
+2021-05-09,Degerfors,Djurgarden,Degerfors IF,Djurgården,2,0,0,0,0.95
+2021-05-08,Orebro,Halmstad,Orebro SK,Halmstads BK,1,0,0,0,0.849624060150376
+2021-05-08,Hammarby,Sirius,Hammarby IF,IK Sirius,3,2,1,0,0.873015873015873
+2021-05-08,Goteborg,Hacken,IFK Göteborg,BK Häcken,1,1,0,0,0.849624060150376
+2021-05-08,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,2,2,1,0,0.873015873015873
+2021-05-02,Ostersunds,Varberg,Östersunds FK,Varbergs BoIS FC,1,2,1,1,0.7878787878787878
+2021-05-02,Orebro,Norrkoping,Orebro SK,IFK Norrköping,0,3,0,1,0.8633540372670807
+2021-05-02,Halmstad,Goteborg,Halmstads BK,IFK Göteborg,1,1,1,0,0.8421052631578947
+2021-05-02,AIK,Elfsborg,AIK,IF Elfsborg,1,0,0,0,0.9444444444444444
+2021-05-01,Sirius,Kalmar,IK Sirius,Kalmar FF,1,1,0,0,0.8571428571428571
+2021-05-01,Hammarby,Hacken,Hammarby IF,BK Häcken,1,1,0,1,0.873015873015873
+2021-04-25,Varberg,Djurgarden,Varbergs BoIS FC,Djurgården,1,3,1,2,0.8333333333333333
+2021-04-25,Norrkoping,Halmstad,IFK Norrköping,Halmstads BK,2,1,0,1,0.8558352402745995
+2021-04-25,Malmo FF,Ostersunds,Malmö FF,Östersunds FK,1,1,0,0,0.9545454545454546
+2021-04-25,Kalmar,Orebro,Kalmar FF,Orebro SK,1,0,0,0,0.8571428571428571
+2021-04-25,AIK,Hammarby,AIK,Hammarby IF,2,0,1,0,0.9444444444444444
+2021-04-24,Hacken,Sirius,BK Häcken,IK Sirius,1,2,0,1,0.8571428571428571
+2021-04-18,Sirius,Halmstad,IK Sirius,Halmstads BK,1,0,0,0,0.849624060150376
+2021-04-18,Ostersunds,Orebro,Östersunds FK,Orebro SK,5,0,3,0,0.8831168831168831
+2021-04-18,Hacken,Malmo FF,BK Häcken,Malmö FF,1,2,0,2,0.9285714285714286
+2021-04-18,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,1,0,0,0,0.9347826086956521
+2021-04-18,Degerfors,Kalmar,Degerfors IF,Kalmar FF,0,1,0,1,0.8785714285714286
+2021-04-17,Hammarby,Mjallby,Hammarby IF,Mjällby AIF,2,0,1,0,0.8562091503267973
+2021-04-11,Norrkoping,Sirius,IFK Norrköping,IK Sirius,1,1,1,0,0.8633540372670807
+2021-04-11,Mjallby,Varberg,Mjällby AIF,Varbergs BoIS FC,0,0,0,0,0.7450980392156863
+2021-04-11,Halmstad,Hacken,Halmstads BK,BK Häcken,1,0,0,0,0.849624060150376
+2021-04-11,Elfsborg,Djurgarden,IF Elfsborg,Djurgården,0,2,0,1,0.9444444444444444
+2021-04-10,Orebro,Goteborg,Orebro SK,IFK Göteborg,0,0,0,0,0.849624060150376
+2021-04-10,Malmo FF,Hammarby,Malmö FF,Hammarby IF,3,2,2,2,0.9444444444444444
+2020-12-06,Orebro,Hammarby,Orebro SK,Hammarby IF,2,1,1,0,0.873015873015873
+2020-12-06,Norrkoping,Helsingborg,IFK Norrköping,Helsingborg,3,4,3,4,0.9347826086956521
+2020-12-06,Malmo FF,Ostersunds,Malmö FF,Östersunds FK,4,0,4,0,0.9545454545454546
+2020-12-06,Kalmar,Hacken,Kalmar FF,BK Häcken,0,0,0,0,0.8571428571428571
+2020-12-06,Goteborg,Sirius,IFK Göteborg,IK Sirius,2,0,1,0,0.849624060150376
+2020-12-06,Falkenbergs,Mjallby,Falkenbergs FF,Mjällby AIF,2,3,1,1,0.8700980392156863
+2020-12-06,Elfsborg,AIK,IF Elfsborg,AIK,2,2,2,0,0.9444444444444444
+2020-12-06,Djurgarden,Varberg,Djurgården,Varbergs BoIS FC,1,0,0,0,0.8333333333333333
+2020-11-29,Varberg,Malmo FF,Varbergs BoIS FC,Malmö FF,3,2,1,0,0.8333333333333333
+2020-11-29,Ostersunds,Goteborg,Östersunds FK,IFK Göteborg,0,4,0,2,0.8755980861244019
+2020-11-29,Helsingborg,Falkenbergs,Helsingborg,Falkenbergs FF,0,0,0,0,0.9583333333333333
+2020-11-22,Kalmar,Djurgarden,Kalmar FF,Djurgården,0,3,0,3,0.9285714285714286
+2020-11-22,Elfsborg,Helsingborg,IF Elfsborg,Helsingborg,2,1,0,0,0.9444444444444444
+2020-11-22,AIK,Orebro,AIK,Orebro SK,0,2,0,1,0.9285714285714286
+2020-11-08,Varberg,Hammarby,Varbergs BoIS FC,Hammarby IF,5,2,2,1,0.7777777777777777
+2020-11-08,Orebro,Kalmar,Orebro SK,Kalmar FF,0,1,0,1,0.8571428571428571
+2020-11-08,Djurgarden,AIK,Djurgården,AIK,0,1,0,0,1.0
+2020-11-07,Mjallby,Norrkoping,Mjällby AIF,IFK Norrköping,2,0,1,0,0.8465473145780051
+2020-11-07,Hacken,Ostersunds,BK Häcken,Östersunds FK,2,1,1,0,0.8831168831168831
+2020-11-07,Falkenbergs,Elfsborg,Falkenbergs FF,IF Elfsborg,1,3,0,2,0.9027777777777777
+2020-11-01,Sirius,Kalmar,IK Sirius,Kalmar FF,2,2,2,1,0.8571428571428571
+2020-11-01,Mjallby,Ostersunds,Mjällby AIF,Östersunds FK,3,0,3,0,0.8663101604278074
+2020-11-01,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,2,1,1,1,0.8792270531400965
+2020-10-25,Ostersunds,Hammarby,Östersunds FK,Hammarby IF,1,3,0,0,0.898989898989899
+2020-10-25,Kalmar,Falkenbergs,Kalmar FF,Falkenbergs FF,0,0,0,0,0.8869047619047619
+2020-10-24,Hacken,Mjallby,BK Häcken,Mjällby AIF,2,2,0,1,0.8403361344537814
+2020-10-24,Djurgarden,Sirius,Djurgården,IK Sirius,4,0,0,0,0.9285714285714286
+2020-10-18,Varberg,Norrkoping,Varbergs BoIS FC,IFK Norrköping,1,3,1,2,0.7681159420289855
+2020-10-18,Sirius,Ostersunds,IK Sirius,Östersunds FK,2,3,0,1,0.8831168831168831
+2020-10-18,Hammarby,Mjallby,Hammarby IF,Mjällby AIF,4,2,3,1,0.8562091503267973
+2020-10-18,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,3,1,2,0,0.873015873015873
+2020-10-18,AIK,Goteborg,AIK,IFK Göteborg,2,0,1,0,0.9210526315789473
+2020-10-04,Ostersunds,AIK,Östersunds FK,AIK,1,2,0,1,0.9545454545454546
+2020-10-04,Norrkoping,Sirius,IFK Norrköping,IK Sirius,1,2,1,1,0.8633540372670807
+2020-10-04,Mjallby,Helsingborg,Mjällby AIF,Helsingborg,3,2,1,1,0.9117647058823529
+2020-10-04,Kalmar,Malmo FF,Kalmar FF,Malmö FF,0,4,0,2,0.9285714285714286
+2020-10-04,Hammarby,Djurgarden,Hammarby IF,Djurgården,1,1,1,0,0.9444444444444444
+2020-10-04,Goteborg,Varberg,IFK Göteborg,Varbergs BoIS FC,1,0,1,0,0.7543859649122806
+2020-10-03,Orebro,Elfsborg,Orebro SK,IF Elfsborg,3,2,2,2,0.873015873015873
+2020-10-03,Hacken,Falkenbergs,BK Häcken,Falkenbergs FF,3,0,3,0,0.8869047619047619
+2020-09-27,Malmo FF,Hacken,Malmö FF,BK Häcken,3,0,2,0,0.9285714285714286
+2020-09-27,Helsingborg,Ostersunds,Helsingborg,Östersunds FK,0,1,0,0,0.9545454545454546
+2020-09-27,Falkenbergs,Hammarby,Falkenbergs FF,Hammarby IF,1,3,1,0,0.9027777777777777
+2020-09-27,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,0,0,0,0,0.8654970760233918
+2020-09-27,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,1,2,0,1,0.9347826086956521
+2020-09-26,Orebro,Sirius,Orebro SK,IK Sirius,2,1,1,0,0.8571428571428571
+2020-09-20,Ostersunds,Djurgarden,Östersunds FK,Djurgården,1,1,0,0,0.9545454545454546
+2020-09-20,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,1,1,0,0,0.9347826086956521
+2020-09-20,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,1,2,0,1,0.849624060150376
+2020-09-20,AIK,Hammarby,AIK,Hammarby IF,3,0,2,0,0.9444444444444444
+2020-09-13,Mjallby,Varberg,Mjällby AIF,Varbergs BoIS FC,2,3,0,2,0.7450980392156863
+2020-09-13,Malmo FF,AIK,Malmö FF,AIK,0,0,0,0,1.0
+2020-09-13,Hammarby,Helsingborg,Hammarby IF,Helsingborg,2,2,1,0,0.9444444444444444
+2020-09-13,Falkenbergs,Goteborg,Falkenbergs FF,IFK Göteborg,0,3,0,2,0.8793859649122806
+2020-09-12,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,1,1,0,1,0.9444444444444444
+2020-08-30,Orebro,Norrkoping,Orebro SK,IFK Norrköping,4,3,2,2,0.8633540372670807
+2020-08-30,Mjallby,Goteborg,Mjällby AIF,IFK Göteborg,1,1,0,1,0.8328173374613003
+2020-08-30,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,1,1,1,1,0.9444444444444444
+2020-08-30,Helsingborg,Djurgarden,Helsingborg,Djurgården,3,1,0,0,1.0
+2020-08-30,Hammarby,Kalmar,Hammarby IF,Kalmar FF,3,3,1,2,0.873015873015873
+2020-08-30,AIK,Hacken,AIK,BK Häcken,0,1,0,0,0.9285714285714286
+2020-08-29,Varberg,Sirius,Varbergs BoIS FC,IK Sirius,2,0,0,0,0.7619047619047619
+2020-08-29,Ostersunds,Falkenbergs,Östersunds FK,Falkenbergs FF,2,1,2,0,0.9128787878787878
+2020-08-23,Varberg,Orebro,Varbergs BoIS FC,Orebro SK,2,1,0,1,0.7619047619047619
+2020-08-23,Malmo FF,Falkenbergs,Malmö FF,Falkenbergs FF,2,1,1,0,0.9583333333333333
+2020-08-23,Elfsborg,Ostersunds,IF Elfsborg,Östersunds FK,0,1,0,0,0.898989898989899
+2020-08-23,AIK,Helsingborg,AIK,Helsingborg,2,0,1,0,1.0
+2020-08-22,Sirius,Hammarby,IK Sirius,Hammarby IF,3,1,0,1,0.873015873015873
+2020-08-22,Djurgarden,Goteborg,Djurgården,IFK Göteborg,2,2,0,1,0.9210526315789473
+2020-08-16,Mjallby,Malmo FF,Mjällby AIF,Malmö FF,2,2,1,0,0.9117647058823529
+2020-08-16,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,2,2,1,1,0.8888888888888888
+2020-08-16,Falkenbergs,AIK,Falkenbergs FF,AIK,1,1,1,1,0.9583333333333333
+2020-08-15,Orebro,Djurgarden,Orebro SK,Djurgården,0,3,0,1,0.9285714285714286
+2020-08-09,Ostersunds,Elfsborg,Östersunds FK,IF Elfsborg,0,1,0,0,0.898989898989899
+2020-08-09,Orebro,Goteborg,Orebro SK,IFK Göteborg,1,1,0,0,0.849624060150376
+2020-08-09,Mjallby,AIK,Mjällby AIF,AIK,3,1,2,1,0.9117647058823529
+2020-08-09,Hacken,Kalmar,BK Häcken,Kalmar FF,0,2,0,1,0.8571428571428571
+2020-08-09,Falkenbergs,Malmo FF,Falkenbergs FF,Malmö FF,0,1,0,1,0.9583333333333333
+2020-08-09,Djurgarden,Hammarby,Djurgården,Hammarby IF,1,2,0,2,0.9444444444444444
+2020-08-02,Varberg,Ostersunds,Varbergs BoIS FC,Östersunds FK,1,1,0,0,0.7878787878787878
+2020-08-02,Helsingborg,Hammarby,Helsingborg,Hammarby IF,1,1,1,0,0.9444444444444444
+2020-08-02,Goteborg,Malmo FF,IFK Göteborg,Malmö FF,0,3,0,2,0.9210526315789473
+2020-08-01,Orebro,Falkenbergs,Orebro SK,Falkenbergs FF,1,2,0,0,0.8869047619047619
+2020-08-01,Djurgarden,Hacken,Djurgården,BK Häcken,3,1,2,1,0.9285714285714286
+2020-07-26,Sirius,Malmo FF,IK Sirius,Malmö FF,2,5,1,0,0.9285714285714286
+2020-07-26,Hacken,Goteborg,BK Häcken,IFK Göteborg,0,0,0,0,0.849624060150376
+2020-07-26,Falkenbergs,Norrkoping,Falkenbergs FF,IFK Norrköping,3,3,2,0,0.8931159420289855
+2020-07-26,Elfsborg,Varberg,IF Elfsborg,Varbergs BoIS FC,3,3,1,1,0.7777777777777777
+2020-07-26,AIK,Djurgarden,AIK,Djurgården,0,1,0,0,1.0
+2020-07-19,Varberg,AIK,Varbergs BoIS FC,AIK,2,2,1,1,0.8333333333333333
+2020-07-19,Sirius,Norrkoping,IK Sirius,IFK Norrköping,4,2,1,1,0.8633540372670807
+2020-07-19,Ostersunds,Hacken,Östersunds FK,BK Häcken,2,2,0,0,0.8831168831168831
+2020-07-19,Malmo FF,Kalmar,Malmö FF,Kalmar FF,2,1,0,1,0.9285714285714286
+2020-07-19,Falkenbergs,Helsingborg,Falkenbergs FF,Helsingborg,2,2,1,0,0.9583333333333333
+2020-07-19,Elfsborg,Djurgarden,IF Elfsborg,Djurgården,1,0,0,0,0.9444444444444444
+2020-07-12,Orebro,Varberg,Orebro SK,Varbergs BoIS FC,1,0,0,0,0.7619047619047619
+2020-07-12,Mjallby,Hacken,Mjällby AIF,BK Häcken,3,1,1,0,0.8403361344537814
+2020-07-12,Helsingborg,AIK,Helsingborg,AIK,2,0,0,0,1.0
+2020-07-12,Goteborg,Djurgarden,IFK Göteborg,Djurgården,1,2,0,2,0.9210526315789473
+2020-07-11,Hammarby,Sirius,Hammarby IF,IK Sirius,0,0,0,0,0.873015873015873
+2020-07-11,Falkenbergs,Ostersunds,Falkenbergs FF,Östersunds FK,0,1,0,0,0.9128787878787878
+2020-07-05,Sirius,Orebro,IK Sirius,Orebro SK,2,1,0,1,0.8571428571428571
+2020-07-05,Hacken,Hammarby,BK Häcken,Hammarby IF,3,0,1,0,0.873015873015873
+2020-07-05,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,1,0,1,0,0.9444444444444444
+2020-07-05,AIK,Falkenbergs,AIK,Falkenbergs FF,1,1,0,0,0.9583333333333333
+2020-06-28,Sirius,Goteborg,IK Sirius,IFK Göteborg,2,2,1,1,0.849624060150376
+2020-06-28,Mjallby,Hammarby,Mjällby AIF,Hammarby IF,2,1,0,1,0.8562091503267973
+2020-06-28,Elfsborg,Orebro,IF Elfsborg,Orebro SK,1,1,0,1,0.873015873015873
+2020-06-28,Djurgarden,Kalmar,Djurgården,Kalmar FF,5,0,4,0,0.9285714285714286
+2020-06-28,AIK,Malmo FF,AIK,Malmö FF,2,2,1,0,1.0
+2020-06-27,Ostersunds,Norrkoping,Östersunds FK,IFK Norrköping,2,4,1,1,0.8893280632411067
+2020-06-21,Orebro,Ostersunds,Orebro SK,Östersunds FK,0,0,0,0,0.8831168831168831
+2020-06-21,Norrkoping,Djurgarden,IFK Norrköping,Djurgården,3,0,2,0,0.9347826086956521
+2020-06-21,Malmo FF,Varberg,Malmö FF,Varbergs BoIS FC,2,2,1,1,0.8333333333333333
+2020-06-21,Hammarby,AIK,Hammarby IF,AIK,0,2,0,0,0.9444444444444444
+2020-06-21,Falkenbergs,Kalmar,Falkenbergs FF,Kalmar FF,0,2,0,0,0.8869047619047619
+2020-06-14,Sirius,Djurgarden,IK Sirius,Djurgården,0,2,0,1,0.9285714285714286
+2020-06-14,Orebro,AIK,Orebro SK,AIK,0,2,0,0,0.9285714285714286
+2020-06-14,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,2,1,1,1,0.8633540372670807
+2020-06-14,Hammarby,Ostersunds,Hammarby IF,Östersunds FK,2,0,1,0,0.898989898989899
+2020-06-14,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,0,1,0,1,0.8654970760233918
+2019-11-10,Kalmar,Brage,Kalmar FF,IK Brage,2,2,0,0,0.8452380952380952
+2019-11-02,Sirius,Kalmar,IK Sirius,Kalmar FF,3,0,0,0,0.8571428571428571
+2019-11-02,Orebro,Malmo FF,Orebro SK,Malmö FF,0,5,0,2,0.9285714285714286
+2019-11-02,Norrkoping,Djurgarden,IFK Norrköping,Djurgården,2,2,2,0,0.9347826086956521
+2019-11-02,Helsingborg,Elfsborg,Helsingborg,IF Elfsborg,1,2,0,1,0.9444444444444444
+2019-11-02,Hammarby,Hacken,Hammarby IF,BK Häcken,4,1,1,0,0.873015873015873
+2019-11-02,Goteborg,Ostersunds,IFK Göteborg,Östersunds FK,7,1,2,1,0.8755980861244019
+2019-11-02,Falkenbergs,AFC Eskilstuna,Falkenbergs FF,AFC Eskilstuna,1,0,0,0,0.9583333333333333
+2019-11-02,AIK,Sundsvall,AIK,GIF Sundsvall,2,1,0,0,0.9285714285714286
+2019-10-27,Hacken,Norrkoping,BK Häcken,IFK Norrköping,0,1,0,0,0.8633540372670807
+2019-10-27,AFC Eskilstuna,Sirius,AFC Eskilstuna,IK Sirius,0,0,0,0,0.9285714285714286
+2019-10-26,Sundsvall,Helsingborg,GIF Sundsvall,Helsingborg,1,2,0,0,0.9285714285714286
+2019-10-26,Kalmar,Falkenbergs,Kalmar FF,Falkenbergs FF,2,3,0,0,0.8869047619047619
+2019-10-20,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,1,0,0,0,0.8633540372670807
+2019-10-20,Hammarby,Malmo FF,Hammarby IF,Malmö FF,2,0,1,0,0.9444444444444444
+2019-10-20,Falkenbergs,AIK,Falkenbergs FF,AIK,1,5,0,2,0.9583333333333333
+2019-10-19,Ostersunds,Sirius,Östersunds FK,IK Sirius,2,0,0,0,0.8831168831168831
+2019-10-19,Helsingborg,Hacken,Helsingborg,BK Häcken,0,2,0,1,0.9285714285714286
+2019-10-06,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,1,0,0,0,0.9210526315789473
+2019-10-06,Kalmar,AFC Eskilstuna,Kalmar FF,AFC Eskilstuna,0,0,0,0,0.9285714285714286
+2019-10-06,Hacken,Ostersunds,BK Häcken,Östersunds FK,1,1,1,0,0.8831168831168831
+2019-10-06,Elfsborg,Falkenbergs,IF Elfsborg,Falkenbergs FF,4,0,1,0,0.9027777777777777
+2019-10-06,Djurgarden,Hammarby,Djurgården,Hammarby IF,1,2,0,0,0.9444444444444444
+2019-10-05,Sundsvall,Norrkoping,GIF Sundsvall,IFK Norrköping,4,4,3,0,0.8633540372670807
+2019-10-05,Sirius,Helsingborg,IK Sirius,Helsingborg,2,1,1,0,0.9285714285714286
+2019-10-05,AIK,Orebro,AIK,Orebro SK,2,0,0,0,0.9285714285714286
+2019-09-29,Sundsvall,Sirius,GIF Sundsvall,IK Sirius,2,1,0,0,0.8571428571428571
+2019-09-29,Goteborg,Hacken,IFK Göteborg,BK Häcken,0,0,0,0,0.849624060150376
+2019-09-29,Falkenbergs,Norrkoping,Falkenbergs FF,IFK Norrköping,0,2,0,1,0.8931159420289855
+2019-09-29,Elfsborg,AIK,IF Elfsborg,AIK,1,1,0,0,0.9444444444444444
+2019-09-29,AFC Eskilstuna,Malmo FF,AFC Eskilstuna,Malmö FF,0,1,0,0,1.0
+2019-09-22,Helsingborg,AFC Eskilstuna,Helsingborg,AFC Eskilstuna,2,1,1,0,1.0
+2019-09-22,Hammarby,AIK,Hammarby IF,AIK,2,1,1,0,0.9444444444444444
+2019-09-22,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,0,3,0,0,0.9444444444444444
+2019-09-21,Norrkoping,Orebro,IFK Norrköping,Orebro SK,3,0,2,0,0.8633540372670807
+2019-09-21,Kalmar,Hacken,Kalmar FF,BK Häcken,1,1,1,0,0.8571428571428571
+2019-09-21,Falkenbergs,Ostersunds,Falkenbergs FF,Östersunds FK,1,0,1,0,0.9128787878787878
+2019-09-15,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,1,0,0,0,0.9347826086956521
+2019-09-15,Hammarby,Goteborg,Hammarby IF,IFK Göteborg,6,2,3,1,0.8654970760233918
+2019-09-15,Hacken,AIK,BK Häcken,AIK,1,2,0,1,0.9285714285714286
+2019-09-14,Ostersunds,Kalmar,Östersunds FK,Kalmar FF,1,2,1,0,0.8831168831168831
+2019-09-14,Orebro,Sundsvall,Orebro SK,GIF Sundsvall,0,0,0,0,0.8571428571428571
+2019-09-01,Sundsvall,Goteborg,GIF Sundsvall,IFK Göteborg,0,2,0,1,0.849624060150376
+2019-09-01,Norrkoping,Hammarby,IFK Norrköping,Hammarby IF,2,0,1,0,0.8792270531400965
+2019-09-01,Kalmar,Malmo FF,Kalmar FF,Malmö FF,0,5,0,2,0.9285714285714286
+2019-09-01,Hacken,Falkenbergs,BK Häcken,Falkenbergs FF,4,1,2,1,0.8869047619047619
+2019-09-01,AIK,Djurgarden,AIK,Djurgården,1,0,1,0,1.0
+2019-08-31,Orebro,AFC Eskilstuna,Orebro SK,AFC Eskilstuna,3,1,2,1,0.9285714285714286
+2019-08-31,Elfsborg,Sirius,IF Elfsborg,IK Sirius,1,1,1,0,0.873015873015873
+2019-08-25,Ostersunds,AIK,Östersunds FK,AIK,1,3,0,0,0.9545454545454546
+2019-08-25,Norrkoping,Helsingborg,IFK Norrköping,Helsingborg,5,0,2,0,0.9347826086956521
+2019-08-25,Malmo FF,Djurgarden,Malmö FF,Djurgården,0,1,0,0,1.0
+2019-08-25,AFC Eskilstuna,Hacken,AFC Eskilstuna,BK Häcken,0,2,0,0,0.9285714285714286
+2019-08-24,Sirius,Orebro,IK Sirius,Orebro SK,3,4,0,3,0.8571428571428571
+2019-08-18,Sirius,Norrkoping,IK Sirius,IFK Norrköping,0,2,0,0,0.8633540372670807
+2019-08-18,Orebro,Hacken,Orebro SK,BK Häcken,1,2,0,1,0.8571428571428571
+2019-08-18,Malmo FF,Falkenbergs,Malmö FF,Falkenbergs FF,5,0,2,0,0.9583333333333333
+2019-08-18,AIK,Kalmar,AIK,Kalmar FF,1,2,0,2,0.9285714285714286
+2019-08-17,Hammarby,Sundsvall,Hammarby IF,GIF Sundsvall,3,0,2,0,0.873015873015873
+2019-08-11,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,2,0,2,0,0.8792270531400965
+2019-08-11,Hammarby,Helsingborg,Hammarby IF,Helsingborg,2,1,2,0,0.9444444444444444
+2019-08-11,Hacken,Malmo FF,BK Häcken,Malmö FF,1,1,0,0,0.9285714285714286
+2019-08-11,AFC Eskilstuna,AIK,AFC Eskilstuna,AIK,2,4,1,1,1.0
+2019-08-10,Djurgarden,Sirius,Djurgården,IK Sirius,4,0,3,0,0.9285714285714286
+2019-08-04,Kalmar,Hammarby,Kalmar FF,Hammarby IF,2,2,0,1,0.873015873015873
+2019-08-04,Hacken,Sirius,BK Häcken,IK Sirius,4,1,3,1,0.8571428571428571
+2019-08-03,Ostersunds,AFC Eskilstuna,Östersunds FK,AFC Eskilstuna,1,2,1,1,0.9545454545454546
+2019-07-28,Ostersunds,Malmo FF,Östersunds FK,Malmö FF,0,0,0,0,0.9545454545454546
+2019-07-28,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,0,0,0,0,0.8558352402745995
+2019-07-28,Djurgarden,Hacken,Djurgården,BK Häcken,2,0,0,0,0.9285714285714286
+2019-07-27,Sirius,AIK,IK Sirius,AIK,0,2,0,0,0.9285714285714286
+2019-07-27,Falkenbergs,Sundsvall,Falkenbergs FF,GIF Sundsvall,2,0,2,0,0.8869047619047619
+2019-07-21,Norrkoping,Ostersunds,IFK Norrköping,Östersunds FK,3,0,2,0,0.8893280632411067
+2019-07-21,Malmo FF,Sirius,Malmö FF,IK Sirius,1,1,1,1,0.9285714285714286
+2019-07-21,Goteborg,AFC Eskilstuna,IFK Göteborg,AFC Eskilstuna,1,0,1,0,0.9210526315789473
+2019-07-20,Orebro,Falkenbergs,Orebro SK,Falkenbergs FF,4,0,3,0,0.8869047619047619
+2019-07-20,AIK,Helsingborg,AIK,Helsingborg,2,0,1,0,1.0
+2019-07-14,Ostersunds,Norrkoping,Östersunds FK,IFK Norrköping,2,1,0,0,0.8893280632411067
+2019-07-14,Hacken,Orebro,BK Häcken,Orebro SK,3,0,0,0,0.8571428571428571
+2019-07-14,Djurgarden,Malmo FF,Djurgården,Malmö FF,1,1,0,0,1.0
+2019-07-13,Falkenbergs,Goteborg,Falkenbergs FF,IFK Göteborg,1,1,0,0,0.8793859649122806
+2019-07-13,AIK,Elfsborg,AIK,IF Elfsborg,3,0,2,0,0.9444444444444444
+2019-07-07,Norrkoping,Hacken,IFK Norrköping,BK Häcken,2,1,1,0,0.8633540372670807
+2019-07-07,Hammarby,Falkenbergs,Hammarby IF,Falkenbergs FF,6,2,3,0,0.9027777777777777
+2019-07-06,Sirius,Ostersunds,IK Sirius,Östersunds FK,1,1,0,0,0.8831168831168831
+2019-07-06,Kalmar,AIK,Kalmar FF,AIK,0,1,0,0,0.9285714285714286
+2019-07-06,Goteborg,Sundsvall,IFK Göteborg,GIF Sundsvall,2,1,2,0,0.849624060150376
+2019-06-30,Norrkoping,Sirius,IFK Norrköping,IK Sirius,0,1,0,0,0.8633540372670807
+2019-06-30,AIK,Malmo FF,AIK,Malmö FF,0,0,0,0,1.0
+2019-06-29,Ostersunds,Goteborg,Östersunds FK,IFK Göteborg,0,0,0,0,0.8755980861244019
+2019-06-02,Helsingborg,Malmo FF,Helsingborg,Malmö FF,0,1,0,1,1.0
+2019-06-02,Elfsborg,Hacken,IF Elfsborg,BK Häcken,0,0,0,0,0.873015873015873
+2019-06-02,AIK,Hammarby,AIK,Hammarby IF,2,0,2,0,0.9444444444444444
+2019-06-02,AFC Eskilstuna,Norrkoping,AFC Eskilstuna,IFK Norrköping,0,2,0,1,0.9347826086956521
+2019-06-01,Sirius,Djurgarden,IK Sirius,Djurgården,0,2,0,1,0.9285714285714286
+2019-06-01,Goteborg,Orebro,IFK Göteborg,Orebro SK,0,1,0,1,0.849624060150376
+2019-05-26,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,1,1,0,0,0.873015873015873
+2019-05-26,Djurgarden,Ostersunds,Djurgården,Östersunds FK,3,1,2,1,0.9545454545454546
+2019-05-25,Malmo FF,AFC Eskilstuna,Malmö FF,AFC Eskilstuna,5,0,1,0,1.0
+2019-05-25,Hacken,Goteborg,BK Häcken,IFK Göteborg,1,2,0,1,0.849624060150376
+2019-05-19,Sirius,Hacken,IK Sirius,BK Häcken,3,4,1,2,0.8571428571428571
+2019-05-19,Malmo FF,Kalmar,Malmö FF,Kalmar FF,1,0,0,0,0.9285714285714286
+2019-05-19,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,2,0,2,0,0.9444444444444444
+2019-05-18,AFC Eskilstuna,Helsingborg,AFC Eskilstuna,Helsingborg,1,1,0,0,1.0
+2019-05-12,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,4,1,1,0,0.9444444444444444
+2019-05-12,Djurgarden,AIK,Djurgården,AIK,0,2,0,0,1.0
+2019-05-11,Ostersunds,Hacken,Östersunds FK,BK Häcken,1,1,1,1,0.8831168831168831
+2019-05-11,Kalmar,Helsingborg,Kalmar FF,Helsingborg,1,0,0,0,0.9285714285714286
+2019-05-11,AFC Eskilstuna,Falkenbergs,AFC Eskilstuna,Falkenbergs FF,0,0,0,0,0.9583333333333333
+2019-05-05,Orebro,Hammarby,Orebro SK,Hammarby IF,2,3,0,1,0.873015873015873
+2019-05-05,Kalmar,Ostersunds,Kalmar FF,Östersunds FK,1,1,0,1,0.8831168831168831
+2019-05-05,Hacken,Sundsvall,BK Häcken,GIF Sundsvall,1,0,0,0,0.8571428571428571
+2019-05-05,Falkenbergs,Malmo FF,Falkenbergs FF,Malmö FF,1,2,1,2,0.9583333333333333
+2019-05-04,Sirius,Goteborg,IK Sirius,IFK Göteborg,2,4,2,1,0.849624060150376
+2019-05-04,AIK,AFC Eskilstuna,AIK,AFC Eskilstuna,2,1,1,0,1.0
+2019-04-28,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,1,1,1,1,0.9347826086956521
+2019-04-28,Hammarby,Djurgarden,Hammarby IF,Djurgården,2,1,2,1,0.9444444444444444
+2019-04-28,Hacken,AFC Eskilstuna,BK Häcken,AFC Eskilstuna,3,0,0,0,0.9285714285714286
+2019-04-27,Sirius,Elfsborg,IK Sirius,IF Elfsborg,2,4,1,4,0.873015873015873
+2019-04-22,Goteborg,Helsingborg,IFK Göteborg,Helsingborg,3,1,2,0,0.9210526315789473
+2019-04-21,Hammarby,AFC Eskilstuna,Hammarby IF,AFC Eskilstuna,3,1,2,0,0.9444444444444444
+2019-04-21,Hacken,Djurgarden,BK Häcken,Djurgården,0,1,0,0,0.9285714285714286
+2019-04-20,Sundsvall,Kalmar,GIF Sundsvall,Kalmar FF,1,2,1,2,0.8571428571428571
+2019-04-20,Sirius,Malmo FF,IK Sirius,Malmö FF,0,1,0,0,0.9285714285714286
+2019-04-19,Ostersunds,Elfsborg,Östersunds FK,IF Elfsborg,1,1,0,1,0.898989898989899
+2019-04-19,Orebro,AIK,Orebro SK,AIK,2,1,0,0,0.9285714285714286
+2019-04-19,Norrkoping,Falkenbergs,IFK Norrköping,Falkenbergs FF,4,3,2,1,0.8931159420289855
+2019-04-14,Malmo FF,Ostersunds,Malmö FF,Östersunds FK,2,0,1,0,0.9545454545454546
+2019-04-14,Elfsborg,Sundsvall,IF Elfsborg,GIF Sundsvall,3,1,1,1,0.873015873015873
+2019-04-14,AIK,Sirius,AIK,IK Sirius,2,1,0,1,0.9285714285714286
+2019-04-13,Kalmar,Norrkoping,Kalmar FF,IFK Norrköping,2,2,0,0,0.8633540372670807
+2019-04-13,Falkenbergs,Hacken,Falkenbergs FF,BK Häcken,0,3,0,0,0.8869047619047619
+2019-04-07,Ostersunds,Falkenbergs,Östersunds FK,Falkenbergs FF,3,2,1,1,0.9128787878787878
+2019-04-07,Hammarby,Kalmar,Hammarby IF,Kalmar FF,1,1,0,1,0.873015873015873
+2019-04-07,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,3,0,2,0,0.8654970760233918
+2019-04-06,Sundsvall,Malmo FF,GIF Sundsvall,Malmö FF,3,1,0,0,0.9285714285714286
+2019-04-06,Hacken,Helsingborg,BK Häcken,Helsingborg,2,1,1,0,0.9285714285714286
+2019-03-31,Kalmar,Sirius,Kalmar FF,IK Sirius,0,2,0,1,0.8571428571428571
+2019-03-31,Helsingborg,Norrkoping,Helsingborg,IFK Norrköping,3,1,2,1,0.9347826086956521
+2019-03-31,Falkenbergs,Orebro,Falkenbergs FF,Orebro SK,1,0,0,0,0.8869047619047619
+2019-03-31,AIK,Ostersunds,AIK,Östersunds FK,0,0,0,0,0.9545454545454546
+2019-03-31,AFC Eskilstuna,Goteborg,AFC Eskilstuna,IFK Göteborg,3,1,1,0,0.9210526315789473
+2018-11-25,Brommapojkarna,AFC Eskilstuna,IF Brommapojkarna,AFC Eskilstuna,1,2,1,0,0.9666666666666667
+2018-11-11,Sundsvall,Dalkurd,GIF Sundsvall,Dalkurd FF,0,1,0,1,0.8660714285714286
+2018-11-11,Ostersunds,Hammarby,Östersunds FK,Hammarby IF,3,3,2,0,0.898989898989899
+2018-11-11,Orebro,Goteborg,Orebro SK,IFK Göteborg,1,3,0,1,0.849624060150376
+2018-11-11,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,2,0,0,0,0.9444444444444444
+2018-11-11,Kalmar,AIK,Kalmar FF,AIK,0,1,0,1,0.9285714285714286
+2018-11-11,Hacken,Norrkoping,BK Häcken,IFK Norrköping,0,1,0,1,0.8633540372670807
+2018-11-11,Djurgarden,Sirius,Djurgården,IK Sirius,1,0,1,0,0.9285714285714286
+2018-11-11,Brommapojkarna,Trelleborgs,IF Brommapojkarna,Trelleborgs FF,3,0,2,0,0.925
+2018-11-04,Norrkoping,Orebro,IFK Norrköping,Orebro SK,3,2,0,1,0.8633540372670807
+2018-11-04,Goteborg,Malmo FF,IFK Göteborg,Malmö FF,0,3,0,0,0.9210526315789473
+2018-10-28,Orebro,Djurgarden,Orebro SK,Djurgården,1,1,0,1,0.9285714285714286
+2018-10-28,Hammarby,Kalmar,Hammarby IF,Kalmar FF,0,0,0,0,0.873015873015873
+2018-10-27,Dalkurd,Hacken,Dalkurd FF,BK Häcken,0,5,0,3,0.8660714285714286
+2018-10-21,Trelleborgs,Sirius,Trelleborgs FF,IK Sirius,1,2,1,1,0.8869047619047619
+2018-10-21,Kalmar,Norrkoping,Kalmar FF,IFK Norrköping,1,2,1,1,0.8633540372670807
+2018-10-21,Hacken,Ostersunds,BK Häcken,Östersunds FK,2,0,2,0,0.8831168831168831
+2018-10-21,Elfsborg,Sundsvall,IF Elfsborg,GIF Sundsvall,2,0,0,0,0.873015873015873
+2018-10-21,Djurgarden,AIK,Djurgården,AIK,0,0,0,0,1.0
+2018-10-20,Malmo FF,Hammarby,Malmö FF,Hammarby IF,2,1,0,1,0.9444444444444444
+2018-10-20,Dalkurd,Orebro,Dalkurd FF,Orebro SK,1,0,0,0,0.8660714285714286
+2018-10-07,Norrkoping,Djurgarden,IFK Norrköping,Djurgården,1,1,1,0,0.9347826086956521
+2018-10-07,Hacken,Malmo FF,BK Häcken,Malmö FF,1,1,0,0,0.9285714285714286
+2018-10-07,Brommapojkarna,Hammarby,IF Brommapojkarna,Hammarby IF,2,4,1,1,0.9111111111111111
+2018-10-07,AIK,Orebro,AIK,Orebro SK,1,1,1,0,0.9285714285714286
+2018-10-06,Sirius,Elfsborg,IK Sirius,IF Elfsborg,4,2,2,2,0.873015873015873
+2018-10-06,Goteborg,Trelleborgs,IFK Göteborg,Trelleborgs FF,2,2,1,1,0.8793859649122806
+2018-09-30,Malmo FF,Sundsvall,Malmö FF,GIF Sundsvall,0,0,0,0,0.9285714285714286
+2018-09-30,Kalmar,Brommapojkarna,Kalmar FF,IF Brommapojkarna,1,1,0,0,0.8952380952380952
+2018-09-30,Djurgarden,Ostersunds,Djurgården,Östersunds FK,0,2,0,1,0.9545454545454546
+2018-09-30,Dalkurd,AIK,Dalkurd FF,AIK,0,4,0,2,0.9375
+2018-09-29,Sirius,Norrkoping,IK Sirius,IFK Norrköping,1,1,0,1,0.8633540372670807
+2018-09-23,Malmo FF,Kalmar,Malmö FF,Kalmar FF,4,0,3,0,0.9285714285714286
+2018-09-23,AIK,Hammarby,AIK,Hammarby IF,1,0,0,0,0.9444444444444444
+2018-09-22,Trelleborgs,Djurgarden,Trelleborgs FF,Djurgården,0,3,0,2,0.9583333333333333
+2018-09-22,Sirius,Ostersunds,IK Sirius,Östersunds FK,0,1,0,0,0.8831168831168831
+2018-09-22,Elfsborg,Orebro,IF Elfsborg,Orebro SK,1,0,1,0,0.873015873015873
+2018-09-16,Norrkoping,AIK,IFK Norrköping,AIK,2,0,0,0,0.9347826086956521
+2018-09-16,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,2,2,0,2,0.8654970760233918
+2018-09-16,Djurgarden,Brommapojkarna,Djurgården,IF Brommapojkarna,0,1,0,0,0.9666666666666667
+2018-09-15,Orebro,Sundsvall,Orebro SK,GIF Sundsvall,2,1,0,1,0.8571428571428571
+2018-09-02,Sundsvall,Sirius,GIF Sundsvall,IK Sirius,4,0,0,0,0.8571428571428571
+2018-09-02,Hammarby,Djurgarden,Hammarby IF,Djurgården,1,3,0,1,0.9444444444444444
+2018-09-02,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,1,1,1,1,0.873015873015873
+2018-09-02,Dalkurd,Goteborg,Dalkurd FF,IFK Göteborg,1,1,1,0,0.8585526315789473
+2018-09-02,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,0,3,0,1,0.9666666666666667
+2018-09-01,AIK,Hacken,AIK,BK Häcken,3,0,3,0,0.9285714285714286
+2018-08-26,Ostersunds,Sundsvall,Östersunds FK,GIF Sundsvall,1,2,1,0,0.8831168831168831
+2018-08-26,Malmo FF,Sirius,Malmö FF,IK Sirius,5,0,0,0,0.9285714285714286
+2018-08-26,Hacken,Brommapojkarna,BK Häcken,IF Brommapojkarna,6,0,3,0,0.8952380952380952
+2018-08-26,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,2,2,0,0,0.9444444444444444
+2018-08-26,AIK,Trelleborgs,AIK,Trelleborgs FF,2,0,1,0,0.9583333333333333
+2018-08-19,Sundsvall,Hacken,GIF Sundsvall,BK Häcken,0,2,0,1,0.8571428571428571
+2018-08-19,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,0,1,0,0,0.8792270531400965
+2018-08-19,Djurgarden,Kalmar,Djurgården,Kalmar FF,0,2,0,1,0.9285714285714286
+2018-08-19,Brommapojkarna,AIK,IF Brommapojkarna,AIK,0,2,0,1,0.9666666666666667
+2018-08-18,Malmo FF,Trelleborgs,Malmö FF,Trelleborgs FF,3,0,3,0,0.9583333333333333
+2018-08-12,Ostersunds,Kalmar,Östersunds FK,Kalmar FF,2,0,0,0,0.8831168831168831
+2018-08-12,Hacken,Djurgarden,BK Häcken,Djurgården,5,0,2,0,0.9285714285714286
+2018-08-12,AIK,Elfsborg,AIK,IF Elfsborg,1,0,0,0,0.9444444444444444
+2018-08-05,Orebro,Hacken,Orebro SK,BK Häcken,1,2,0,0,0.8571428571428571
+2018-08-05,Hammarby,Trelleborgs,Hammarby IF,Trelleborgs FF,1,0,0,0,0.9027777777777777
+2018-08-04,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,2,1,0,0,0.849624060150376
+2018-08-04,Brommapojkarna,Dalkurd,IF Brommapojkarna,Dalkurd FF,2,1,0,1,0.9041666666666667
+2018-07-29,Hacken,Orebro,BK Häcken,Orebro SK,1,1,0,0,0.8571428571428571
+2018-07-29,Djurgarden,Sundsvall,Djurgården,GIF Sundsvall,1,1,0,0,0.9285714285714286
+2018-07-29,AIK,Kalmar,AIK,Kalmar FF,1,0,0,0,0.9285714285714286
+2018-07-28,Ostersunds,Elfsborg,Östersunds FK,IF Elfsborg,1,0,1,0,0.898989898989899
+2018-07-28,Goteborg,Brommapojkarna,IFK Göteborg,IF Brommapojkarna,3,0,1,0,0.887719298245614
+2018-07-22,Sirius,Goteborg,IK Sirius,IFK Göteborg,3,2,1,2,0.849624060150376
+2018-07-22,Djurgarden,Hacken,Djurgården,BK Häcken,2,1,1,1,0.9285714285714286
+2018-07-22,AIK,Brommapojkarna,AIK,IF Brommapojkarna,5,1,1,1,0.9666666666666667
+2018-07-21,Ostersunds,Trelleborgs,Östersunds FK,Trelleborgs FF,4,1,4,1,0.9128787878787878
+2018-07-21,Orebro,Malmo FF,Orebro SK,Malmö FF,1,2,0,0,0.9285714285714286
+2018-07-15,Sundsvall,AIK,GIF Sundsvall,AIK,0,1,0,0,0.9285714285714286
+2018-07-15,Norrkoping,Hacken,IFK Norrköping,BK Häcken,2,1,1,1,0.8633540372670807
+2018-07-15,Kalmar,Djurgarden,Kalmar FF,Djurgården,0,1,0,1,0.9285714285714286
+2018-07-08,Orebro,Elfsborg,Orebro SK,IF Elfsborg,1,2,0,0,0.873015873015873
+2018-07-08,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,1,3,0,1,0.849624060150376
+2018-07-08,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,1,1,1,0,0.9347826086956521
+2018-07-07,Sirius,Malmo FF,IK Sirius,Malmö FF,0,4,0,1,0.9285714285714286
+2018-05-27,Sundsvall,Goteborg,GIF Sundsvall,IFK Göteborg,2,0,1,0,0.849624060150376
+2018-05-27,Sirius,Djurgarden,IK Sirius,Djurgården,1,5,0,1,0.9285714285714286
+2018-05-27,Malmo FF,Dalkurd,Malmö FF,Dalkurd FF,1,1,0,1,0.9375
+2018-05-27,Kalmar,Hammarby,Kalmar FF,Hammarby IF,1,1,0,0,0.873015873015873
+2018-05-27,Elfsborg,Trelleborgs,IF Elfsborg,Trelleborgs FF,2,1,2,1,0.9027777777777777
+2018-05-27,Brommapojkarna,Orebro,IF Brommapojkarna,Orebro SK,0,0,0,0,0.8952380952380952
+2018-05-26,AIK,Norrkoping,AIK,IFK Norrköping,3,3,2,0,0.9347826086956521
+2018-05-20,Malmo FF,Hacken,Malmö FF,BK Häcken,2,0,0,0,0.9285714285714286
+2018-05-20,Hammarby,AIK,Hammarby IF,AIK,0,1,0,0,0.9444444444444444
+2018-05-19,Sundsvall,Ostersunds,GIF Sundsvall,Östersunds FK,2,3,1,2,0.8831168831168831
+2018-05-19,Sirius,Trelleborgs,IK Sirius,Trelleborgs FF,1,1,1,1,0.8869047619047619
+2018-05-13,Trelleborgs,Malmo FF,Trelleborgs FF,Malmö FF,1,0,0,0,0.9583333333333333
+2018-05-13,Orebro,Hammarby,Orebro SK,Hammarby IF,1,2,1,0,0.873015873015873
+2018-05-13,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,0,2,0,0,0.8558352402745995
+2018-05-13,Djurgarden,Dalkurd,Djurgården,Dalkurd FF,1,0,0,0,0.9375
+2018-05-12,Sundsvall,Brommapojkarna,GIF Sundsvall,IF Brommapojkarna,3,0,2,0,0.8952380952380952
+2018-05-06,Trelleborgs,Hacken,Trelleborgs FF,BK Häcken,0,3,0,2,0.8869047619047619
+2018-05-06,Elfsborg,AIK,IF Elfsborg,AIK,0,0,0,0,0.9444444444444444
+2018-05-06,Dalkurd,Kalmar,Dalkurd FF,Kalmar FF,1,2,1,1,0.8660714285714286
+2018-05-06,Brommapojkarna,Djurgarden,IF Brommapojkarna,Djurgården,1,0,1,0,0.9666666666666667
+2018-05-05,Ostersunds,Norrkoping,Östersunds FK,IFK Norrköping,0,2,0,2,0.8893280632411067
+2018-05-05,Hammarby,Sundsvall,Hammarby IF,GIF Sundsvall,4,3,3,0,0.873015873015873
+2018-04-30,Brommapojkarna,Ostersunds,IF Brommapojkarna,Östersunds FK,0,4,0,1,0.9212121212121211
+2018-04-29,Sundsvall,Elfsborg,GIF Sundsvall,IF Elfsborg,2,1,1,0,0.873015873015873
+2018-04-29,Norrkoping,Trelleborgs,IFK Norrköping,Trelleborgs FF,1,2,0,0,0.8931159420289855
+2018-04-29,Kalmar,Malmo FF,Kalmar FF,Malmö FF,3,0,3,0,0.9285714285714286
+2018-04-29,Djurgarden,Hammarby,Djurgården,Hammarby IF,1,2,0,1,0.9444444444444444
+2018-04-28,Goteborg,Hacken,IFK Göteborg,BK Häcken,2,1,1,0,0.849624060150376
+2018-04-22,Trelleborgs,Kalmar,Trelleborgs FF,Kalmar FF,0,1,0,0,0.8869047619047619
+2018-04-22,Hacken,Hammarby,BK Häcken,Hammarby IF,2,2,1,2,0.873015873015873
+2018-04-22,Dalkurd,Sundsvall,Dalkurd FF,GIF Sundsvall,2,2,2,1,0.8660714285714286
+2018-04-22,AIK,Goteborg,AIK,IFK Göteborg,2,0,1,0,0.9210526315789473
+2018-04-21,Ostersunds,Orebro,Östersunds FK,Orebro SK,0,2,0,1,0.8831168831168831
+2018-04-15,Ostersunds,Goteborg,Östersunds FK,IFK Göteborg,2,1,0,0,0.8755980861244019
+2018-04-15,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,3,1,1,1,0.8633540372670807
+2018-04-15,AIK,Djurgarden,AIK,Djurgården,2,0,1,0,1.0
+2018-04-14,Hacken,Dalkurd,BK Häcken,Dalkurd FF,3,0,1,0,0.8660714285714286
+2018-04-14,Elfsborg,Sirius,IF Elfsborg,IK Sirius,0,1,0,0,0.873015873015873
+2018-04-08,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,1,0,1,0,0.873015873015873
+2018-04-08,Djurgarden,Trelleborgs,Djurgården,Trelleborgs FF,1,1,1,0,0.9583333333333333
+2018-04-08,Dalkurd,Ostersunds,Dalkurd FF,Östersunds FK,3,0,1,0,0.8920454545454546
+2018-04-07,Orebro,Norrkoping,Orebro SK,IFK Norrköping,1,1,0,0,0.8633540372670807
+2018-04-02,Sundsvall,Orebro,GIF Sundsvall,Orebro SK,0,0,0,0,0.8571428571428571
+2018-04-02,Norrkoping,Brommapojkarna,IFK Norrköping,IF Brommapojkarna,2,1,1,0,0.9014492753623189
+2018-04-02,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,1,2,1,2,0.9444444444444444
+2018-04-02,AIK,Dalkurd,AIK,Dalkurd FF,2,0,1,0,0.9375
+2018-04-01,Trelleborgs,Goteborg,Trelleborgs FF,IFK Göteborg,1,3,1,1,0.8793859649122806
+2018-04-01,Ostersunds,Djurgarden,Östersunds FK,Djurgården,0,1,0,1,0.9545454545454546
+2018-04-01,Hammarby,Sirius,Hammarby IF,IK Sirius,3,1,1,0,0.873015873015873
+2018-04-01,Hacken,Kalmar,BK Häcken,Kalmar FF,1,0,0,0,0.8571428571428571
+2017-11-19,Jonkopings,Trelleborgs,Jonkopings Sodra,Trelleborgs FF,1,1,1,1,0.8583333333333334
+2017-11-05,Orebro,AIK,Orebro SK,AIK,1,2,0,2,0.9285714285714286
+2017-11-05,Malmo FF,Hacken,Malmö FF,BK Häcken,1,2,0,1,0.9285714285714286
+2017-11-05,Kalmar,Djurgarden,Kalmar FF,Djurgården,0,2,0,2,0.9285714285714286
+2017-11-05,Jonkopings,Ostersunds,Jonkopings Sodra,Östersunds FK,0,0,0,0,0.8545454545454545
+2017-11-05,Hammarby,Halmstad,Hammarby IF,Halmstads BK,1,3,1,1,0.8654970760233918
+2017-11-05,Goteborg,Sundsvall,IFK Göteborg,GIF Sundsvall,0,3,0,2,0.849624060150376
+2017-11-05,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,3,3,1,1,0.8792270531400965
+2017-11-05,AFC Eskilstuna,Sirius,AFC Eskilstuna,IK Sirius,1,3,0,0,0.9285714285714286
+2017-10-29,Sundsvall,Hammarby,GIF Sundsvall,Hammarby IF,1,4,1,1,0.873015873015873
+2017-10-29,Sirius,Malmo FF,IK Sirius,Malmö FF,0,4,0,2,0.9285714285714286
+2017-10-28,Ostersunds,Elfsborg,Östersunds FK,IF Elfsborg,4,1,3,0,0.898989898989899
+2017-10-28,Halmstad,AFC Eskilstuna,Halmstads BK,AFC Eskilstuna,1,1,1,1,0.9210526315789473
+2017-10-22,Sundsvall,Norrkoping,GIF Sundsvall,IFK Norrköping,2,2,1,0,0.8633540372670807
+2017-10-22,Goteborg,Ostersunds,IFK Göteborg,Östersunds FK,0,1,0,1,0.8755980861244019
+2017-10-22,Djurgarden,Hacken,Djurgården,BK Häcken,1,1,1,1,0.9285714285714286
+2017-10-21,AFC Eskilstuna,Elfsborg,AFC Eskilstuna,IF Elfsborg,2,3,1,1,0.9444444444444444
+2017-10-15,Sirius,Djurgarden,IK Sirius,Djurgården,2,0,1,0,0.9285714285714286
+2017-10-15,Elfsborg,Sundsvall,IF Elfsborg,GIF Sundsvall,2,1,0,1,0.873015873015873
+2017-10-15,AIK,Jonkopings,AIK,Jonkopings Sodra,2,0,0,0,0.9
+2017-10-14,Ostersunds,Orebro,Östersunds FK,Orebro SK,3,0,3,0,0.8831168831168831
+2017-10-14,Halmstad,Goteborg,Halmstads BK,IFK Göteborg,1,2,1,0,0.8421052631578947
+2017-10-14,Hacken,AFC Eskilstuna,BK Häcken,AFC Eskilstuna,3,0,1,0,0.9285714285714286
+2017-10-01,Sundsvall,Djurgarden,GIF Sundsvall,Djurgården,0,5,0,2,0.9285714285714286
+2017-10-01,Ostersunds,Hacken,Östersunds FK,BK Häcken,0,0,0,0,0.8831168831168831
+2017-10-01,Orebro,Kalmar,Orebro SK,Kalmar FF,1,0,1,0,0.8571428571428571
+2017-10-01,Malmo FF,Halmstad,Malmö FF,Halmstads BK,2,0,0,0,0.9210526315789473
+2017-10-01,Hammarby,Norrkoping,Hammarby IF,IFK Norrköping,0,2,0,2,0.8792270531400965
+2017-10-01,AIK,Elfsborg,AIK,IF Elfsborg,5,2,3,1,0.9444444444444444
+2017-09-30,AFC Eskilstuna,Jonkopings,AFC Eskilstuna,Jonkopings Sodra,1,1,1,0,0.9
+2017-09-24,Kalmar,Ostersunds,Kalmar FF,Östersunds FK,2,1,1,1,0.8831168831168831
+2017-09-24,Jonkopings,Sundsvall,Jonkopings Sodra,GIF Sundsvall,2,2,1,1,0.8285714285714285
+2017-09-24,Hacken,AIK,BK Häcken,AIK,1,6,1,4,0.9285714285714286
+2017-09-24,Djurgarden,Hammarby,Djurgården,Hammarby IF,1,1,0,1,0.9444444444444444
+2017-09-23,Halmstad,Norrkoping,Halmstads BK,IFK Norrköping,2,1,1,0,0.8558352402745995
+2017-09-17,Malmo FF,Hammarby,Malmö FF,Hammarby IF,4,0,1,0,0.9444444444444444
+2017-09-17,AIK,Halmstad,AIK,Halmstads BK,4,1,4,0,0.9210526315789473
+2017-09-16,Goteborg,Jonkopings,IFK Göteborg,Jonkopings Sodra,1,1,0,1,0.8210526315789474
+2017-09-16,Djurgarden,Orebro,Djurgården,Orebro SK,4,1,2,0,0.9285714285714286
+2017-09-10,Sirius,Sundsvall,IK Sirius,GIF Sundsvall,0,1,0,0,0.8571428571428571
+2017-09-10,Orebro,Malmo FF,Orebro SK,Malmö FF,2,1,0,0,0.9285714285714286
+2017-09-10,Jonkopings,Norrkoping,Jonkopings Sodra,IFK Norrköping,1,2,1,1,0.8347826086956522
+2017-09-10,Hammarby,AIK,Hammarby IF,AIK,1,1,1,1,0.9444444444444444
+2017-09-10,Halmstad,Hacken,Halmstads BK,BK Häcken,0,3,0,1,0.849624060150376
+2017-09-10,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,2,2,1,0,0.873015873015873
+2017-08-27,Sundsvall,Orebro,GIF Sundsvall,Orebro SK,2,1,0,0,0.8571428571428571
+2017-08-27,Norrkoping,Ostersunds,IFK Norrköping,Östersunds FK,0,2,0,0,0.8893280632411067
+2017-08-27,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,2,2,0,1,0.9210526315789473
+2017-08-27,Kalmar,Sirius,Kalmar FF,IK Sirius,4,2,2,1,0.8571428571428571
+2017-08-27,Hacken,Jonkopings,BK Häcken,Jonkopings Sodra,3,1,2,0,0.8285714285714285
+2017-08-27,Elfsborg,Halmstad,IF Elfsborg,Halmstads BK,1,0,0,0,0.8654970760233918
+2017-08-27,AIK,Djurgarden,AIK,Djurgården,1,1,1,0,1.0
+2017-08-26,AFC Eskilstuna,Hammarby,AFC Eskilstuna,Hammarby IF,0,0,0,0,0.9444444444444444
+2017-08-20,Sirius,Norrkoping,IK Sirius,IFK Norrköping,0,1,0,1,0.8633540372670807
+2017-08-20,Ostersunds,AIK,Östersunds FK,AIK,0,3,0,1,0.9545454545454546
+2017-08-20,Goteborg,Hacken,IFK Göteborg,BK Häcken,1,1,1,1,0.849624060150376
+2017-08-20,Djurgarden,Halmstad,Djurgården,Halmstads BK,2,1,1,1,0.9210526315789473
+2017-08-19,AFC Eskilstuna,Malmo FF,AFC Eskilstuna,Malmö FF,3,1,3,0,1.0
+2017-08-13,Norrkoping,Djurgarden,IFK Norrköping,Djurgården,0,1,0,0,0.9347826086956521
+2017-08-13,Jonkopings,Orebro,Jonkopings Sodra,Orebro SK,1,2,1,1,0.8285714285714285
+2017-08-13,Hammarby,Ostersunds,Hammarby IF,Östersunds FK,2,2,1,1,0.898989898989899
+2017-08-13,AIK,AFC Eskilstuna,AIK,AFC Eskilstuna,1,1,0,1,1.0
+2017-08-12,Halmstad,Sirius,Halmstads BK,IK Sirius,0,3,0,1,0.849624060150376
+2017-08-06,Sundsvall,Ostersunds,GIF Sundsvall,Östersunds FK,1,1,0,0,0.8831168831168831
+2017-08-06,Sirius,AIK,IK Sirius,AIK,1,4,0,3,0.9285714285714286
+2017-08-06,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,1,0,0,0,0.849624060150376
+2017-08-06,Hammarby,Hacken,Hammarby IF,BK Häcken,1,2,0,0,0.873015873015873
+2017-08-05,Halmstad,Jonkopings,Halmstads BK,Jonkopings Sodra,6,1,4,0,0.8210526315789474
+2017-07-30,Ostersunds,Halmstad,Östersunds FK,Halmstads BK,0,0,0,0,0.8755980861244019
+2017-07-30,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,4,1,2,1,0.8558352402745995
+2017-07-30,AIK,Kalmar,AIK,Kalmar FF,0,1,0,0,0.9285714285714286
+2017-07-29,Jonkopings,Hammarby,Jonkopings Sodra,Hammarby IF,1,0,1,0,0.8444444444444444
+2017-07-29,Elfsborg,Sirius,IF Elfsborg,IK Sirius,0,2,0,0,0.873015873015873
+2017-07-23,Kalmar,AFC Eskilstuna,Kalmar FF,AFC Eskilstuna,2,0,1,0,0.9285714285714286
+2017-07-23,Goteborg,Orebro,IFK Göteborg,Orebro SK,2,2,0,0,0.849624060150376
+2017-07-23,Djurgarden,Ostersunds,Djurgården,Östersunds FK,3,0,1,0,0.9545454545454546
+2017-07-22,Malmo FF,Jonkopings,Malmö FF,Jonkopings Sodra,2,0,0,0,0.9
+2017-07-22,Halmstad,Sundsvall,Halmstads BK,GIF Sundsvall,2,2,2,2,0.849624060150376
+2017-07-16,Orebro,Goteborg,Orebro SK,IFK Göteborg,4,2,4,0,0.849624060150376
+2017-07-16,AIK,Norrkoping,AIK,IFK Norrköping,1,0,0,0,0.9347826086956521
+2017-07-15,Sundsvall,Halmstad,GIF Sundsvall,Halmstads BK,1,0,0,0,0.849624060150376
+2017-07-15,Malmo FF,Sirius,Malmö FF,IK Sirius,3,3,2,0,0.9285714285714286
+2017-07-15,AFC Eskilstuna,Kalmar,AFC Eskilstuna,Kalmar FF,2,1,0,1,0.9285714285714286
+2017-07-09,Ostersunds,Jonkopings,Östersunds FK,Jonkopings Sodra,1,1,0,0,0.8545454545454545
+2017-07-09,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,1,3,0,2,0.8792270531400965
+2017-07-09,Kalmar,AIK,Kalmar FF,AIK,0,1,0,0,0.9285714285714286
+2017-07-08,Sirius,AFC Eskilstuna,IK Sirius,AFC Eskilstuna,1,0,0,0,0.9285714285714286
+2017-07-08,Hammarby,Orebro,Hammarby IF,Orebro SK,3,1,1,0,0.873015873015873
+2017-07-02,Orebro,Norrkoping,Orebro SK,IFK Norrköping,4,2,2,2,0.8633540372670807
+2017-07-02,Jonkopings,Goteborg,Jonkopings Sodra,IFK Göteborg,0,2,0,1,0.8210526315789474
+2017-07-02,AIK,Ostersunds,AIK,Östersunds FK,2,2,1,1,0.9545454545454546
+2017-07-01,Sundsvall,Sirius,GIF Sundsvall,IK Sirius,1,2,1,0,0.8571428571428571
+2017-07-01,Malmo FF,AFC Eskilstuna,Malmö FF,AFC Eskilstuna,3,2,1,2,1.0
+2017-06-04,Sirius,Halmstad,IK Sirius,Halmstads BK,2,1,0,1,0.849624060150376
+2017-06-04,Norrkoping,Goteborg,IFK Norrköping,IFK Göteborg,2,0,1,0,0.8558352402745995
+2017-06-04,Hammarby,Djurgarden,Hammarby IF,Djurgården,3,1,0,1,0.9444444444444444
+2017-06-04,AFC Eskilstuna,AIK,AFC Eskilstuna,AIK,1,3,1,1,1.0
+2017-06-03,Ostersunds,Sundsvall,Östersunds FK,GIF Sundsvall,3,1,2,0,0.8831168831168831
+2017-06-03,Kalmar,Orebro,Kalmar FF,Orebro SK,0,1,0,0,0.8571428571428571
+2017-05-28,Hammarby,Jonkopings,Hammarby IF,Jonkopings Sodra,2,2,1,0,0.8444444444444444
+2017-05-28,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,1,1,1,1,0.8654970760233918
+2017-05-27,Djurgarden,AFC Eskilstuna,Djurgården,AFC Eskilstuna,4,1,1,0,1.0
+2017-05-21,Sirius,Hammarby,IK Sirius,Hammarby IF,1,1,1,1,0.873015873015873
+2017-05-21,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,1,2,0,0,0.9347826086956521
+2017-05-21,AFC Eskilstuna,Hacken,AFC Eskilstuna,BK Häcken,0,0,0,0,0.9285714285714286
+2017-05-20,Ostersunds,Kalmar,Östersunds FK,Kalmar FF,2,1,1,0,0.8831168831168831
+2017-05-14,Sundsvall,Jonkopings,GIF Sundsvall,Jonkopings Sodra,0,0,0,0,0.8285714285714285
+2017-05-14,Sirius,Elfsborg,IK Sirius,IF Elfsborg,4,1,1,1,0.873015873015873
+2017-05-14,Malmo FF,Ostersunds,Malmö FF,Östersunds FK,2,1,0,0,0.9545454545454546
+2017-05-14,Halmstad,Hammarby,Halmstads BK,Hammarby IF,1,2,0,2,0.8654970760233918
+2017-05-13,Kalmar,Hacken,Kalmar FF,BK Häcken,0,1,0,0,0.8571428571428571
+2017-05-13,AIK,Orebro,AIK,Orebro SK,1,0,1,0,0.9285714285714286
+2017-05-07,Ostersunds,Hammarby,Östersunds FK,Hammarby IF,2,1,0,0,0.898989898989899
+2017-05-07,Orebro,Djurgarden,Orebro SK,Djurgården,0,4,0,2,0.9285714285714286
+2017-05-07,Jonkopings,AFC Eskilstuna,Jonkopings Sodra,AFC Eskilstuna,1,0,0,0,0.9
+2017-05-07,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,3,0,2,0,0.849624060150376
+2017-05-06,Halmstad,AIK,Halmstads BK,AIK,0,1,0,1,0.9210526315789473
+2017-05-01,Sirius,Jonkopings,IK Sirius,Jonkopings Sodra,1,1,0,0,0.8285714285714285
+2017-05-01,Malmo FF,Orebro,Malmö FF,Orebro SK,2,1,0,0,0.9285714285714286
+2017-05-01,Kalmar,Halmstad,Kalmar FF,Halmstads BK,2,0,1,0,0.849624060150376
+2017-05-01,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,3,3,1,2,0.9347826086956521
+2017-04-30,AIK,Sundsvall,AIK,GIF Sundsvall,0,0,0,0,0.9285714285714286
+2017-04-29,Hammarby,AFC Eskilstuna,Hammarby IF,AFC Eskilstuna,4,0,0,0,0.9444444444444444
+2017-04-23,Ostersunds,Goteborg,Östersunds FK,IFK Göteborg,1,1,0,0,0.8755980861244019
+2017-04-23,Hammarby,Sundsvall,Hammarby IF,GIF Sundsvall,0,0,0,0,0.873015873015873
+2017-04-23,Hacken,Norrkoping,BK Häcken,IFK Norrköping,1,2,1,0,0.8633540372670807
+2017-04-23,AFC Eskilstuna,Halmstad,AFC Eskilstuna,Halmstads BK,0,0,0,0,0.9210526315789473
+2017-04-22,Jonkopings,AIK,Jonkopings Sodra,AIK,2,1,1,1,0.9
+2017-04-17,Norrkoping,Sirius,IFK Norrköping,IK Sirius,0,2,0,0,0.8633540372670807
+2017-04-17,Kalmar,Jonkopings,Kalmar FF,Jonkopings Sodra,1,3,1,3,0.8285714285714285
+2017-04-17,Goteborg,AFC Eskilstuna,IFK Göteborg,AFC Eskilstuna,1,1,0,0,0.9210526315789473
+2017-04-17,AIK,Hammarby,AIK,Hammarby IF,1,2,1,1,0.9444444444444444
+2017-04-16,Sundsvall,Hacken,GIF Sundsvall,BK Häcken,1,2,0,2,0.8571428571428571
+2017-04-16,Orebro,Ostersunds,Orebro SK,Östersunds FK,2,1,1,0,0.8831168831168831
+2017-04-16,Halmstad,Malmo FF,Halmstads BK,Malmö FF,0,3,0,2,0.9210526315789473
+2017-04-16,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,3,0,2,0,0.9444444444444444
+2017-04-09,Sirius,Goteborg,IK Sirius,IFK Göteborg,0,2,0,0,0.849624060150376
+2017-04-09,Ostersunds,Norrkoping,Östersunds FK,IFK Norrköping,1,0,1,0,0.8893280632411067
+2017-04-09,Jonkopings,Halmstad,Jonkopings Sodra,Halmstads BK,2,2,1,0,0.8210526315789474
+2017-04-09,Hammarby,Kalmar,Hammarby IF,Kalmar FF,1,1,0,1,0.873015873015873
+2017-04-09,Hacken,Djurgarden,BK Häcken,Djurgården,0,0,0,0,0.9285714285714286
+2017-04-08,AFC Eskilstuna,Orebro,AFC Eskilstuna,Orebro SK,2,2,0,0,0.9285714285714286
+2017-04-02,Sundsvall,AFC Eskilstuna,GIF Sundsvall,AFC Eskilstuna,3,1,2,1,0.9285714285714286
+2017-04-02,Norrkoping,Hammarby,IFK Norrköping,Hammarby IF,2,1,2,0,0.8792270531400965
+2017-04-02,AIK,Hacken,AIK,BK Häcken,0,0,0,0,0.9285714285714286
+2017-04-01,Halmstad,Ostersunds,Halmstads BK,Östersunds FK,1,0,1,0,0.8755980861244019
+2017-04-01,Goteborg,Malmo FF,IFK Göteborg,Malmö FF,1,1,1,1,0.9210526315789473
+2016-11-20,Helsingborg,Halmstad,Helsingborg,Halmstads BK,1,2,0,0,0.9210526315789473
+2016-11-06,Sundsvall,Djurgarden,GIF Sundsvall,Djurgården,2,5,1,2,0.9285714285714286
+2016-11-06,Ostersunds,Gefle,Östersunds FK,Gefle IF,2,4,1,2,0.8712121212121212
+2016-11-06,Norrkoping,Goteborg,IFK Norrköping,IFK Göteborg,3,1,1,1,0.8558352402745995
+2016-11-06,Malmo FF,Hammarby,Malmö FF,Hammarby IF,3,0,1,0,0.9444444444444444
+2016-11-06,Helsingborg,Jonkopings,Helsingborg,Jonkopings Sodra,2,0,1,0,0.9
+2016-11-06,Elfsborg,Orebro,IF Elfsborg,Orebro SK,2,1,0,0,0.873015873015873
+2016-11-06,AIK,Kalmar,AIK,Kalmar FF,3,1,1,1,0.9285714285714286
+2016-10-30,Kalmar,Sundsvall,Kalmar FF,GIF Sundsvall,2,0,1,0,0.8571428571428571
+2016-10-30,Hammarby,Norrkoping,Hammarby IF,IFK Norrköping,1,1,1,0,0.8792270531400965
+2016-10-23,Orebro,Helsingborg,Orebro SK,Helsingborg,0,0,0,0,0.9285714285714286
+2016-10-23,Norrkoping,Falkenbergs,IFK Norrköping,Falkenbergs FF,2,1,1,1,0.8931159420289855
+2016-10-23,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,2,4,0,3,0.8888888888888888
+2016-10-23,Hacken,Kalmar,BK Häcken,Kalmar FF,2,3,2,1,0.8571428571428571
+2016-10-22,Malmo FF,Ostersunds,Malmö FF,Östersunds FK,0,3,0,1,0.9545454545454546
+2016-10-16,Orebro,Kalmar,Orebro SK,Kalmar FF,2,1,0,1,0.8571428571428571
+2016-10-16,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,1,2,0,1,0.9347826086956521
+2016-10-16,Jonkopings,Hacken,Jonkopings Sodra,BK Häcken,1,1,1,0,0.8285714285714285
+2016-10-16,Elfsborg,Helsingborg,IF Elfsborg,Helsingborg,1,0,1,0,0.9444444444444444
+2016-10-16,AIK,Ostersunds,AIK,Östersunds FK,2,0,1,0,0.9545454545454546
+2016-10-15,Falkenbergs,Sundsvall,Falkenbergs FF,GIF Sundsvall,1,1,1,0,0.8869047619047619
+2016-10-02,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,4,2,3,0,0.849624060150376
+2016-10-02,Gefle,Elfsborg,Gefle IF,IF Elfsborg,2,2,1,2,0.8611111111111112
+2016-10-02,Djurgarden,Orebro,Djurgården,Orebro SK,3,2,2,1,0.9285714285714286
+2016-10-02,AIK,Norrkoping,AIK,IFK Norrköping,6,0,2,0,0.9347826086956521
+2016-10-01,Sundsvall,Jonkopings,GIF Sundsvall,Jonkopings Sodra,3,1,1,0,0.8285714285714285
+2016-10-01,Ostersunds,Falkenbergs,Östersunds FK,Falkenbergs FF,6,1,3,1,0.9128787878787878
+2016-10-01,Hacken,Malmo FF,BK Häcken,Malmö FF,2,4,2,2,0.9285714285714286
+2016-09-25,Malmo FF,Helsingborg,Malmö FF,Helsingborg,2,0,1,0,1.0
+2016-09-25,Elfsborg,AIK,IF Elfsborg,AIK,2,2,1,2,0.9444444444444444
+2016-09-24,Jonkopings,Kalmar,Jonkopings Sodra,Kalmar FF,0,1,0,1,0.8285714285714285
+2016-09-18,Helsingborg,Norrkoping,Helsingborg,IFK Norrköping,1,2,0,1,0.9347826086956521
+2016-09-18,Elfsborg,Falkenbergs,IF Elfsborg,Falkenbergs FF,5,0,1,0,0.9027777777777777
+2016-09-18,Djurgarden,Malmo FF,Djurgården,Malmö FF,3,1,2,1,1.0
+2016-09-17,Kalmar,Ostersunds,Kalmar FF,Östersunds FK,2,0,2,0,0.8831168831168831
+2016-09-11,Sundsvall,AIK,GIF Sundsvall,AIK,1,3,0,3,0.9285714285714286
+2016-09-11,Ostersunds,Helsingborg,Östersunds FK,Helsingborg,2,0,2,0,0.9545454545454546
+2016-09-11,Norrkoping,Jonkopings,IFK Norrköping,Jonkopings Sodra,5,1,5,0,0.8347826086956522
+2016-09-11,Falkenbergs,Djurgarden,Falkenbergs FF,Djurgården,1,2,1,1,0.9583333333333333
+2016-09-10,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,1,1,0,1,0.873015873015873
+2016-08-28,Sundsvall,Malmo FF,GIF Sundsvall,Malmö FF,0,1,0,0,0.9285714285714286
+2016-08-28,Orebro,Falkenbergs,Orebro SK,Falkenbergs FF,3,2,1,1,0.8869047619047619
+2016-08-28,Jonkopings,Elfsborg,Jonkopings Sodra,IF Elfsborg,1,0,0,0,0.8444444444444444
+2016-08-28,Goteborg,Helsingborg,IFK Göteborg,Helsingborg,2,0,1,0,0.9210526315789473
+2016-08-28,AIK,Hammarby,AIK,Hammarby IF,0,0,0,0,0.9444444444444444
+2016-08-27,Kalmar,Norrkoping,Kalmar FF,IFK Norrköping,0,1,0,0,0.8633540372670807
+2016-08-27,Djurgarden,Gefle,Djurgården,Gefle IF,2,1,1,0,0.9166666666666667
+2016-08-21,Orebro,AIK,Orebro SK,AIK,0,2,0,1,0.9285714285714286
+2016-08-21,Hammarby,Goteborg,Hammarby IF,IFK Göteborg,2,0,1,0,0.8654970760233918
+2016-08-21,Falkenbergs,Gefle,Falkenbergs FF,Gefle IF,1,1,1,1,0.875
+2016-08-20,Ostersunds,Djurgarden,Östersunds FK,Djurgården,1,0,1,0,0.9545454545454546
+2016-08-20,Helsingborg,Kalmar,Helsingborg,Kalmar FF,0,1,0,0,0.9285714285714286
+2016-08-14,Kalmar,Malmo FF,Kalmar FF,Malmö FF,1,1,0,0,0.9285714285714286
+2016-08-14,Hacken,Orebro,BK Häcken,Orebro SK,0,1,0,1,0.8571428571428571
+2016-08-14,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,2,2,1,1,0.9444444444444444
+2016-08-13,Gefle,Norrkoping,Gefle IF,IFK Norrköping,0,0,0,0,0.8514492753623188
+2016-08-13,AIK,Helsingborg,AIK,Helsingborg,2,1,0,0,1.0
+2016-08-07,Hammarby,Kalmar,Hammarby IF,Kalmar FF,2,1,1,0,0.873015873015873
+2016-08-07,Elfsborg,Hacken,IF Elfsborg,BK Häcken,2,4,2,3,0.873015873015873
+2016-08-06,Ostersunds,Sundsvall,Östersunds FK,GIF Sundsvall,4,0,0,0,0.8831168831168831
+2016-08-06,Falkenbergs,Jonkopings,Falkenbergs FF,Jonkopings Sodra,0,5,0,2,0.8583333333333334
+2016-07-31,Jonkopings,Goteborg,Jonkopings Sodra,IFK Göteborg,1,1,0,0,0.8210526315789474
+2016-07-31,Hacken,Helsingborg,BK Häcken,Helsingborg,1,1,1,1,0.9285714285714286
+2016-07-31,AIK,Falkenbergs,AIK,Falkenbergs FF,2,0,2,0,0.9583333333333333
+2016-07-30,Sundsvall,Norrkoping,GIF Sundsvall,IFK Norrköping,1,2,1,1,0.8633540372670807
+2016-07-30,Ostersunds,Elfsborg,Östersunds FK,IF Elfsborg,0,0,0,0,0.898989898989899
+2016-07-30,Gefle,Hammarby,Gefle IF,Hammarby IF,0,2,0,2,0.8611111111111112
+2016-07-24,Helsingborg,Hacken,Helsingborg,BK Häcken,0,2,0,2,0.9285714285714286
+2016-07-24,Hammarby,AIK,Hammarby IF,AIK,0,3,0,3,0.9444444444444444
+2016-07-24,Goteborg,Jonkopings,IFK Göteborg,Jonkopings Sodra,2,1,2,1,0.8210526315789474
+2016-07-23,Norrkoping,Gefle,IFK Norrköping,Gefle IF,2,0,1,0,0.8514492753623188
+2016-07-23,Malmo FF,Kalmar,Malmö FF,Kalmar FF,1,1,0,1,0.9285714285714286
+2016-07-23,Falkenbergs,Orebro,Falkenbergs FF,Orebro SK,1,3,0,2,0.8869047619047619
+2016-07-17,Orebro,Hacken,Orebro SK,BK Häcken,0,0,0,0,0.8571428571428571
+2016-07-17,Hammarby,Falkenbergs,Hammarby IF,Falkenbergs FF,3,3,2,3,0.9027777777777777
+2016-07-17,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,1,1,0,1,0.8654970760233918
+2016-07-17,AIK,Malmo FF,AIK,Malmö FF,1,1,1,1,1.0
+2016-07-16,Sundsvall,Helsingborg,GIF Sundsvall,Helsingborg,0,2,0,1,0.9285714285714286
+2016-07-16,Norrkoping,Ostersunds,IFK Norrköping,Östersunds FK,3,3,2,1,0.8893280632411067
+2016-07-10,Ostersunds,Jonkopings,Östersunds FK,Jonkopings Sodra,1,0,0,0,0.8545454545454545
+2016-07-10,Kalmar,AIK,Kalmar FF,AIK,1,1,1,1,0.9285714285714286
+2016-07-10,Helsingborg,Elfsborg,Helsingborg,IF Elfsborg,2,4,0,1,0.9444444444444444
+2016-07-10,Goteborg,Sundsvall,IFK Göteborg,GIF Sundsvall,4,1,2,1,0.849624060150376
+2016-07-09,Hacken,Hammarby,BK Häcken,Hammarby IF,4,2,2,1,0.873015873015873
+2016-07-09,Gefle,Falkenbergs,Gefle IF,Falkenbergs FF,1,2,1,0,0.875
+2016-07-09,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,0,1,0,0,0.9347826086956521
+2016-05-29,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,0,0,0,0,0.8792270531400965
+2016-05-29,Helsingborg,Goteborg,Helsingborg,IFK Göteborg,1,3,0,1,0.9210526315789473
+2016-05-29,Hammarby,Gefle,Hammarby IF,Gefle IF,2,1,2,0,0.8611111111111112
+2016-05-29,Hacken,Djurgarden,BK Häcken,Djurgården,3,1,2,1,0.9285714285714286
+2016-05-29,Falkenbergs,Kalmar,Falkenbergs FF,Kalmar FF,1,2,1,1,0.8869047619047619
+2016-05-28,Jonkopings,Sundsvall,Jonkopings Sodra,GIF Sundsvall,1,1,0,1,0.8285714285714285
+2016-05-28,AIK,Orebro,AIK,Orebro SK,0,0,0,0,0.9285714285714286
+2016-05-22,Orebro,Norrkoping,Orebro SK,IFK Norrköping,2,2,1,2,0.8633540372670807
+2016-05-22,Kalmar,Hacken,Kalmar FF,BK Häcken,1,1,0,0,0.8571428571428571
+2016-05-22,Elfsborg,Jonkopings,IF Elfsborg,Jonkopings Sodra,3,3,1,0,0.8444444444444444
+2016-05-22,Djurgarden,Helsingborg,Djurgården,Helsingborg,3,0,1,0,1.0
+2016-05-15,Orebro,Elfsborg,Orebro SK,IF Elfsborg,1,0,0,0,0.873015873015873
+2016-05-15,Norrkoping,Sundsvall,IFK Norrköping,GIF Sundsvall,3,1,1,0,0.8633540372670807
+2016-05-15,Falkenbergs,Hacken,Falkenbergs FF,BK Häcken,1,4,1,2,0.8869047619047619
+2016-05-14,Malmo FF,Gefle,Malmö FF,Gefle IF,3,0,0,0,0.9166666666666667
+2016-05-14,Kalmar,Hammarby,Kalmar FF,Hammarby IF,1,1,1,0,0.873015873015873
+2016-05-08,Jonkopings,Norrkoping,Jonkopings Sodra,IFK Norrköping,0,2,0,1,0.8347826086956522
+2016-05-08,Helsingborg,Malmo FF,Helsingborg,Malmö FF,2,1,1,0,1.0
+2016-05-08,Hacken,AIK,BK Häcken,AIK,2,3,1,2,0.9285714285714286
+2016-05-07,Elfsborg,Gefle,IF Elfsborg,Gefle IF,2,0,1,0,0.8611111111111112
+2016-05-01,Malmo FF,Hacken,Malmö FF,BK Häcken,3,0,2,0,0.9285714285714286
+2016-05-01,Hammarby,Sundsvall,Hammarby IF,GIF Sundsvall,1,1,0,0,0.873015873015873
+2016-05-01,Falkenbergs,Elfsborg,Falkenbergs FF,IF Elfsborg,1,2,1,1,0.9027777777777777
+2016-04-24,Orebro,Goteborg,Orebro SK,IFK Göteborg,3,2,1,1,0.849624060150376
+2016-04-24,Malmo FF,Djurgarden,Malmö FF,Djurgården,1,0,0,0,1.0
+2016-04-24,Hacken,Sundsvall,BK Häcken,GIF Sundsvall,0,1,0,1,0.8571428571428571
+2016-04-23,Hammarby,Jonkopings,Hammarby IF,Jonkopings Sodra,1,1,0,0,0.8444444444444444
+2016-04-17,Norrkoping,AIK,IFK Norrköping,AIK,4,1,1,0,0.9347826086956521
+2016-04-17,Jonkopings,Gefle,Jonkopings Sodra,Gefle IF,1,0,0,0,0.8166666666666667
+2016-04-17,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,1,1,0,1,0.849624060150376
+2016-04-16,Helsingborg,Falkenbergs,Helsingborg,Falkenbergs FF,3,1,0,1,0.9583333333333333
+2016-04-10,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,3,2,3,0,0.873015873015873
+2016-04-10,Hammarby,Helsingborg,Hammarby IF,Helsingborg,5,1,2,1,0.9444444444444444
+2016-04-10,Gefle,Djurgarden,Gefle IF,Djurgården,1,2,0,0,0.9166666666666667
+2016-04-09,Hacken,Norrkoping,BK Häcken,IFK Norrköping,1,2,1,0,0.8633540372670807
+2016-04-03,Orebro,Djurgarden,Orebro SK,Djurgården,0,2,0,1,0.9285714285714286
+2016-04-03,Hacken,Elfsborg,BK Häcken,IF Elfsborg,2,1,1,0,0.873015873015873
+2016-04-03,Gefle,Helsingborg,Gefle IF,Helsingborg,1,1,0,1,0.9166666666666667
+2016-04-03,Falkenbergs,Goteborg,Falkenbergs FF,IFK Göteborg,0,2,0,1,0.8793859649122806
+2016-04-03,AIK,Sundsvall,AIK,GIF Sundsvall,1,1,1,1,0.9285714285714286
+2016-04-02,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,3,1,1,1,0.9347826086956521
+2016-04-02,Kalmar,Jonkopings,Kalmar FF,Jonkopings Sodra,0,1,0,1,0.8285714285714285
+2015-10-25,Sundsvall,Helsingborg,GIF Sundsvall,Helsingborg,2,1,1,0,0.9285714285714286
+2015-10-25,Hammarby,Malmo FF,Hammarby IF,Malmö FF,0,1,0,0,0.9444444444444444
+2015-10-24,Falkenbergs,Djurgarden,Falkenbergs FF,Djurgården,0,2,0,0,0.9583333333333333
+2015-10-18,Hammarby,Helsingborg,Hammarby IF,Helsingborg,1,4,1,2,0.9444444444444444
+2015-10-18,Halmstad,AIK,Halmstad,AIK,0,1,0,0,1.0
+2015-10-18,Falkenbergs,Atvidabergs,Falkenbergs FF,Atvidabergs FF,6,0,3,0,0.9166666666666666
+2015-10-17,Malmo FF,Kalmar,Malmö FF,Kalmar FF,3,0,0,0,0.9285714285714286
+2015-10-04,Norrkoping,Hacken,IFK Norrköping,BK Häcken,3,1,0,0,0.8633540372670807
+2015-10-04,Kalmar,Djurgarden,Kalmar FF,Djurgården,0,3,0,1,0.9285714285714286
+2015-10-04,Helsingborg,Elfsborg,Helsingborg,IF Elfsborg,2,1,1,0,0.9444444444444444
+2015-10-04,Goteborg,Halmstad,IFK Göteborg,Halmstad,1,1,0,1,0.9210526315789473
+2015-10-04,AIK,Malmo FF,AIK,Malmö FF,2,1,1,1,1.0
+2015-10-03,Sundsvall,Gefle,GIF Sundsvall,Gefle IF,2,1,1,0,0.8452380952380952
+2015-10-03,Orebro,Falkenbergs,Orebro SK,Falkenbergs FF,2,1,1,1,0.8869047619047619
+2015-09-27,Hammarby,AIK,Hammarby IF,AIK,1,0,0,0,0.9444444444444444
+2015-09-27,Gefle,Norrkoping,Gefle IF,IFK Norrköping,1,2,1,1,0.8514492753623188
+2015-09-27,Falkenbergs,Hacken,Falkenbergs FF,BK Häcken,1,2,0,2,0.8869047619047619
+2015-09-26,Halmstad,Malmo FF,Halmstad,Malmö FF,0,0,0,0,1.0
+2015-09-20,Norrkoping,Sundsvall,IFK Norrköping,GIF Sundsvall,5,1,1,0,0.8633540372670807
+2015-09-20,Goteborg,Hammarby,IFK Göteborg,Hammarby IF,1,0,0,0,0.8654970760233918
+2015-09-20,Gefle,Helsingborg,Gefle IF,Helsingborg,2,1,2,0,0.9166666666666667
+2015-09-20,Djurgarden,Malmo FF,Djurgården,Malmö FF,0,2,0,0,1.0
+2015-09-20,Atvidabergs,Kalmar,Atvidabergs FF,Kalmar FF,1,1,0,1,0.8869047619047619
+2015-09-19,AIK,Hacken,AIK,BK Häcken,2,1,2,1,0.9285714285714286
+2015-09-13,Helsingborg,Goteborg,Helsingborg,IFK Göteborg,1,2,1,0,0.9210526315789473
+2015-09-13,Hammarby,Orebro,Hammarby IF,Orebro SK,1,2,1,2,0.873015873015873
+2015-09-12,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,1,1,0,1,0.9444444444444444
+2015-09-12,Falkenbergs,AIK,Falkenbergs FF,AIK,2,4,0,1,0.9583333333333333
+2015-08-30,Helsingborg,Malmo FF,Helsingborg,Malmö FF,0,3,0,2,1.0
+2015-08-30,Goteborg,Gefle,IFK Göteborg,Gefle IF,3,0,1,0,0.8377192982456141
+2015-08-30,Elfsborg,Sundsvall,IF Elfsborg,GIF Sundsvall,1,2,0,2,0.873015873015873
+2015-08-30,AIK,Atvidabergs,AIK,Atvidabergs FF,1,0,1,0,0.9583333333333333
+2015-08-29,Orebro,Hacken,Orebro SK,BK Häcken,2,0,1,0,0.8571428571428571
+2015-08-29,Falkenbergs,Norrkoping,Falkenbergs FF,IFK Norrköping,0,1,0,0,0.8931159420289855
+2015-08-29,Djurgarden,Halmstad,Djurgården,Halmstad,4,2,2,2,1.0
+2015-08-23,Kalmar,Elfsborg,Kalmar FF,IF Elfsborg,0,3,0,0,0.873015873015873
+2015-08-23,Halmstad,Orebro,Halmstad,Orebro SK,2,2,0,1,0.9285714285714286
+2015-08-23,Gefle,AIK,Gefle IF,AIK,1,2,0,1,0.9166666666666667
+2015-08-23,Atvidabergs,Goteborg,Atvidabergs FF,IFK Göteborg,0,1,0,0,0.8793859649122806
+2015-08-22,Hacken,Malmo FF,BK Häcken,Malmö FF,1,0,0,0,0.9285714285714286
+2015-08-16,Goteborg,Hacken,IFK Göteborg,BK Häcken,4,0,1,0,0.849624060150376
+2015-08-16,Elfsborg,Djurgarden,IF Elfsborg,Djurgården,2,0,1,0,0.9444444444444444
+2015-08-16,AIK,Kalmar,AIK,Kalmar FF,2,1,2,0,0.9285714285714286
+2015-08-15,Malmo FF,Gefle,Malmö FF,Gefle IF,2,0,1,0,0.9166666666666667
+2015-08-09,Orebro,Norrkoping,Orebro SK,IFK Norrköping,1,3,0,2,0.8633540372670807
+2015-08-09,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,2,1,2,0,0.9210526315789473
+2015-08-09,Hammarby,Elfsborg,Hammarby IF,IF Elfsborg,0,0,0,0,0.8888888888888888
+2015-08-09,Halmstad,Atvidabergs,Halmstad,Atvidabergs FF,0,0,0,0,0.9583333333333333
+2015-08-08,Hacken,Gefle,BK Häcken,Gefle IF,1,1,0,1,0.8452380952380952
+2015-08-08,Falkenbergs,Helsingborg,Falkenbergs FF,Helsingborg,2,3,1,2,0.9583333333333333
+2015-08-02,Norrkoping,AIK,IFK Norrköping,AIK,1,2,0,1,0.9347826086956521
+2015-08-02,Goteborg,Orebro,IFK Göteborg,Orebro SK,6,0,4,0,0.849624060150376
+2015-08-02,Elfsborg,Halmstad,IF Elfsborg,Halmstad,2,0,1,0,0.9444444444444444
+2015-08-01,Gefle,Falkenbergs,Gefle IF,Falkenbergs FF,1,0,1,0,0.875
+2015-08-01,Djurgarden,Hacken,Djurgården,BK Häcken,2,1,1,0,0.9285714285714286
+2015-08-01,Atvidabergs,Malmo FF,Atvidabergs FF,Malmö FF,2,2,2,0,0.9583333333333333
+2015-07-26,Falkenbergs,Goteborg,Falkenbergs FF,IFK Göteborg,1,0,1,0,0.8793859649122806
+2015-07-26,AIK,Elfsborg,AIK,IF Elfsborg,4,2,4,0,0.9444444444444444
+2015-07-25,Malmo FF,Sundsvall,Malmö FF,GIF Sundsvall,3,0,2,0,0.9285714285714286
+2015-07-25,Hacken,Kalmar,BK Häcken,Kalmar FF,3,0,0,0,0.8571428571428571
+2015-07-25,Atvidabergs,Helsingborg,Atvidabergs FF,Helsingborg,1,2,0,1,0.9583333333333333
+2015-07-19,Norrkoping,Goteborg,IFK Norrköping,IFK Göteborg,2,2,1,1,0.8558352402745995
+2015-07-19,Helsingborg,AIK,Helsingborg,AIK,3,1,1,0,1.0
+2015-07-18,Sundsvall,Halmstad,GIF Sundsvall,Halmstad,0,0,0,0,0.9285714285714286
+2015-07-18,Orebro,Malmo FF,Orebro SK,Malmö FF,1,1,0,0,0.9285714285714286
+2015-07-18,Kalmar,Falkenbergs,Kalmar FF,Falkenbergs FF,4,0,2,0,0.8869047619047619
+2015-07-12,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,0,0,0,0,0.8558352402745995
+2015-07-12,Elfsborg,Hacken,IF Elfsborg,BK Häcken,1,0,1,0,0.873015873015873
+2015-07-12,AIK,Sundsvall,AIK,GIF Sundsvall,4,1,2,1,0.9285714285714286
+2015-07-11,Malmo FF,Orebro,Malmö FF,Orebro SK,2,2,1,2,0.9285714285714286
+2015-07-11,Halmstad,Kalmar,Halmstad,Kalmar FF,1,0,0,0,0.9285714285714286
+2015-07-11,Atvidabergs,Gefle,Atvidabergs FF,Gefle IF,1,1,1,0,0.875
+2015-07-05,Sundsvall,Goteborg,GIF Sundsvall,IFK Göteborg,2,2,0,2,0.849624060150376
+2015-07-05,Kalmar,AIK,Kalmar FF,AIK,0,0,0,0,0.9285714285714286
+2015-07-05,Hacken,Helsingborg,BK Häcken,Helsingborg,3,2,1,1,0.9285714285714286
+2015-07-05,Falkenbergs,Elfsborg,Falkenbergs FF,IF Elfsborg,2,2,0,1,0.9027777777777777
+2015-07-04,Djurgarden,Orebro,Djurgården,Orebro SK,2,0,2,0,0.9285714285714286
+2015-07-04,Atvidabergs,Halmstad,Atvidabergs FF,Halmstad,0,0,0,0,0.9583333333333333
+2015-06-07,Sundsvall,Kalmar,GIF Sundsvall,Kalmar FF,1,1,0,0,0.8571428571428571
+2015-06-07,Norrkoping,Falkenbergs,IFK Norrköping,Falkenbergs FF,2,0,2,0,0.8931159420289855
+2015-06-07,Malmo FF,Djurgarden,Malmö FF,Djurgården,1,1,0,1,1.0
+2015-06-07,Hammarby,Goteborg,Hammarby IF,IFK Göteborg,0,1,0,0,0.8654970760233918
+2015-06-07,Elfsborg,Gefle,IF Elfsborg,Gefle IF,5,1,1,1,0.8611111111111112
+2015-06-06,Orebro,Halmstad,Orebro SK,Halmstad,1,1,0,0,0.9285714285714286
+2015-06-06,Helsingborg,Atvidabergs,Helsingborg,Atvidabergs FF,3,0,2,0,0.9583333333333333
+2015-06-06,Hacken,AIK,BK Häcken,AIK,0,0,0,0,0.9285714285714286
+2015-05-31,Malmo FF,Atvidabergs,Malmö FF,Atvidabergs FF,3,0,3,0,0.9583333333333333
+2015-05-31,Elfsborg,Orebro,IF Elfsborg,Orebro SK,2,2,0,1,0.873015873015873
+2015-05-31,AIK,Helsingborg,AIK,Helsingborg,3,1,1,1,1.0
+2015-05-30,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,2,1,1,0,0.8633540372670807
+2015-05-30,Hammarby,Halmstad,Hammarby IF,Halmstad,2,2,1,0,0.9444444444444444
+2015-05-30,Falkenbergs,Sundsvall,Falkenbergs FF,GIF Sundsvall,1,1,0,0,0.8869047619047619
+2015-05-24,Orebro,Gefle,Orebro SK,Gefle IF,1,0,1,0,0.8452380952380952
+2015-05-24,Kalmar,Malmo FF,Kalmar FF,Malmö FF,2,1,0,1,0.9285714285714286
+2015-05-24,Halmstad,Goteborg,Halmstad,IFK Göteborg,1,2,0,1,0.9210526315789473
+2015-05-24,Atvidabergs,Elfsborg,Atvidabergs FF,IF Elfsborg,1,2,0,1,0.9027777777777777
+2015-05-10,Hacken,Orebro,BK Häcken,Orebro SK,2,0,2,0,0.8571428571428571
+2015-05-10,Falkenbergs,Halmstad,Falkenbergs FF,Halmstad,1,0,1,0,0.9583333333333333
+2015-05-10,AIK,Norrkoping,AIK,IFK Norrköping,2,2,2,1,0.9347826086956521
+2015-05-03,Sundsvall,Elfsborg,GIF Sundsvall,IF Elfsborg,0,1,0,0,0.873015873015873
+2015-05-03,Norrkoping,Atvidabergs,IFK Norrköping,Atvidabergs FF,2,1,0,0,0.8931159420289855
+2015-05-03,Malmo FF,Helsingborg,Malmö FF,Helsingborg,3,1,2,0,1.0
+2015-05-03,Djurgarden,Gefle,Djurgården,Gefle IF,5,1,3,0,0.9166666666666667
+2015-04-30,Hacken,Norrkoping,BK Häcken,IFK Norrköping,0,2,0,1,0.8633540372670807
+2015-04-26,Sundsvall,Djurgarden,GIF Sundsvall,Djurgården,0,2,0,0,0.9285714285714286
+2015-04-26,Kalmar,Hacken,Kalmar FF,BK Häcken,0,1,0,0,0.8571428571428571
+2015-04-26,Halmstad,Elfsborg,Halmstad,IF Elfsborg,1,0,0,0,0.9444444444444444
+2015-04-26,AIK,Orebro,AIK,Orebro SK,3,0,2,0,0.9285714285714286
+2015-04-25,Hammarby,Atvidabergs,Hammarby IF,Atvidabergs FF,2,1,2,0,0.9027777777777777
+2015-04-19,Hacken,Goteborg,BK Häcken,IFK Göteborg,1,2,0,0,0.849624060150376
+2015-04-19,Atvidabergs,Falkenbergs,Atvidabergs FF,Falkenbergs FF,3,1,2,0,0.9166666666666666
+2015-04-18,Gefle,Halmstad,Gefle IF,Halmstad,0,0,0,0,0.9166666666666667
+2015-04-12,Halmstad,Helsingborg,Halmstad,Helsingborg,1,2,0,1,1.0
+2015-04-12,Goteborg,Malmo FF,IFK Göteborg,Malmö FF,0,1,0,1,0.9210526315789473
+2015-04-12,Falkenbergs,Orebro,Falkenbergs FF,Orebro SK,2,0,1,0,0.8869047619047619
+2015-04-12,AIK,Gefle,AIK,Gefle IF,3,1,1,0,0.9166666666666667
+2015-04-06,Sundsvall,Malmo FF,GIF Sundsvall,Malmö FF,1,4,1,4,0.9285714285714286
+2015-04-06,AIK,Halmstad,AIK,Halmstad,2,1,0,0,1.0
+2015-04-05,Norrkoping,Orebro,IFK Norrköping,Orebro SK,1,1,1,0,0.8633540372670807
+2015-04-05,Goteborg,Atvidabergs,IFK Göteborg,Atvidabergs FF,1,0,0,0,0.8793859649122806
+2015-04-05,Falkenbergs,Gefle,Falkenbergs FF,Gefle IF,0,2,0,1,0.875
+2015-04-05,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,1,2,0,1,0.9444444444444444
+2015-04-04,Kalmar,Helsingborg,Kalmar FF,Helsingborg,0,0,0,0,0.9285714285714286
+2015-04-04,Hammarby,Hacken,Hammarby IF,BK Häcken,2,0,2,0,0.873015873015873
+2014-11-01,Orebro,Hacken,Orebro SK,BK Häcken,5,2,3,1,0.8571428571428571
+2014-11-01,Kalmar,AIK,Kalmar FF,AIK,1,1,0,1,0.9285714285714286
+2014-11-01,Goteborg,Halmstad,IFK Göteborg,Halmstad,5,1,1,0,0.9210526315789473
+2014-11-01,Gefle,Helsingborg,Gefle IF,Helsingborg,2,1,1,1,0.9166666666666667
+2014-11-01,Falkenbergs,Mjallby,Falkenbergs FF,Mjallby,1,1,1,0,0.9583333333333333
+2014-11-01,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,1,1,0,1,0.9347826086956521
+2014-11-01,Brommapojkarna,Elfsborg,IF Brommapojkarna,IF Elfsborg,0,1,0,0,0.9111111111111111
+2014-11-01,Atvidabergs,Malmo FF,Atvidabergs FF,Malmö FF,2,1,1,1,0.9583333333333333
+2014-10-26,Norrkoping,Orebro,IFK Norrköping,Orebro SK,2,0,1,0,0.8633540372670807
+2014-10-26,AIK,Atvidabergs,AIK,Atvidabergs FF,4,1,3,0,0.9583333333333333
+2014-10-25,Hacken,Gefle,BK Häcken,Gefle IF,3,1,2,0,0.8452380952380952
+2014-10-19,Goteborg,Hacken,IFK Göteborg,BK Häcken,3,2,0,1,0.849624060150376
+2014-10-19,Gefle,Norrkoping,Gefle IF,IFK Norrköping,1,2,0,2,0.8514492753623188
+2014-10-19,Brommapojkarna,AIK,IF Brommapojkarna,AIK,0,4,0,1,0.9666666666666667
+2014-10-18,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,1,2,1,0,0.9444444444444444
+2014-10-18,Kalmar,Halmstad,Kalmar FF,Halmstad,1,3,0,1,0.9285714285714286
+2014-10-18,Atvidabergs,Mjallby,Atvidabergs FF,Mjallby,2,1,2,1,0.9583333333333333
+2014-10-05,Orebro,Elfsborg,Orebro SK,IF Elfsborg,5,1,2,0,0.873015873015873
+2014-10-05,Norrkoping,Goteborg,IFK Norrköping,IFK Göteborg,3,0,2,0,0.8558352402745995
+2014-10-05,Hacken,Falkenbergs,BK Häcken,Falkenbergs FF,1,2,0,2,0.8869047619047619
+2014-10-05,AIK,Malmo FF,AIK,Malmö FF,2,3,0,1,1.0
+2014-10-04,Mjallby,Brommapojkarna,Mjallby,IF Brommapojkarna,0,1,0,0,0.9666666666666667
+2014-10-04,Djurgarden,Gefle,Djurgården,Gefle IF,1,2,0,1,0.9166666666666667
+2014-09-28,Kalmar,Hacken,Kalmar FF,BK Häcken,2,3,1,2,0.8571428571428571
+2014-09-28,Falkenbergs,Norrkoping,Falkenbergs FF,IFK Norrköping,4,2,2,0,0.8931159420289855
+2014-09-28,Elfsborg,AIK,IF Elfsborg,AIK,1,1,0,0,0.9444444444444444
+2014-09-27,Malmo FF,Mjallby,Malmö FF,Mjallby,4,1,1,1,1.0
+2014-09-21,Mjallby,Elfsborg,Mjallby,IF Elfsborg,1,0,1,0,0.9444444444444444
+2014-09-21,Malmo FF,Helsingborg,Malmö FF,Helsingborg,1,1,0,0,1.0
+2014-09-21,Kalmar,Djurgarden,Kalmar FF,Djurgården,0,4,0,1,0.9285714285714286
+2014-09-21,AIK,Halmstad,AIK,Halmstad,0,1,0,1,1.0
+2014-09-20,Falkenbergs,Orebro,Falkenbergs FF,Orebro SK,1,3,0,1,0.8869047619047619
+2014-09-20,Brommapojkarna,Hacken,IF Brommapojkarna,BK Häcken,1,5,1,1,0.8952380952380952
+2014-09-14,Halmstad,Mjallby,Halmstad,Mjallby,1,2,1,2,1.0
+2014-09-14,Gefle,Falkenbergs,Gefle IF,Falkenbergs FF,3,1,0,1,0.875
+2014-09-14,Elfsborg,Goteborg,IF Elfsborg,IFK Göteborg,0,0,0,0,0.8654970760233918
+2014-09-14,Djurgarden,Atvidabergs,Djurgården,Atvidabergs FF,0,1,0,1,0.9583333333333333
+2014-09-13,Hacken,Malmo FF,BK Häcken,Malmö FF,3,3,3,1,0.9285714285714286
+2014-08-31,Norrkoping,AIK,IFK Norrköping,AIK,2,4,0,1,0.9347826086956521
+2014-08-31,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,2,0,1,0,0.849624060150376
+2014-08-31,Elfsborg,Falkenbergs,IF Elfsborg,Falkenbergs FF,1,0,0,0,0.9027777777777777
+2014-08-31,Djurgarden,Malmo FF,Djurgården,Malmö FF,2,0,2,0,1.0
+2014-08-30,Hacken,Mjallby,BK Häcken,Mjallby,1,1,0,1,0.9285714285714286
+2014-08-30,Gefle,Atvidabergs,Gefle IF,Atvidabergs FF,0,1,0,0,0.875
+2014-08-24,Halmstad,Elfsborg,Halmstad,IF Elfsborg,1,1,0,1,0.9444444444444444
+2014-08-24,Falkenbergs,Goteborg,Falkenbergs FF,IFK Göteborg,1,2,0,1,0.8793859649122806
+2014-08-24,AIK,Hacken,AIK,BK Häcken,1,0,1,0,0.9285714285714286
+2014-08-23,Malmo FF,Norrkoping,Malmö FF,IFK Norrköping,3,0,0,0,0.9347826086956521
+2014-08-17,Orebro,AIK,Orebro SK,AIK,4,2,3,1,0.9285714285714286
+2014-08-17,Goteborg,Brommapojkarna,IFK Göteborg,IF Brommapojkarna,3,0,1,0,0.887719298245614
+2014-08-17,Falkenbergs,Atvidabergs,Falkenbergs FF,Atvidabergs FF,3,0,2,0,0.9166666666666666
+2014-08-17,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,2,0,1,0,0.873015873015873
+2014-08-16,Gefle,Malmo FF,Gefle IF,Malmö FF,0,0,0,0,0.9166666666666667
+2014-08-10,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,2,2,1,0,0.9210526315789473
+2014-08-10,Helsingborg,Norrkoping,Helsingborg,IFK Norrköping,0,0,0,0,0.9347826086956521
+2014-08-10,Halmstad,Djurgarden,Halmstad,Djurgården,2,1,2,1,1.0
+2014-08-10,Brommapojkarna,Falkenbergs,IF Brommapojkarna,Falkenbergs FF,2,3,1,1,0.925
+2014-08-10,AIK,Gefle,AIK,Gefle IF,3,1,0,0,0.9166666666666667
+2014-08-09,Mjallby,Orebro,Mjallby,Orebro SK,0,1,0,0,0.9285714285714286
+2014-08-09,Atvidabergs,Kalmar,Atvidabergs FF,Kalmar FF,3,1,1,0,0.8869047619047619
+2014-08-03,Kalmar,Brommapojkarna,Kalmar FF,IF Brommapojkarna,1,1,1,0,0.8952380952380952
+2014-08-03,Elfsborg,Atvidabergs,IF Elfsborg,Atvidabergs FF,1,0,1,0,0.9027777777777777
+2014-08-02,Orebro,Halmstad,Orebro SK,Halmstad,1,2,1,0,0.9285714285714286
+2014-08-02,Norrkoping,Hacken,IFK Norrköping,BK Häcken,0,0,0,0,0.8633540372670807
+2014-08-02,Falkenbergs,Malmo FF,Falkenbergs FF,Malmö FF,2,5,1,2,0.9583333333333333
+2014-07-27,Mjallby,Goteborg,Mjallby,IFK Göteborg,3,0,1,0,0.9210526315789473
+2014-07-27,Helsingborg,Orebro,Helsingborg,Orebro SK,1,1,1,0,0.9285714285714286
+2014-07-27,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,3,0,1,0,0.8792270531400965
+2014-07-27,Brommapojkarna,Atvidabergs,IF Brommapojkarna,Atvidabergs FF,2,2,2,1,0.925
+2014-07-26,Malmo FF,Kalmar,Malmö FF,Kalmar FF,3,1,0,1,0.9285714285714286
+2014-07-20,Orebro,Helsingborg,Orebro SK,Helsingborg,1,1,0,1,0.9285714285714286
+2014-07-20,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,4,2,2,1,0.8792270531400965
+2014-07-20,Goteborg,Mjallby,IFK Göteborg,Mjallby,3,1,1,0,0.9210526315789473
+2014-07-20,Falkenbergs,AIK,Falkenbergs FF,AIK,4,1,1,0,0.9583333333333333
+2014-07-20,Atvidabergs,Brommapojkarna,Atvidabergs FF,IF Brommapojkarna,3,2,2,0,0.925
+2014-07-19,Kalmar,Malmo FF,Kalmar FF,Malmö FF,1,1,1,1,0.9285714285714286
+2014-07-19,Gefle,Halmstad,Gefle IF,Halmstad,2,0,1,0,0.9166666666666667
+2014-07-13,Helsingborg,Gefle,Helsingborg,Gefle IF,1,1,0,0,0.9166666666666667
+2014-07-13,Halmstad,Goteborg,Halmstad,IFK Göteborg,2,2,0,0,0.9210526315789473
+2014-07-13,Elfsborg,Brommapojkarna,IF Elfsborg,IF Brommapojkarna,2,2,0,0,0.9111111111111111
+2014-07-12,Mjallby,Falkenbergs,Mjallby,Falkenbergs FF,1,1,1,0,0.9583333333333333
+2014-07-12,Malmo FF,Atvidabergs,Malmö FF,Atvidabergs FF,3,0,2,0,0.9583333333333333
+2014-07-12,AIK,Kalmar,AIK,Kalmar FF,3,0,1,0,0.9285714285714286
+2014-07-06,Orebro,Norrkoping,Orebro SK,IFK Norrköping,2,2,2,1,0.8633540372670807
+2014-07-06,Goteborg,Helsingborg,IFK Göteborg,Helsingborg,6,2,4,1,0.9210526315789473
+2014-07-06,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,1,1,1,1,0.9666666666666667
+2014-07-05,Kalmar,Mjallby,Kalmar FF,Mjallby,2,1,1,1,0.9285714285714286
+2014-07-05,Gefle,Hacken,Gefle IF,BK Häcken,1,0,0,0,0.8452380952380952
+2014-07-05,Falkenbergs,Halmstad,Falkenbergs FF,Halmstad,1,1,0,0,0.9583333333333333
+2014-06-01,Helsingborg,Falkenbergs,Helsingborg,Falkenbergs FF,1,0,1,0,0.9583333333333333
+2014-06-01,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,0,1,0,1,0.9444444444444444
+2014-05-31,Mjallby,Atvidabergs,Mjallby,Atvidabergs FF,1,0,0,0,0.9583333333333333
+2014-05-31,Halmstad,Kalmar,Halmstad,Kalmar FF,1,1,0,0,0.9285714285714286
+2014-05-25,Kalmar,Helsingborg,Kalmar FF,Helsingborg,2,0,1,0,0.9285714285714286
+2014-05-25,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,2,2,2,1,0.8558352402745995
+2014-05-24,Falkenbergs,Hacken,Falkenbergs FF,BK Häcken,1,1,0,1,0.8869047619047619
+2014-05-24,Elfsborg,Orebro,IF Elfsborg,Orebro SK,1,0,1,0,0.873015873015873
+2014-05-24,Atvidabergs,Halmstad,Atvidabergs FF,Halmstad,1,0,1,0,0.9583333333333333
+2014-05-11,Goteborg,Orebro,IFK Göteborg,Orebro SK,2,1,1,1,0.849624060150376
+2014-05-11,Gefle,Elfsborg,Gefle IF,IF Elfsborg,0,1,0,0,0.8611111111111112
+2014-05-11,AIK,Mjallby,AIK,Mjallby,2,1,1,1,1.0
+2014-05-10,Kalmar,Norrkoping,Kalmar FF,IFK Norrköping,2,0,0,0,0.8633540372670807
+2014-05-04,Malmo FF,Hacken,Malmö FF,BK Häcken,1,2,0,2,0.9285714285714286
+2014-05-04,Kalmar,Orebro,Kalmar FF,Orebro SK,2,0,1,0,0.8571428571428571
+2014-05-04,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,0,0,0,0,0.8654970760233918
+2014-05-04,Atvidabergs,Djurgarden,Atvidabergs FF,Djurgården,1,1,1,1,0.9583333333333333
+2014-05-03,Mjallby,Halmstad,Mjallby,Halmstad,2,1,1,0,1.0
+2014-05-03,Brommapojkarna,Norrkoping,IF Brommapojkarna,IFK Norrköping,3,0,1,0,0.9014492753623189
+2014-04-27,Helsingborg,Mjallby,Helsingborg,Mjallby,3,1,0,0,1.0
+2014-04-27,Hacken,AIK,BK Häcken,AIK,2,2,0,1,0.9285714285714286
+2014-04-27,Djurgarden,Brommapojkarna,Djurgården,IF Brommapojkarna,3,2,2,0,0.9666666666666667
+2014-04-21,Malmo FF,Djurgarden,Malmö FF,Djurgården,2,2,1,1,1.0
+2014-04-21,Falkenbergs,Elfsborg,Falkenbergs FF,IF Elfsborg,2,3,2,1,0.9027777777777777
+2014-04-21,Brommapojkarna,Orebro,IF Brommapojkarna,Orebro SK,2,2,0,1,0.8952380952380952
+2014-04-21,Atvidabergs,Gefle,Atvidabergs FF,Gefle IF,2,2,1,1,0.875
+2014-04-20,Mjallby,Hacken,Mjallby,BK Häcken,1,4,0,3,0.9285714285714286
+2014-04-20,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,1,1,0,0,0.849624060150376
+2014-04-20,Halmstad,Helsingborg,Halmstad,Helsingborg,2,1,1,1,1.0
+2014-04-20,AIK,Norrkoping,AIK,IFK Norrköping,1,2,0,2,0.9347826086956521
+2014-04-13,Helsingborg,Hacken,Helsingborg,BK Häcken,4,2,1,2,0.9285714285714286
+2014-04-13,Halmstad,Norrkoping,Halmstad,IFK Norrköping,0,0,0,0,0.9347826086956521
+2014-04-13,AIK,Orebro,AIK,Orebro SK,1,1,1,0,0.9285714285714286
+2014-04-12,Malmo FF,Gefle,Malmö FF,Gefle IF,1,0,0,0,0.9166666666666667
+2014-04-12,Atvidabergs,Falkenbergs,Atvidabergs FF,Falkenbergs FF,2,0,0,0,0.9166666666666666
+2014-04-06,Norrkoping,Helsingborg,IFK Norrköping,Helsingborg,2,0,0,0,0.9347826086956521
+2014-04-06,Gefle,AIK,Gefle IF,AIK,1,2,0,0,0.9166666666666667
+2014-04-06,Djurgarden,Halmstad,Djurgården,Halmstad,3,0,1,0,1.0
+2014-04-05,Falkenbergs,Brommapojkarna,Falkenbergs FF,IF Brommapojkarna,1,0,1,0,0.925
+2013-10-27,Mjallby,Goteborg,Mjallby,IFK Göteborg,2,1,2,0,0.9210526315789473
+2013-10-27,Djurgarden,Gefle,Djurgården,Gefle IF,1,1,1,1,0.9166666666666667
+2013-10-26,Brommapojkarna,AIK,IF Brommapojkarna,AIK,0,6,0,3,0.9666666666666667
+2013-10-20,Malmo FF,Brommapojkarna,Malmö FF,IF Brommapojkarna,2,1,1,0,0.9666666666666667
+2013-10-20,Goteborg,Osters,IFK Göteborg,Östers IF,0,0,0,0,0.849624060150376
+2013-10-20,Elfsborg,Hacken,IF Elfsborg,BK Häcken,0,0,0,0,0.873015873015873
+2013-10-20,Atvidabergs,Helsingborg,Atvidabergs FF,Helsingborg,3,0,1,0,0.9583333333333333
+2013-10-19,Gefle,Syrianska,Gefle IF,Syrianska FC,2,0,1,0,0.8666666666666667
+2013-10-06,Syrianska,Elfsborg,Syrianska FC,IF Elfsborg,1,3,1,1,0.8944444444444444
+2013-10-06,Osters,Gefle,Östers IF,Gefle IF,1,4,0,2,0.8452380952380952
+2013-10-06,Helsingborg,Halmstad,Helsingborg,Halmstad,4,2,3,0,1.0
+2013-10-06,Hacken,Malmo FF,BK Häcken,Malmö FF,2,0,1,0,0.9285714285714286
+2013-10-06,Djurgarden,Goteborg,Djurgården,IFK Göteborg,2,1,0,1,0.9210526315789473
+2013-10-05,Norrkoping,Kalmar,IFK Norrköping,Kalmar FF,0,1,0,1,0.8633540372670807
+2013-10-05,Brommapojkarna,Atvidabergs,IF Brommapojkarna,Atvidabergs FF,0,0,0,0,0.925
+2013-09-29,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,2,1,0,0,0.849624060150376
+2013-09-29,Halmstad,Djurgarden,Halmstad,Djurgården,1,4,0,1,1.0
+2013-09-29,Elfsborg,Helsingborg,IF Elfsborg,Helsingborg,1,1,1,0,0.9444444444444444
+2013-09-28,Syrianska,Brommapojkarna,Syrianska FC,IF Brommapojkarna,1,2,0,2,0.9166666666666667
+2013-09-22,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,0,2,0,1,0.9347826086956521
+2013-09-22,Mjallby,Elfsborg,Mjallby,IF Elfsborg,2,2,1,2,0.9444444444444444
+2013-09-22,Helsingborg,Syrianska,Helsingborg,Syrianska FC,2,2,1,1,0.95
+2013-09-22,Djurgarden,Atvidabergs,Djurgården,Atvidabergs FF,2,0,1,0,0.9583333333333333
+2013-09-22,Brommapojkarna,Hacken,IF Brommapojkarna,BK Häcken,1,0,0,0,0.8952380952380952
+2013-09-21,Kalmar,Gefle,Kalmar FF,Gefle IF,0,0,0,0,0.8452380952380952
+2013-09-15,Syrianska,Mjallby,Syrianska FC,Mjallby,1,2,0,1,0.95
+2013-09-15,Halmstad,Goteborg,Halmstad,IFK Göteborg,0,1,0,0,0.9210526315789473
+2013-09-15,Hacken,Helsingborg,BK Häcken,Helsingborg,3,2,1,0,0.9285714285714286
+2013-09-15,Elfsborg,Norrkoping,IF Elfsborg,IFK Norrköping,4,1,2,0,0.8792270531400965
+2013-09-15,AIK,Kalmar,AIK,Kalmar FF,0,0,0,0,0.9285714285714286
+2013-09-14,Gefle,Brommapojkarna,Gefle IF,IF Brommapojkarna,1,0,1,0,0.8833333333333333
+2013-09-14,Atvidabergs,Osters,Atvidabergs FF,Östers IF,4,0,1,0,0.8869047619047619
+2013-09-01,Osters,Malmo FF,Östers IF,Malmö FF,1,1,1,1,0.9285714285714286
+2013-09-01,Norrkoping,Syrianska,IFK Norrköping,Syrianska FC,6,1,0,1,0.8847826086956522
+2013-09-01,Mjallby,Hacken,Mjallby,BK Häcken,1,1,0,0,0.9285714285714286
+2013-09-01,Kalmar,Halmstad,Kalmar FF,Halmstad,1,0,0,0,0.9285714285714286
+2013-09-01,Goteborg,Atvidabergs,IFK Göteborg,Atvidabergs FF,3,0,1,0,0.8793859649122806
+2013-09-01,Djurgarden,Elfsborg,Djurgården,IF Elfsborg,1,2,0,1,0.9444444444444444
+2013-08-31,AIK,Gefle,AIK,Gefle IF,3,0,1,0,0.9166666666666667
+2013-08-25,Malmo FF,Goteborg,Malmö FF,IFK Göteborg,3,1,2,1,0.9210526315789473
+2013-08-25,Halmstad,AIK,Halmstad,AIK,1,0,1,0,1.0
+2013-08-25,Gefle,Helsingborg,Gefle IF,Helsingborg,1,2,1,1,0.9166666666666667
+2013-08-25,Elfsborg,Osters,IF Elfsborg,Östers IF,2,4,1,1,0.873015873015873
+2013-08-18,Kalmar,Malmo FF,Kalmar FF,Malmö FF,1,4,0,1,0.9285714285714286
+2013-08-18,Halmstad,Gefle,Halmstad,Gefle IF,2,2,1,1,0.9166666666666667
+2013-08-18,Djurgarden,Hacken,Djurgården,BK Häcken,1,1,1,0,0.9285714285714286
+2013-08-17,Norrkoping,Brommapojkarna,IFK Norrköping,IF Brommapojkarna,2,1,1,1,0.9014492753623189
+2013-08-17,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,3,1,0,0,0.8654970760233918
+2013-08-11,Syrianska,Goteborg,Syrianska FC,IFK Göteborg,0,2,0,1,0.8710526315789473
+2013-08-11,Malmo FF,AIK,Malmö FF,AIK,1,0,1,0,1.0
+2013-08-11,Helsingborg,Norrkoping,Helsingborg,IFK Norrköping,0,0,0,0,0.9347826086956521
+2013-08-11,Hacken,Osters,BK Häcken,Östers IF,0,2,0,1,0.8571428571428571
+2013-08-11,Gefle,Mjallby,Gefle IF,Mjallby,2,1,1,1,0.9166666666666667
+2013-08-10,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,1,0,0,0,0.873015873015873
+2013-08-10,Brommapojkarna,Djurgarden,IF Brommapojkarna,Djurgården,3,0,2,0,0.9666666666666667
+2013-08-10,Atvidabergs,Halmstad,Atvidabergs FF,Halmstad,0,1,0,0,0.9583333333333333
+2013-08-04,Halmstad,Malmo FF,Halmstad,Malmö FF,1,3,1,2,1.0
+2013-08-04,Goteborg,Hacken,IFK Göteborg,BK Häcken,3,1,2,1,0.849624060150376
+2013-08-04,Atvidabergs,Gefle,Atvidabergs FF,Gefle IF,1,1,0,0,0.875
+2013-08-03,Osters,Brommapojkarna,Östers IF,IF Brommapojkarna,0,0,0,0,0.8952380952380952
+2013-08-03,Kalmar,Syrianska,Kalmar FF,Syrianska FC,1,0,0,0,0.8785714285714286
+2013-08-03,AIK,Elfsborg,AIK,IF Elfsborg,2,1,1,0,0.9444444444444444
+2013-07-27,Osters,Mjallby,Östers IF,Mjallby,1,1,1,1,0.9285714285714286
+2013-07-27,Kalmar,Brommapojkarna,Kalmar FF,IF Brommapojkarna,2,2,1,1,0.8952380952380952
+2013-07-27,Atvidabergs,Elfsborg,Atvidabergs FF,IF Elfsborg,1,1,1,0,0.9027777777777777
+2013-07-21,Djurgarden,Norrkoping,Djurgården,IFK Norrköping,1,2,1,1,0.9347826086956521
+2013-07-14,Syrianska,AIK,Syrianska FC,AIK,1,2,0,1,0.95
+2013-07-14,Mjallby,Djurgarden,Mjallby,Djurgården,2,0,2,0,1.0
+2013-07-14,Malmo FF,Atvidabergs,Malmö FF,Atvidabergs FF,4,0,1,0,0.9583333333333333
+2013-07-14,Gefle,Norrkoping,Gefle IF,IFK Norrköping,2,2,1,1,0.8514492753623188
+2013-07-13,Hacken,Kalmar,BK Häcken,Kalmar FF,0,1,0,0,0.8571428571428571
+2013-07-13,Elfsborg,Halmstad,IF Elfsborg,Halmstad,2,2,0,2,0.9444444444444444
+2013-07-13,Brommapojkarna,Goteborg,IF Brommapojkarna,IFK Göteborg,2,1,2,0,0.887719298245614
+2013-07-07,Syrianska,Halmstad,Syrianska FC,Halmstad,1,2,1,1,0.95
+2013-07-07,Malmo FF,Gefle,Malmö FF,Gefle IF,3,1,1,1,0.9166666666666667
+2013-07-07,AIK,Hacken,AIK,BK Häcken,2,0,0,0,0.9285714285714286
+2013-07-06,Mjallby,Osters,Mjallby,Östers IF,1,1,0,1,0.9285714285714286
+2013-07-06,Elfsborg,Atvidabergs,IF Elfsborg,Atvidabergs FF,0,1,0,1,0.9027777777777777
+2013-07-06,Brommapojkarna,Kalmar,IF Brommapojkarna,Kalmar FF,0,1,0,1,0.8952380952380952
+2013-06-30,Elfsborg,Syrianska,IF Elfsborg,Syrianska FC,5,1,0,0,0.8944444444444444
+2013-06-30,Djurgarden,Osters,Djurgården,Östers IF,2,0,1,0,0.9285714285714286
+2013-06-23,Kalmar,Helsingborg,Kalmar FF,Helsingborg,1,1,1,0,0.9285714285714286
+2013-06-23,Halmstad,Hacken,Halmstad,BK Häcken,0,2,0,1,0.9285714285714286
+2013-06-23,Atvidabergs,Syrianska,Atvidabergs FF,Syrianska FC,1,0,0,0,0.9083333333333333
+2013-06-15,Gefle,Osters,Gefle IF,Östers IF,0,0,0,0,0.8452380952380952
+2013-06-01,Mjallby,Halmstad,Mjallby,Halmstad,5,1,1,1,1.0
+2013-06-01,Helsingborg,Atvidabergs,Helsingborg,Atvidabergs FF,3,0,2,0,0.9583333333333333
+2013-06-01,Hacken,Elfsborg,BK Häcken,IF Elfsborg,0,1,0,1,0.873015873015873
+2013-06-01,Brommapojkarna,Malmo FF,IF Brommapojkarna,Malmö FF,1,3,0,1,0.9666666666666667
+2013-05-19,Osters,AIK,Östers IF,AIK,2,3,1,2,0.9285714285714286
+2013-05-19,Norrkoping,Atvidabergs,IFK Norrköping,Atvidabergs FF,2,1,1,1,0.8931159420289855
+2013-05-19,Hacken,Gefle,BK Häcken,Gefle IF,2,2,1,1,0.8452380952380952
+2013-05-19,Goteborg,Kalmar,IFK Göteborg,Kalmar FF,2,0,1,0,0.849624060150376
+2013-05-19,Djurgarden,Halmstad,Djurgården,Halmstad,1,0,0,0,1.0
+2013-05-18,Brommapojkarna,Syrianska,IF Brommapojkarna,Syrianska FC,1,1,0,1,0.9166666666666667
+2013-05-12,Mjallby,Syrianska,Mjallby,Syrianska FC,4,1,3,0,0.95
+2013-05-12,Kalmar,AIK,Kalmar FF,AIK,2,1,1,0,0.9285714285714286
+2013-05-12,Djurgarden,Malmo FF,Djurgården,Malmö FF,3,2,1,2,1.0
+2013-05-11,Goteborg,Halmstad,IFK Göteborg,Halmstad,1,0,1,0,0.9210526315789473
+2013-05-05,Syrianska,Helsingborg,Syrianska FC,Helsingborg,0,1,0,0,0.95
+2013-05-05,Halmstad,Osters,Halmstad,Östers IF,1,0,0,0,0.9285714285714286
+2013-05-05,Elfsborg,Mjallby,IF Elfsborg,Mjallby,2,1,1,1,0.9444444444444444
+2013-05-04,Atvidabergs,Djurgarden,Atvidabergs FF,Djurgården,5,1,2,0,0.9583333333333333
+2013-04-28,Osters,Elfsborg,Östers IF,IF Elfsborg,1,3,1,1,0.873015873015873
+2013-04-28,Mjallby,Brommapojkarna,Mjallby,IF Brommapojkarna,4,2,2,2,0.9666666666666667
+2013-04-28,AIK,Halmstad,AIK,Halmstad,3,3,2,1,1.0
+2013-04-27,Kalmar,Atvidabergs,Kalmar FF,Atvidabergs FF,0,0,0,0,0.8869047619047619
+2013-04-27,Helsingborg,Gefle,Helsingborg,Gefle IF,5,1,2,1,0.9166666666666667
+2013-04-27,Djurgarden,Syrianska,Djurgården,Syrianska FC,0,1,0,0,0.95
+2013-04-21,Halmstad,Kalmar,Halmstad,Kalmar FF,1,2,1,0,0.9285714285714286
+2013-04-21,Hacken,Mjallby,BK Häcken,Mjallby,2,0,0,0,0.9285714285714286
+2013-04-21,Brommapojkarna,Helsingborg,IF Brommapojkarna,Helsingborg,0,2,0,1,0.9666666666666667
+2013-04-21,Atvidabergs,Goteborg,Atvidabergs FF,IFK Göteborg,1,2,0,0,0.8793859649122806
+2013-04-13,Syrianska,Osters,Syrianska FC,Östers IF,0,1,0,0,0.8785714285714286
+2013-04-07,Kalmar,Hacken,Kalmar FF,BK Häcken,0,0,0,0,0.8571428571428571
+2013-04-07,AIK,Syrianska,AIK,Syrianska FC,0,0,0,0,0.95
+2013-03-31,Helsingborg,Djurgarden,Helsingborg,Djurgården,3,0,3,0,1.0
+2012-11-17,Sundsvall,Halmstad,GIF Sundsvall,Halmstad,4,3,2,1,0.9285714285714286
+2012-11-10,Halmstad,Sundsvall,Halmstad,GIF Sundsvall,3,0,0,0,0.9285714285714286
+2012-11-04,Syrianska,Kalmar,Syrianska FC,Kalmar FF,3,0,0,0,0.8785714285714286
+2012-11-04,Sundsvall,Hacken,GIF Sundsvall,BK Häcken,1,2,0,0,0.8571428571428571
+2012-11-04,Orebro,GAIS,Orebro SK,GAIS,4,0,3,0,0.9285714285714286
+2012-11-04,Norrkoping,Mjallby,IFK Norrköping,Mjallby,2,1,1,0,0.9347826086956521
+2012-11-04,Goteborg,Djurgarden,IFK Göteborg,Djurgården,1,0,1,0,0.9210526315789473
+2012-11-04,Gefle,Helsingborg,Gefle IF,Helsingborg,2,2,1,2,0.9166666666666667
+2012-11-04,Elfsborg,Atvidabergs,IF Elfsborg,Atvidabergs FF,1,1,1,0,0.9027777777777777
+2012-11-04,AIK,Malmo FF,AIK,Malmö FF,2,0,1,0,1.0
+2012-10-28,Sundsvall,Norrkoping,GIF Sundsvall,IFK Norrköping,0,4,0,3,0.8633540372670807
+2012-10-28,Orebro,Goteborg,Orebro SK,IFK Göteborg,1,0,1,0,0.849624060150376
+2012-10-28,GAIS,Helsingborg,GAIS,Helsingborg,1,3,0,0,1.0
+2012-10-28,AIK,Syrianska,AIK,Syrianska FC,1,1,0,1,0.95
+2012-10-27,Hacken,Kalmar,BK Häcken,Kalmar FF,1,2,1,0,0.8571428571428571
+2012-10-21,Norrkoping,Elfsborg,IFK Norrköping,IF Elfsborg,2,1,2,0,0.8792270531400965
+2012-10-21,Kalmar,Malmo FF,Kalmar FF,Malmö FF,1,2,0,2,0.9285714285714286
+2012-10-21,Helsingborg,Orebro,Helsingborg,Orebro SK,1,1,1,0,0.9285714285714286
+2012-10-21,Goteborg,AIK,IFK Göteborg,AIK,0,1,0,1,0.9210526315789473
+2012-10-20,Mjallby,Hacken,Mjallby,BK Häcken,1,2,1,2,0.9285714285714286
+2012-10-20,Gefle,Atvidabergs,Gefle IF,Atvidabergs FF,1,2,0,1,0.875
+2012-10-07,Orebro,Sundsvall,Orebro SK,GIF Sundsvall,2,2,1,2,0.8571428571428571
+2012-10-07,Mjallby,Helsingborg,Mjallby,Helsingborg,0,2,0,0,1.0
+2012-10-07,Kalmar,Djurgarden,Kalmar FF,Djurgården,2,2,2,1,0.9285714285714286
+2012-10-07,GAIS,Elfsborg,GAIS,IF Elfsborg,1,2,0,1,0.9444444444444444
+2012-10-07,AIK,Gefle,AIK,Gefle IF,0,1,0,0,0.9166666666666667
+2012-10-06,Hacken,Syrianska,BK Häcken,Syrianska FC,5,1,2,0,0.8785714285714286
+2012-10-06,Atvidabergs,Goteborg,Atvidabergs FF,IFK Göteborg,1,2,1,1,0.8793859649122806
+2012-09-30,Sundsvall,AIK,GIF Sundsvall,AIK,2,3,1,1,0.9285714285714286
+2012-09-30,Helsingborg,Atvidabergs,Helsingborg,Atvidabergs FF,3,0,1,0,0.9583333333333333
+2012-09-30,Gefle,Kalmar,Gefle IF,Kalmar FF,0,0,0,0,0.8452380952380952
+2012-09-30,Elfsborg,Orebro,IF Elfsborg,Orebro SK,1,0,0,0,0.873015873015873
+2012-09-23,Norrkoping,AIK,IFK Norrköping,AIK,2,2,0,1,0.9347826086956521
+2012-09-23,Kalmar,Atvidabergs,Kalmar FF,Atvidabergs FF,2,0,1,0,0.8869047619047619
+2012-09-23,Gefle,Mjallby,Gefle IF,Mjallby,1,0,1,0,0.9166666666666667
+2012-09-23,Elfsborg,Sundsvall,IF Elfsborg,GIF Sundsvall,0,0,0,0,0.873015873015873
+2012-09-22,Syrianska,Orebro,Syrianska FC,Orebro SK,2,2,0,1,0.8785714285714286
+2012-09-16,Goteborg,Elfsborg,IFK Göteborg,IF Elfsborg,2,1,1,1,0.8654970760233918
+2012-09-16,Djurgarden,AIK,Djurgården,AIK,0,3,0,0,1.0
+2012-09-15,Mjallby,GAIS,Mjallby,GAIS,4,0,2,0,1.0
+2012-09-15,Helsingborg,Sundsvall,Helsingborg,GIF Sundsvall,4,0,0,0,0.9285714285714286
+2012-09-02,Sundsvall,Goteborg,GIF Sundsvall,IFK Göteborg,3,3,2,0,0.849624060150376
+2012-09-02,Norrkoping,Gefle,IFK Norrköping,Gefle IF,0,1,0,0,0.8514492753623188
+2012-09-02,GAIS,Kalmar,GAIS,Kalmar FF,1,2,0,1,0.9285714285714286
+2012-09-02,Elfsborg,Syrianska,IF Elfsborg,Syrianska FC,1,0,1,0,0.8944444444444444
+2012-09-02,AIK,Helsingborg,AIK,Helsingborg,2,1,0,1,1.0
+2012-09-01,Malmo FF,Mjallby,Malmö FF,Mjallby,1,1,1,0,1.0
+2012-08-26,Kalmar,Goteborg,Kalmar FF,IFK Göteborg,3,0,1,0,0.849624060150376
+2012-08-26,Hacken,Elfsborg,BK Häcken,IF Elfsborg,4,2,0,1,0.873015873015873
+2012-08-26,GAIS,AIK,GAIS,AIK,0,1,0,0,1.0
+2012-08-25,Djurgarden,Helsingborg,Djurgården,Helsingborg,3,1,2,1,1.0
+2012-08-18,Elfsborg,Helsingborg,IF Elfsborg,Helsingborg,2,1,0,1,0.9444444444444444
+2012-08-12,Norrkoping,Hacken,IFK Norrköping,BK Häcken,1,2,0,1,0.8633540372670807
+2012-08-12,Helsingborg,Kalmar,Helsingborg,Kalmar FF,7,2,4,1,0.9285714285714286
+2012-08-12,Goteborg,Mjallby,IFK Göteborg,Mjallby,4,2,1,1,0.9210526315789473
+2012-08-12,Elfsborg,Malmo FF,IF Elfsborg,Malmö FF,4,1,1,0,0.9444444444444444
+2012-08-12,AIK,Orebro,AIK,Orebro SK,3,0,1,0,0.9285714285714286
+2012-08-11,Sundsvall,GAIS,GIF Sundsvall,GAIS,2,0,1,0,0.9285714285714286
+2012-08-05,Malmo FF,Hacken,Malmö FF,BK Häcken,0,0,0,0,0.9285714285714286
+2012-08-04,Syrianska,Gefle,Syrianska FC,Gefle IF,1,0,1,0,0.8666666666666667
+2012-08-04,GAIS,Atvidabergs,GAIS,Atvidabergs FF,2,2,0,1,0.9583333333333333
+2012-07-29,Mjallby,AIK,Mjallby,AIK,0,1,0,0,1.0
+2012-07-28,Helsingborg,Norrkoping,Helsingborg,IFK Norrköping,1,2,0,2,0.9347826086956521
+2012-07-28,Gefle,Malmo FF,Gefle IF,Malmö FF,0,2,0,2,0.9166666666666667
+2012-07-22,Elfsborg,Kalmar,IF Elfsborg,Kalmar FF,3,0,2,0,0.873015873015873
+2012-07-21,Syrianska,Helsingborg,Syrianska FC,Helsingborg,1,3,0,2,0.95
+2012-07-21,Sundsvall,Mjallby,GIF Sundsvall,Mjallby,3,1,2,1,0.9285714285714286
+2012-07-21,Gefle,Goteborg,Gefle IF,IFK Göteborg,5,0,1,0,0.8377192982456141
+2012-07-15,Orebro,Hacken,Orebro SK,BK Häcken,1,2,0,0,0.8571428571428571
+2012-07-14,Mjallby,Sundsvall,Mjallby,GIF Sundsvall,1,0,0,0,0.9285714285714286
+2012-07-14,Helsingborg,Syrianska,Helsingborg,Syrianska FC,1,0,0,0,0.95
+2012-07-14,Goteborg,Gefle,IFK Göteborg,Gefle IF,1,1,1,0,0.8377192982456141
+2012-07-14,Atvidabergs,AIK,Atvidabergs FF,AIK,2,0,0,0,0.9583333333333333
+2012-07-09,Orebro,Malmo FF,IFK Norrköping,Kalmar FF,2,1,0,1,0.5438596491228069
+2012-07-08,Gefle,GAIS,Gefle IF,GAIS,0,0,0,0,0.9166666666666667
+2012-07-08,AIK,Hacken,AIK,BK Häcken,3,1,2,1,0.9285714285714286
+2012-07-07,Syrianska,Djurgarden,Syrianska FC,Djurgården,1,1,1,0,0.95
+2012-07-07,Sundsvall,Atvidabergs,GIF Sundsvall,Atvidabergs FF,3,3,2,2,0.8869047619047619
+2012-06-30,Mjallby,Norrkoping,Mjallby,IFK Norrköping,0,2,0,1,0.9347826086956521
+2012-06-30,Kalmar,Syrianska,Kalmar FF,Syrianska FC,3,0,2,0,0.8785714285714286
+2012-06-30,Hacken,Sundsvall,BK Häcken,GIF Sundsvall,1,2,0,2,0.8571428571428571
+2012-06-30,Atvidabergs,Elfsborg,Atvidabergs FF,IF Elfsborg,5,1,2,0,0.9027777777777777
+2012-05-20,Orebro,Syrianska,Orebro SK,Syrianska FC,0,1,0,0,0.8785714285714286
+2012-05-20,Mjallby,Gefle,Mjallby,Gefle IF,0,0,0,0,0.9166666666666667
+2012-05-20,Hacken,Djurgarden,BK Häcken,Djurgården,1,1,0,0,0.9285714285714286
+2012-05-20,Atvidabergs,Kalmar,Atvidabergs FF,Kalmar FF,3,0,2,0,0.8869047619047619
+2012-05-20,AIK,Norrkoping,AIK,IFK Norrköping,5,2,3,2,0.9347826086956521
+2012-05-17,Mjallby,Goteborg,Mjallby,IFK Göteborg,1,1,1,0,0.9210526315789473
+2012-05-17,Malmo FF,Elfsborg,Malmö FF,IF Elfsborg,1,0,0,0,0.9444444444444444
+2012-05-17,GAIS,Sundsvall,GAIS,GIF Sundsvall,1,2,1,2,0.9285714285714286
+2012-05-17,Djurgarden,Gefle,Djurgården,Gefle IF,1,1,1,1,0.9166666666666667
+2012-05-13,Norrkoping,Orebro,IFK Norrköping,Orebro SK,3,0,2,0,0.8633540372670807
+2012-05-13,Helsingborg,Hacken,Helsingborg,BK Häcken,3,2,2,1,0.9285714285714286
+2012-05-13,Elfsborg,AIK,IF Elfsborg,AIK,1,0,0,0,0.9444444444444444
+2012-05-12,Kalmar,Mjallby,Kalmar FF,Mjallby,1,2,1,2,0.9285714285714286
+2012-05-12,Djurgarden,Atvidabergs,Djurgården,Atvidabergs FF,1,1,0,0,0.9583333333333333
+2012-05-06,Norrkoping,Syrianska,IFK Norrköping,Syrianska FC,1,4,0,1,0.8847826086956522
+2012-05-06,Malmo FF,Atvidabergs,Malmö FF,Atvidabergs FF,2,1,0,0,0.9583333333333333
+2012-05-05,Sundsvall,Helsingborg,GIF Sundsvall,Helsingborg,0,1,0,0,0.9285714285714286
+2012-04-29,Sundsvall,Orebro,GIF Sundsvall,Orebro SK,3,1,1,1,0.8571428571428571
+2012-04-29,Norrkoping,Malmo FF,IFK Norrköping,Malmö FF,3,2,1,0,0.9347826086956521
+2012-04-29,Djurgarden,Kalmar,Djurgården,Kalmar FF,1,1,1,1,0.9285714285714286
+2012-04-28,Syrianska,Hacken,Syrianska FC,BK Häcken,1,2,0,1,0.8785714285714286
+2012-04-28,Goteborg,Atvidabergs,IFK Göteborg,Atvidabergs FF,2,1,2,0,0.8793859649122806
+2012-04-22,AIK,Sundsvall,AIK,GIF Sundsvall,1,1,1,0,0.9285714285714286
+2012-04-21,Kalmar,Gefle,Kalmar FF,Gefle IF,0,1,0,0,0.8452380952380952
+2012-04-21,Atvidabergs,Helsingborg,Atvidabergs FF,Helsingborg,1,2,0,0,0.9583333333333333
+2012-04-15,Syrianska,AIK,Syrianska FC,AIK,0,1,0,0,0.95
+2012-04-15,Mjallby,Atvidabergs,Mjallby,Atvidabergs FF,2,0,0,0,0.9583333333333333
+2012-04-15,Goteborg,Orebro,IFK Göteborg,Orebro SK,2,2,1,0,0.849624060150376
+2012-04-09,Goteborg,Norrkoping,IFK Göteborg,IFK Norrköping,1,2,0,0,0.8558352402745995
+2012-04-08,Helsingborg,Elfsborg,Helsingborg,IF Elfsborg,2,1,1,1,0.9444444444444444
+2012-04-08,Djurgarden,Sundsvall,Djurgården,GIF Sundsvall,1,0,1,0,0.9285714285714286
+2012-04-07,Mjallby,Orebro,Mjallby,Orebro SK,0,0,0,0,0.9285714285714286
+2012-04-07,Hacken,Malmo FF,BK Häcken,Malmö FF,5,0,3,0,0.9285714285714286
+2012-04-06,Gefle,Syrianska,Gefle IF,Syrianska FC,1,1,1,0,0.8666666666666667
+2012-04-06,Atvidabergs,GAIS,Atvidabergs FF,GAIS,2,1,0,0,0.9583333333333333
+2012-04-01,Syrianska,Goteborg,Syrianska FC,IFK Göteborg,2,1,0,1,0.8710526315789473
+2012-04-01,AIK,Mjallby,AIK,Mjallby,0,0,0,0,1.0
+2012-03-31,Sundsvall,Kalmar,GIF Sundsvall,Kalmar FF,0,1,0,0,0.8571428571428571
+2012-03-31,GAIS,Hacken,GAIS,BK Häcken,0,0,0,0,0.9285714285714286
+2012-03-31,Elfsborg,Djurgarden,IF Elfsborg,Djurgården,2,1,2,0,0.9444444444444444

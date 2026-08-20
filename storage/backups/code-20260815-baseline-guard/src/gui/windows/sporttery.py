@@ -1,0 +1,327 @@
+import json
+import re
+from pathlib import Path
+
+import pandas as pd
+from PyQt6.QtWidgets import (
+    QComboBox, QDialog, QFileDialog, QHBoxLayout, QLabel, QMessageBox, QPushButton,
+    QVBoxLayout, QWidget,
+)
+
+from src.database.model import ModelDatabase
+from src.gui.utils.taskrunner import TaskRunnerDialog
+from src.gui.widgets.tables import ExcelTable
+from src.services.daily_learning import review_and_learn
+from src.services.daily_sporttery import LEAGUE_ALIASES, _sort_by_match_number, run_daily_sporttery
+
+
+REPORT_ROOT = Path('storage/jingcai/reports')
+PREDICTION_PATH = REPORT_ROOT / '最新竞彩预测.csv'
+SKIPPED_PATH = REPORT_ROOT / '最新未覆盖场次.csv'
+LEARNING_STATUS_PATH = Path('storage/jingcai/learning/status.json')
+ALL_MODELS = '__all__'
+DEDICATED_MODELS = '__dedicated__'
+GENERIC_MODELS = '__generic__'
+DEDICATED_LEAGUE_COLUMN = '专用模型联赛'
+REQUIRED_DEDICATED_MODELS = ('胜平负模型', '大小球模型', '比分模型', '半全场模型')
+
+
+def trained_dedicated_leagues() -> list[str]:
+    """List leagues with the complete model set used by daily predictions."""
+    if not LEAGUE_ALIASES:
+        return []
+    try:
+        probe = ModelDatabase(next(iter(LEAGUE_ALIASES)))
+        index = probe.index
+    except Exception:
+        # A damaged/temporarily unavailable index must not prevent the daily
+        # prediction window from opening; report-derived options still work.
+        return []
+    result = []
+    for league in LEAGUE_ALIASES:
+        model_ids = set(index.get(league, {}))
+        required = {f'{league}{suffix}' for suffix in REQUIRED_DEDICATED_MODELS}
+        if required.issubset(model_ids):
+            result.append(league)
+    return result
+
+
+def _prediction_model_scopes(df: pd.DataFrame) -> pd.Series:
+    """Return the dedicated league used by every row, or an empty scope."""
+    if DEDICATED_LEAGUE_COLUMN in df.columns:
+        return df[DEDICATED_LEAGUE_COLUMN].fillna('').astype(str)
+    # Backward compatibility for reports created before model scope was saved.
+    basis = df.get('预测依据', pd.Series('', index=df.index)).fillna('').astype(str)
+    leagues = df.get('联赛', pd.Series('', index=df.index)).fillna('').astype(str)
+    return leagues.where(basis.eq('历史数据训练模型'), '')
+
+
+def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFrame:
+    """Strictly isolate one dedicated league or the generic/market rows."""
+    if df.empty or model_key in ('', ALL_MODELS):
+        return df.copy()
+    scopes = _prediction_model_scopes(df)
+    if model_key == DEDICATED_MODELS:
+        mask = scopes.ne('')
+    elif model_key == GENERIC_MODELS:
+        mask = scopes.eq('')
+    else:
+        mask = scopes.eq(model_key)
+    return df.loc[mask].reset_index(drop=True)
+
+
+class SportteryPredictionsDialog(QDialog):
+    """Synchronize and display today's official Sporttery model predictions."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Today Sporttery Predictions')
+        self.resize(1250, 650)
+        self._predictions = pd.DataFrame()
+        self._skipped = pd.DataFrame()
+        self._table_container = QWidget()
+        self._table_layout = QVBoxLayout(self._table_container)
+        self._summary = QLabel()
+        self._model_selector = QComboBox()
+        self._trained_leagues = trained_dedicated_leagues()
+        self._build_ui()
+        self._load_saved_reports()
+
+    def _build_ui(self):
+        root = QVBoxLayout(self)
+        controls = QHBoxLayout()
+        sync_button = QPushButton('手动同步竞猜数据并预测')
+        sync_button.clicked.connect(self._sync)
+        review_button = QPushButton('补同步历史赛果并复盘')
+        review_button.clicked.connect(self._review_history)
+        export_button = QPushButton('导出当前预测')
+        export_button.clicked.connect(self._export)
+        controls.addWidget(sync_button)
+        controls.addWidget(review_button)
+        controls.addWidget(export_button)
+        controls.addWidget(QLabel('竞彩模型：'))
+        self._model_selector.setMinimumWidth(210)
+        self._model_selector.currentIndexChanged.connect(lambda _: self._render())
+        controls.addWidget(self._model_selector)
+        controls.addStretch(1)
+        controls.addWidget(self._summary)
+        root.addLayout(controls)
+        root.addWidget(self._table_container)
+
+    @staticmethod
+    def _display_predictions(df: pd.DataFrame) -> pd.DataFrame:
+        # Keep the user-facing ticket view compact. Detailed model/market
+        # probabilities remain in the internal report but are not repeated here.
+        display = df.copy()
+
+        def score_with_probability(
+                score: str,
+                probability: str,
+                labels: dict[str, str] | None = None,
+        ) -> pd.Series:
+            values = display.get(score, pd.Series('', index=display.index)).fillna('').astype(str)
+            probabilities = display.get(
+                probability, pd.Series(float('nan'), index=display.index),
+            )
+            return pd.Series([
+                (labels or {}).get(value, value) if pd.isna(prob)
+                else f'{(labels or {}).get(value, value)}（{float(prob):.1%}）'
+                for value, prob in zip(values, probabilities)
+            ], index=display.index)
+
+        def upset_direction(row: pd.Series) -> str:
+            score = str(row.get('比分爆冷') or row.get('爆冷比分') or '')
+            match = re.fullmatch(r'(\d+)\+?-(\d+)\+?', score)
+            if match is None:
+                return ''
+            home, away = map(int, match.groups())
+            if home > away:
+                label, column = '主胜冷门', '模型主胜概率'
+            elif home == away:
+                label, column = '平局冷门', '模型平局概率'
+            else:
+                label, column = '客胜冷门', '模型客胜概率'
+            probability = row.get(column)
+            return label if pd.isna(probability) else f'{label}（{float(probability):.1%}）'
+
+        display['胜负首选'] = score_with_probability('胜平负首选', '胜平负首选概率')
+        handicap_labels = {'胜': '让胜', '平': '让平', '负': '让负'}
+        display['让球首选/次选'] = (
+            score_with_probability('让球首选', '让球首选概率', handicap_labels) + '/'
+            + score_with_probability('让球次选', '让球次选概率', handicap_labels)
+        )
+        display['大小球首选'] = score_with_probability('大小球首选', '大小球首选概率')
+        display['半全场首选/次选'] = (
+            score_with_probability('半全场首选', '半全场首选概率') + '/'
+            + score_with_probability('半全场次选', '半全场次选概率')
+        )
+        display['比分首选'] = score_with_probability('首选比分', '首选比分概率')
+        display['比分次选'] = score_with_probability('次选比分', '次选比分概率')
+        display['爆冷方向'] = display.apply(upset_direction, axis=1)
+        display['冷门比分'] = score_with_probability('比分爆冷', '爆冷比分概率')
+        display['置信度'] = display.get(
+            '置信等级', pd.Series('', index=display.index),
+        ).fillna('').astype(str)
+        preferred = [
+            '赛事编号', '联赛', '主队', '客队', '置信度', '胜负首选',
+            '官方让球数', '让球首选/次选',
+            '大小球首选', '半全场首选/次选', '比分首选', '比分次选',
+            '爆冷方向', '冷门比分',
+        ]
+        shown = display[[column for column in preferred if column in display.columns]].copy()
+        for column in shown.columns:
+            if '概率' in column or '优势' in column:
+                shown[column] = shown[column].map(
+                    lambda value: '' if pd.isna(value) else f'{float(value):.1%}',
+                )
+        return shown
+
+    def _load_saved_reports(self):
+        def read_report(path: Path, columns: list[str]) -> pd.DataFrame:
+            if not path.exists() or path.stat().st_size == 0:
+                return pd.DataFrame(columns=columns)
+            try:
+                return pd.read_csv(path)
+            except pd.errors.EmptyDataError:
+                return pd.DataFrame(columns=columns)
+
+        self._predictions = _sort_by_match_number(
+            read_report(PREDICTION_PATH, ['赛事编号', '联赛', '主队', '客队']),
+        )
+        self._skipped = _sort_by_match_number(
+            read_report(
+                SKIPPED_PATH, ['赛事编号', '官方联赛', '主队', '客队', '跳过原因'],
+            ),
+        )
+        self._refresh_model_selector()
+        self._render()
+
+    def _refresh_model_selector(self):
+        current = self._model_selector.currentData() or ALL_MODELS
+        scopes = _prediction_model_scopes(self._predictions)
+        reported_leagues = [scope for scope in scopes.unique() if scope]
+        leagues = list(dict.fromkeys(self._trained_leagues + sorted(reported_leagues)))
+        dedicated_count = int(scopes.ne('').sum())
+        generic_count = int(scopes.eq('').sum())
+        counts = scopes.value_counts().to_dict()
+        self._model_selector.blockSignals(True)
+        self._model_selector.clear()
+        self._model_selector.addItem(f'全部预测（{len(self._predictions)}场）', ALL_MODELS)
+        self._model_selector.addItem(
+            f'全部专用模型（{dedicated_count}场）', DEDICATED_MODELS,
+        )
+        self._model_selector.addItem(
+            f'通用/市场模型（{generic_count}场）', GENERIC_MODELS,
+        )
+        for league in leagues:
+            self._model_selector.addItem(
+                f'{league}专用模型（{int(counts.get(league, 0))}场）', league,
+            )
+        index = self._model_selector.findData(current)
+        self._model_selector.setCurrentIndex(index if index >= 0 else 0)
+        self._model_selector.blockSignals(False)
+
+    def _visible_predictions(self) -> pd.DataFrame:
+        return filter_predictions_by_model(
+            self._predictions,
+            self._model_selector.currentData() or ALL_MODELS,
+        )
+
+    def _render(self):
+        visible = self._visible_predictions()
+        while self._table_layout.count():
+            item = self._table_layout.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+        self._table_layout.addWidget(ExcelTable(
+            parent=self,
+            df=self._display_predictions(visible),
+            readonly=True,
+            supports_sorting=False,
+        ))
+        selected = self._model_selector.currentText().split('（', 1)[0]
+        if visible.empty and not self._predictions.empty:
+            self._summary.setText(f'{selected}：今日没有符合条件的竞彩场次')
+        else:
+            self._summary.setText(
+                f'{selected}：{len(visible)} 场｜全部预测 {len(self._predictions)} 场'
+                f'｜未覆盖 {len(self._skipped)} 场'
+            )
+
+    def _sync(self):
+        runner = TaskRunnerDialog(
+            title='同步竞猜数据',
+            info='正在获取官方场次并生成预测…',
+            task_fn=run_daily_sporttery,
+            parent=self,
+        )
+        result = runner.run()
+        if runner.error_message is not None:
+            QMessageBox.critical(
+                self, '同步失败', runner.error_message,
+            )
+            return
+        self._predictions, self._skipped = result
+        self._refresh_model_selector()
+        self._render()
+        learning_message = ''
+        if LEARNING_STATUS_PATH.exists():
+            try:
+                learning = json.loads(LEARNING_STATUS_PATH.read_text(encoding='utf-8'))
+                learning_message = (
+                    f'\n每日复盘：本次结算 {int(learning.get("newly_settled") or 0)} 场，'
+                    f'累计 {int(learning.get("settled_samples") or 0)} 场，'
+                    f'等待官方赛果 {int(learning.get("pending_samples") or 0)} 场；'
+                    f'{learning.get("model_status", "积累样本中")}。'
+                )
+            except (OSError, ValueError, TypeError):
+                pass
+        QMessageBox.information(
+            self, '同步完成',
+            f'已生成 {len(self._predictions)} 场预测，另有 {len(self._skipped)} 场未覆盖。'
+            f'{learning_message}',
+        )
+
+    def _review_history(self):
+        runner = TaskRunnerDialog(
+            title='补同步历史赛果',
+            info='正在扫描遗漏场次、获取官方赛果并执行复盘…',
+            task_fn=lambda: review_and_learn(full_backfill=True),
+            parent=self,
+        )
+        result = runner.run()
+        if runner.error_message is not None:
+            QMessageBox.critical(self, '补同步失败', runner.error_message)
+            return
+        self._render()
+        accuracy = result.get('result_accuracy')
+        accuracy_text = f'{float(accuracy):.1%}' if accuracy is not None else '--'
+        message = (
+            f'本次补结算 {int(result.get("newly_settled") or 0)} 场，'
+            f'累计复盘 {int(result.get("settled_samples") or 0)} 场，'
+            f'等待官方赛果 {int(result.get("pending_samples") or 0)} 场，'
+            f'胜平负命中率 {accuracy_text}。\n'
+            f'本次补入官方市场样本 {int(result.get("new_official_history") or 0)} 场，'
+            f'通用训练样本累计 {int(result.get("total_training_samples") or 0)} 场。\n'
+            f'模型状态：{result.get("model_status", "积累样本中")}。'
+        )
+        if result.get('review_error'):
+            QMessageBox.warning(
+                self, '部分赛果暂未补齐',
+                f'{message}\n官方接口提示：{result["review_error"]}',
+            )
+        else:
+            QMessageBox.information(self, '补同步完成', message)
+
+    def _export(self):
+        visible = self._visible_predictions()
+        if visible.empty:
+            QMessageBox.information(self, '没有数据', '请先同步竞猜数据。')
+            return
+        selected = self._model_selector.currentText().split('（', 1)[0]
+        filename = f'今日竞彩-{selected}.csv'
+        path, _ = QFileDialog.getSaveFileName(
+            self, '导出今日竞彩预测', filename, 'CSV 文件 (*.csv)',
+        )
+        if path:
+            self._display_predictions(visible).to_csv(path, index=False)

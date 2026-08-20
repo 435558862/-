@@ -1,0 +1,932 @@
+{
+  "data_source": "Kaggle rayenjlassi/more-than-20k-footballsoccer-match v7",
+  "license": "CC BY-NC-SA 4.0",
+  "target_competition": "europe/champions-league",
+  "validation_seasons": [
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+  ],
+  "final_test_seasons": [
+    2022,
+    2024
+  ],
+  "market_final": {
+    "samples": 120,
+    "accuracy": 0.5916666666666667,
+    "log_loss": 0.948600191029188
+  },
+  "elo_coverage": {
+    "all_both_ratings": 21122,
+    "all_rows": 33455,
+    "ucl_both_ratings": 1039,
+    "ucl_rows": 1540,
+    "ucl_coverage": 0.6746753246753247,
+    "mapping": "normalized exact names plus manually verified aliases; no fuzzy matching",
+    "lag_days": 2
+  },
+  "candidates": [
+    {
+      "name": "ucl-logistic-C0.01",
+      "scope": "ucl",
+      "kind": "logistic",
+      "params": {
+        "C": 0.01
+      },
+      "rolling_accuracy": 0.6123595505617978,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8718963715093755,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5444444444444444,
+          "log_loss": 0.9403063617754479,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5833333333333334,
+          "log_loss": 0.9081658443289939,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6384615384615384,
+          "log_loss": 0.8331416742427504,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6637931034482759,
+          "log_loss": 0.818932682821053,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6014492753623188,
+          "log_loss": 0.8925400746933104,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5916666666666667,
+        "log_loss": 0.9502702984292576
+      }
+    },
+    {
+      "name": "ucl-logistic-C0.1",
+      "scope": "ucl",
+      "kind": "logistic",
+      "params": {
+        "C": 0.1
+      },
+      "rolling_accuracy": 0.6067415730337079,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8705037583660962,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5555555555555556,
+          "log_loss": 0.9427275082230594,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5833333333333334,
+          "log_loss": 0.9098005919559647,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6307692307692307,
+          "log_loss": 0.8286822453461508,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6551724137931034,
+          "log_loss": 0.8107486495373691,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.5869565217391305,
+          "log_loss": 0.8959417425270124,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.575,
+        "log_loss": 0.9393602316658533
+      }
+    },
+    {
+      "name": "ucl-logistic-C1.0",
+      "scope": "ucl",
+      "kind": "logistic",
+      "params": {
+        "C": 1.0
+      },
+      "rolling_accuracy": 0.6067415730337079,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8723733365571927,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5444444444444444,
+          "log_loss": 0.9478805438374449,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9080728224022014,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6538461538461539,
+          "log_loss": 0.830590397639893,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.646551724137931,
+          "log_loss": 0.8077013579306956,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.5869565217391305,
+          "log_loss": 0.9013306827455941,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5833333333333334,
+        "log_loss": 0.9353505144190601
+      }
+    },
+    {
+      "name": "ucl-hist-L7-N60",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 60,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.6048689138576779,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8981288180108655,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5555555555555556,
+          "log_loss": 0.9446848374561441,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9253793301384181,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6,
+          "log_loss": 0.8648676729272552,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6810344827586207,
+          "log_loss": 0.850658830418131,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.5942028985507246,
+          "log_loss": 0.9271534190536072,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5166666666666667,
+        "log_loss": 1.0106087772951005
+      }
+    },
+    {
+      "name": "ucl-hist-L7-N120",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 120,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.6067415730337079,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8863269808875801,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9472113987474363,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.55,
+          "log_loss": 0.9169806989549392,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6307692307692307,
+          "log_loss": 0.8595384165039323,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6551724137931034,
+          "log_loss": 0.8376168452527822,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.5942028985507246,
+          "log_loss": 0.899472404163538,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.49166666666666664,
+        "log_loss": 1.0108473065572323
+      }
+    },
+    {
+      "name": "ucl-hist-L15-N60",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 60,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.5936329588014981,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.9211559158602213,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5444444444444444,
+          "log_loss": 0.9532806229627572,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9414110279098911,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6,
+          "log_loss": 0.9013579747465935,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6637931034482759,
+          "log_loss": 0.8822203694190691,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.572463768115942,
+          "log_loss": 0.9427771141916474,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5,
+        "log_loss": 1.0501798323202423
+      }
+    },
+    {
+      "name": "ucl-hist-L15-N120",
+      "scope": "ucl",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 120,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.6086142322097379,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8866782216613984,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9472113987474363,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.55,
+          "log_loss": 0.9169806989549392,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6307692307692307,
+          "log_loss": 0.8587729782157442,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6551724137931034,
+          "log_loss": 0.8332067488928565,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6014492753623188,
+          "log_loss": 0.9052596558188623,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5,
+        "log_loss": 1.029308299057792
+      }
+    },
+    {
+      "name": "euro_cups-logistic-C0.01",
+      "scope": "euro_cups",
+      "kind": "logistic",
+      "params": {
+        "C": 0.01
+      },
+      "rolling_accuracy": 0.6179775280898876,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8732593311232307,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5555555555555556,
+          "log_loss": 0.9418819454041517,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5833333333333334,
+          "log_loss": 0.9008876725493526,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6538461538461539,
+          "log_loss": 0.83031191305269,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6637931034482759,
+          "log_loss": 0.8309951739976134,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6014492753623188,
+          "log_loss": 0.8924772355065038,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5833333333333334,
+        "log_loss": 0.9400507233665578
+      }
+    },
+    {
+      "name": "euro_cups-logistic-C0.1",
+      "scope": "euro_cups",
+      "kind": "logistic",
+      "params": {
+        "C": 0.1
+      },
+      "rolling_accuracy": 0.6179775280898876,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8733038723914498,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9460585379483891,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5833333333333334,
+          "log_loss": 0.9037587225666873,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6538461538461539,
+          "log_loss": 0.8282840660683317,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6551724137931034,
+          "log_loss": 0.8270368554136076,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6014492753623188,
+          "log_loss": 0.8939150164551908,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.575,
+        "log_loss": 0.9392059267083811
+      }
+    },
+    {
+      "name": "euro_cups-logistic-C1.0",
+      "scope": "euro_cups",
+      "kind": "logistic",
+      "params": {
+        "C": 1.0
+      },
+      "rolling_accuracy": 0.6142322097378277,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8729251230732159,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9488315118051978,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5833333333333334,
+          "log_loss": 0.8975278693218673,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6461538461538462,
+          "log_loss": 0.8267178116078854,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6637931034482759,
+          "log_loss": 0.8270136180696073,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.5869565217391305,
+          "log_loss": 0.8948450166247672,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.575,
+        "log_loss": 0.9465249451439904
+      }
+    },
+    {
+      "name": "euro_cups-hist-L7-N60",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 60,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.6086142322097379,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.885985516374283,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5888888888888889,
+          "log_loss": 0.9623150437169926,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.55,
+          "log_loss": 0.9068399485419308,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.6076923076923076,
+          "log_loss": 0.8422063855030542,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.646551724137931,
+          "log_loss": 0.8412993660365349,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6159420289855072,
+          "log_loss": 0.9059417269651223,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5,
+        "log_loss": 1.0192177938100102
+      }
+    },
+    {
+      "name": "euro_cups-hist-L7-N120",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 7,
+        "min_samples_leaf": 120,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.601123595505618,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.8830768730688352,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9713842824614726,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.55,
+          "log_loss": 0.897385489015866,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.5846153846153846,
+          "log_loss": 0.8474778036858168,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6637931034482759,
+          "log_loss": 0.8196507158254172,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6086956521739131,
+          "log_loss": 0.906114043053398,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5083333333333333,
+        "log_loss": 1.0175240626658433
+      }
+    },
+    {
+      "name": "euro_cups-hist-L15-N60",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 60,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.6104868913857678,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.9117492955094355,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5888888888888889,
+          "log_loss": 0.9892858591428345,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9239800453318615,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.5923076923076923,
+          "log_loss": 0.8902351331845818,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6724137931034483,
+          "log_loss": 0.8454270351230481,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.6086956521739131,
+          "log_loss": 0.9318803650072653,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5166666666666667,
+        "log_loss": 1.0262606659321734
+      }
+    },
+    {
+      "name": "euro_cups-hist-L15-N120",
+      "scope": "euro_cups",
+      "kind": "hist",
+      "params": {
+        "learning_rate": 0.035,
+        "max_iter": 180,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 120,
+        "l2_regularization": 4.0
+      },
+      "rolling_accuracy": 0.5898876404494382,
+      "rolling_market_accuracy": 0.6161048689138576,
+      "rolling_log_loss": 0.9029960734548904,
+      "folds": [
+        {
+          "season": 2017,
+          "samples": 90,
+          "accuracy": 0.5666666666666667,
+          "log_loss": 0.9790020303973329,
+          "market_accuracy": 0.5444444444444444
+        },
+        {
+          "season": 2018,
+          "samples": 60,
+          "accuracy": 0.5833333333333334,
+          "log_loss": 0.8758499936345001,
+          "market_accuracy": 0.5666666666666667
+        },
+        {
+          "season": 2019,
+          "samples": 130,
+          "accuracy": 0.5846153846153846,
+          "log_loss": 0.8835406555511671,
+          "market_accuracy": 0.6538461538461539
+        },
+        {
+          "season": 2020,
+          "samples": 116,
+          "accuracy": 0.6551724137931034,
+          "log_loss": 0.836733459602703,
+          "market_accuracy": 0.6724137931034483
+        },
+        {
+          "season": 2021,
+          "samples": 138,
+          "accuracy": 0.5579710144927537,
+          "log_loss": 0.9392561908370736,
+          "market_accuracy": 0.6014492753623188
+        }
+      ],
+      "final_test": {
+        "samples": 120,
+        "accuracy": 0.5083333333333333,
+        "log_loss": 1.0537597840212347
+      }
+    }
+  ],
+  "selected": "euro_cups-logistic-C0.01",
+  "blend_search": [
+    {
+      "model_weight": 0.0,
+      "accuracy": 0.6161048689138576,
+      "log_loss": 0.8651529163890617
+    },
+    {
+      "model_weight": 0.05,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8653511932365602
+    },
+    {
+      "model_weight": 0.1,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8655695789937646
+    },
+    {
+      "model_weight": 0.15000000000000002,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8658082777961561
+    },
+    {
+      "model_weight": 0.2,
+      "accuracy": 0.6198501872659176,
+      "log_loss": 0.8660675084405497
+    },
+    {
+      "model_weight": 0.25,
+      "accuracy": 0.6198501872659176,
+      "log_loss": 0.8663475051675896
+    },
+    {
+      "model_weight": 0.30000000000000004,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8666485185287354
+    },
+    {
+      "model_weight": 0.35000000000000003,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8669708163476215
+    },
+    {
+      "model_weight": 0.4,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8673146847872459
+    },
+    {
+      "model_weight": 0.45,
+      "accuracy": 0.6161048689138576,
+      "log_loss": 0.8676804295363086
+    },
+    {
+      "model_weight": 0.5,
+      "accuracy": 0.6161048689138576,
+      "log_loss": 0.8680683771302639
+    },
+    {
+      "model_weight": 0.55,
+      "accuracy": 0.6142322097378277,
+      "log_loss": 0.8684788764253084
+    },
+    {
+      "model_weight": 0.6000000000000001,
+      "accuracy": 0.6142322097378277,
+      "log_loss": 0.8689123002467584
+    },
+    {
+      "model_weight": 0.65,
+      "accuracy": 0.6142322097378277,
+      "log_loss": 0.8693690472371568
+    },
+    {
+      "model_weight": 0.7000000000000001,
+      "accuracy": 0.6123595505617978,
+      "log_loss": 0.8698495439342173
+    },
+    {
+      "model_weight": 0.75,
+      "accuracy": 0.6123595505617978,
+      "log_loss": 0.8703542471145288
+    },
+    {
+      "model_weight": 0.8,
+      "accuracy": 0.6142322097378277,
+      "log_loss": 0.8708836464461476
+    },
+    {
+      "model_weight": 0.8500000000000001,
+      "accuracy": 0.6142322097378277,
+      "log_loss": 0.8714382675021497
+    },
+    {
+      "model_weight": 0.9,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8720186751984219
+    },
+    {
+      "model_weight": 0.9500000000000001,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8726254777331188
+    },
+    {
+      "model_weight": 1.0,
+      "accuracy": 0.6179775280898876,
+      "log_loss": 0.8732593311232307
+    }
+  ],
+  "selected_blend": {
+    "model_weight": 0.2,
+    "accuracy": 0.6198501872659176,
+    "log_loss": 0.8660675084405497
+  },
+  "blended_final": {
+    "samples": 120,
+    "accuracy": 0.5916666666666667,
+    "log_loss": 0.9465820352478954
+  },
+  "deployment_gate": {
+    "passed": true,
+    "minimum_rolling_accuracy_gain": 0.002,
+    "minimum_non_losing_folds": 3,
+    "non_losing_folds": 4,
+    "requires_final_accuracy_not_below_market": true,
+    "requires_final_log_loss_within": 0.02
+  }
+}
