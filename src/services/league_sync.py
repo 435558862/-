@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from io import BytesIO
@@ -110,14 +111,20 @@ def _download_korean_rows() -> pd.DataFrame:
 
 
 def _sync_korean_league(league_db: LeagueDatabase) -> pd.DataFrame:
-    latest = _download_korean_rows()
-    if KOREA_SOURCE_PATH.exists():
-        archived = pd.read_csv(KOREA_SOURCE_PATH)
-        raw = pd.concat([archived, latest], ignore_index=True).drop_duplicates(
+    archived = pd.read_csv(KOREA_SOURCE_PATH) if KOREA_SOURCE_PATH.exists() else None
+    try:
+        latest = _download_korean_rows()
+    except Exception as error:
+        if archived is None or archived.empty:
+            raise RuntimeError(f'韩职网络不可用且没有本地缓存：{error}') from error
+        logging.warning('韩职在线数据获取失败，继续使用本地缓存：%s', error)
+        latest = pd.DataFrame(columns=archived.columns)
+    raw = (
+        pd.concat([archived, latest], ignore_index=True).drop_duplicates(
             subset=['Start Time', 'Match'], keep='last',
         )
-    else:
-        raw = latest
+        if archived is not None else latest
+    )
     KOREA_SOURCE_PATH.parent.mkdir(parents=True, exist_ok=True)
     raw.to_csv(KOREA_SOURCE_PATH, index=False)
     dataset = _korean_feature_dataset(raw)

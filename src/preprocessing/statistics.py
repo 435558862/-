@@ -1,7 +1,6 @@
 import pandas as pd
 from functools import reduce
 from typing import List
-from tqdm import tqdm
 
 
 class StatisticsEngine:
@@ -82,8 +81,10 @@ class StatisticsEngine:
 
             return reduce(lambda s_df, fn: fn(s_df), stat_funcs, season_df)
 
-        tqdm.pandas(desc='Processing Season')
-        df = df.groupby(by='Season', group_keys=False).progress_apply(season_pipeline)
+        # Feature computation is used by GUI background workers. Progress bars
+        # write to stderr and can raise BrokenPipeError once the WSL launcher
+        # has closed its terminal pipe, aborting otherwise successful syncs.
+        df = df.groupby(by='Season', group_keys=False).apply(season_pipeline)
 
         # Sort matches by descending order and return dataframe.
         return df.sort_values(by=['Date', 'Home'], ascending=False)

@@ -4,7 +4,6 @@ import pandas as pd
 from datetime import date
 from typing import Optional, List
 from urllib.error import HTTPError
-from tqdm import tqdm
 from src.network.leagues.downloaders.downloader import FootballDataDownloader
 from src.network.leagues.league import League
 
@@ -65,7 +64,11 @@ class MainLeagueDownloader(FootballDataDownloader):
             return df
 
         dfs_list = []
-        for current_year in tqdm(iterable=[year for year in range(start_year, date.today().year + 1)], desc='Downloading Year'):
+        # This downloader also runs inside a Qt background thread. ``tqdm``
+        # writes to stderr; after the WSL launcher closes its terminal pipe that
+        # write raises BrokenPipeError and aborts every league sync. The GUI
+        # already provides progress/status feedback, so keep this loop silent.
+        for current_year in range(start_year, date.today().year + 1):
             df = download_fn(year=current_year)
 
             if df is not None:
