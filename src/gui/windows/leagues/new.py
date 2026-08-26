@@ -1,8 +1,8 @@
 from datetime import date
 from typing import Optional, Tuple
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QGridLayout, QLabel, QLineEdit, QMessageBox,
     QDialog, QFrame, QHBoxLayout, QPushButton, QSpinBox, QVBoxLayout
 )

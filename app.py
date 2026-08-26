@@ -3,10 +3,12 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 from src.gui.i18n import install_live_translation
 from src.gui.main import MainWindow
+from src.diagnostics import setup_runtime_diagnostics
+from src.version import PRODUCT_NAME, __version__
 
 
 def _set_application_directory():
@@ -17,8 +19,12 @@ def _set_application_directory():
 
 def main():
     _set_application_directory()
+    setup_runtime_diagnostics(Path.cwd())
     # Initializing app window.
     app = QApplication(sys.argv)
+    app.setApplicationName(PRODUCT_NAME)
+    app.setApplicationVersion(__version__)
+    app.setOrganizationName(PRODUCT_NAME)
 
     # Create app window.
     window = MainWindow(app=app)
@@ -37,8 +43,5 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger(__name__)
-
     warnings.filterwarnings('ignore')
     main()

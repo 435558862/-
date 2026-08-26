@@ -19,6 +19,13 @@ windows-update-backups/
 # Backups / snapshots
 .codex-backup-*/
 *.bak-*
+*.orig
+*.rej
+storage/logs/
+storage/jingcai/lineups/
+storage/jingcai/raw/
+storage/jingcai/reports/
+storage/backups/
 
 # Nested duplicate project copy inside tests/ (keep only test_*.py)
 tests/src/

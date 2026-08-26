@@ -2,9 +2,9 @@ import pandas as pd
 import qdarktheme
 import webbrowser
 from typing import Optional
-from PyQt6.QtCore import QThread, QTimer, Qt
-from PyQt6.QtGui import QAction, QActionGroup, QKeySequence
-from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageBox
+from PySide6.QtCore import QThread, QTimer, Qt
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence
+from PySide6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageBox
 from src.database.league import LeagueDatabase
 from src.database.model import ModelDatabase
 from src.gui.windows import analysis
@@ -16,6 +16,7 @@ from src.gui.utils.taskrunner import ThreadWorker
 from src.network.leagues.league import League
 from src.services.league_sync import sync_five_leagues, sync_is_due
 from src.services.team_names import translate_fixture_columns
+from src.version import PRODUCT_TITLE
 
 
 LEAGUE_WINDOW_TITLES = {
@@ -39,7 +40,7 @@ class MainWindow(QMainWindow):
 
         self._app = app
 
-        self._title = 'ProphitBet-v2'
+        self._title = PRODUCT_TITLE
         self._width = 800
         self._height = 600
 
@@ -746,7 +747,7 @@ class MainWindow(QMainWindow):
         # freshly launched app look frozen.  Keep the reminder visible without
         # blocking startup or automated league loading.
         self.statusBar().showMessage(
-            '欢迎使用 ProphitBet-v2。预测仅供参考，请理性使用。',
+            f'欢迎使用 {PRODUCT_TITLE}。预测仅供数据分析参考，请理性使用。',
             10000,
         )
         league_ids = self._league_db.get_league_ids()

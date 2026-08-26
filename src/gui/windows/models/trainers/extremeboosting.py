@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Dict, Any, Type
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QSlider, QSpinBox, QDoubleSpinBox, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QHBoxLayout, QSlider, QSpinBox, QDoubleSpinBox, QVBoxLayout
 from superqt import QLabeledSlider, QLabeledDoubleSlider
 from src.database.model import ModelDatabase
 from src.gui.widgets.sliders import add_snap_behavior

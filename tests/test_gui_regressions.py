@@ -1,5 +1,5 @@
 import pandas as pd
-from PyQt6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog
 
 from src.gui.i18n import translate_widget
 from src.gui.widgets.tables import DataFrameTable, DataFrameTableModel

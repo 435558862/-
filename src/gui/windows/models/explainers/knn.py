@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Type
-from PyQt6.QtWidgets import QComboBox, QFrame, QLabel, QHBoxLayout, QPushButton, QVBoxLayout, QSpinBox, QMessageBox
+from PySide6.QtWidgets import QComboBox, QFrame, QLabel, QHBoxLayout, QPushButton, QVBoxLayout, QSpinBox, QMessageBox
 from src.database.model import ModelDatabase
 from src.gui.widgets.plot import PlotWindow
 from src.gui.windows.models.explainer import ExplainerDialog

@@ -1,5 +1,5 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QDialog, QMessageBox, QPushButton, QHBoxLayout, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QComboBox, QDialog, QMessageBox, QPushButton, QHBoxLayout, QVBoxLayout
 from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.tables import SimpleTableDialog

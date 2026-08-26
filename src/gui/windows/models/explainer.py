@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Type
 from abc import abstractmethod
-from PyQt6.QtWidgets import QDialog, QCheckBox, QComboBox, QFrame, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QSpinBox, QMessageBox
+from PySide6.QtWidgets import QDialog, QCheckBox, QComboBox, QFrame, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QSpinBox, QMessageBox
 from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.plot import PlotWindow

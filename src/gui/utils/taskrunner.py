@@ -1,11 +1,11 @@
 from typing import Any, Callable, Optional, Sequence
-from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal, pyqtSlot
-from PyQt6.QtWidgets import QDialog, QLabel, QProgressBar, QVBoxLayout, QWidget
+from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
+from PySide6.QtWidgets import QDialog, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 
 class ThreadWorker(QObject):
-    finished = pyqtSignal(object)
-    error = pyqtSignal(str)
+    finished = Signal(object)
+    error = Signal(str)
 
     def __init__(self, fn: Callable, args: Sequence[Any] = (), kwargs: Optional[dict] = None):
         super().__init__()
@@ -14,7 +14,7 @@ class ThreadWorker(QObject):
         self._args = tuple(args) if args else ()
         self._kwargs = dict(kwargs) if kwargs else {}
 
-    @pyqtSlot()
+    @Slot()
     def run(self):
         try:
             res = self._fn(*self._args, **self._kwargs)

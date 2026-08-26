@@ -1,8 +1,8 @@
 import math
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QFrame, QLabel, QComboBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QSlider
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialog, QFrame, QLabel, QComboBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QSlider
 from superqt import QLabeledSlider
 from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog

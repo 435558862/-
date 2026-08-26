@@ -17,11 +17,13 @@ if (-not (Test-Path '.venv\Scripts\python.exe')) {
 $Mpl = Join-Path $ProjectRoot 'storage\matplotlib'
 New-Item -ItemType Directory -Force -Path $Mpl | Out-Null
 $env:MPLCONFIGDIR = $Mpl
-& .\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_*.py'
+Write-Host '执行发布健康检查...'
+& .\.venv\Scripts\python.exe scripts\health_check.py
+if ($LASTEXITCODE -ne 0) { throw '发布健康检查失败，请查看上方问题后重试。' }
 
 $Desktop = [Environment]::GetFolderPath('Desktop')
-$Shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $Desktop '足球预测系统.lnk'))
+$Shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $Desktop 'ProphitBet 2.1.0.lnk'))
 $Shortcut.TargetPath = (Join-Path $ProjectRoot 'app.bat')
 $Shortcut.WorkingDirectory = $ProjectRoot
 $Shortcut.Save()
-Write-Host '安装及测试完成。请双击项目目录中的 app.bat 启动。' -ForegroundColor Green
+Write-Host '安装和健康检查完成。请双击桌面快捷方式或 app.bat 启动。' -ForegroundColor Green

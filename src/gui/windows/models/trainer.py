@@ -3,8 +3,8 @@ import pandas as pd
 from abc import abstractmethod
 from typing import Any, Dict, Optional, Type
 from optuna.visualization.matplotlib import plot_param_importances
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import (
     QDialog, QFrame, QLabel, QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QMessageBox,
     QPushButton, QSpinBox, QVBoxLayout, QWidget
 )

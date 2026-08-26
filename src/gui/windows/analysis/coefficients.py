@@ -1,6 +1,6 @@
 import pandas as pd
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QDialog, QLabel, QPushButton, QFormLayout, QHBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QComboBox, QDialog, QLabel, QPushButton, QFormLayout, QHBoxLayout
 from src.analysis import CoefficientAnalyzer
 from src.gui.widgets.plot import PlotWindow
 from src.preprocessing.utils.target import TargetType

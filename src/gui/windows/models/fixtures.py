@@ -6,8 +6,8 @@ import pandas as pd
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
-from PyQt6.QtCore import QDate, QObject, QThread, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QDialog, QLabel, QComboBox, QDateEdit, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QDate, QObject, QThread, QTimer, Signal
+from PySide6.QtWidgets import QDialog, QLabel, QComboBox, QDateEdit, QFileDialog, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QWidget
 from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.comboboxes import CheckableComboBox
@@ -29,8 +29,8 @@ CURRENT_TEAM_EXTRAS = {
 class FixtureFetchWorker(QObject):
     """Fetch fixtures outside the GUI thread so Selenium cannot freeze the window."""
 
-    finished = pyqtSignal(object)
-    failed = pyqtSignal(str)
+    finished = Signal(object)
+    failed = Signal(str)
 
     def __init__(self, fixture_url: str, date_str: str, iso_date: str, league_id: str):
         super().__init__()

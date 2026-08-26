@@ -1,12 +1,12 @@
 from typing import List, Optional
-from PyQt6.QtWidgets import QComboBox
-from PyQt6.QtCore import Qt, QModelIndex, pyqtSignal
+from PySide6.QtWidgets import QComboBox
+from PySide6.QtCore import Qt, QModelIndex, Signal
 
 
 class CheckableComboBox(QComboBox):
     """ Custom Checkable Combobox class. """
 
-    checkedItemsChanged = pyqtSignal()
+    checkedItemsChanged = Signal()
 
     def __init__(self, parent=None, title: Optional[str] = None):
         super().__init__(parent)

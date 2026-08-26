@@ -1,8 +1,8 @@
 import pandas as pd
 from datetime import date
 from typing import Optional
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QLabel, QLineEdit, QComboBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QComboBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout
 from src.database.league import LeagueDatabase
 from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog

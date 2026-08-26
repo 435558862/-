@@ -1,6 +1,6 @@
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QApplication,
     QAbstractButton,
     QComboBox,

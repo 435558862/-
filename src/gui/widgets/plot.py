@@ -2,7 +2,7 @@ import numpy as np
 from typing import Optional
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import QDialog, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QVBoxLayout
 
 
 class PlotWindow(QDialog):

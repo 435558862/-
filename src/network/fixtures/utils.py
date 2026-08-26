@@ -1,5 +1,5 @@
 import pandas as pd
-from fuzzywuzzy import process
+from rapidfuzz import process
 
 
 def match_fixture_teams(parsed_teams_df: pd.DataFrame, league_df: pd.DataFrame) -> pd.DataFrame:

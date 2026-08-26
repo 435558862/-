@@ -1,6 +1,6 @@
 from typing import Callable
 
-from PyQt6.QtWidgets import QMessageBox, QWidget
+from PySide6.QtWidgets import QMessageBox, QWidget
 
 from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.plot import PlotWindow

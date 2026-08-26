@@ -1,6 +1,6 @@
 from typing import Optional
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QDialog, QMessageBox, QPushButton, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QComboBox, QDialog, QMessageBox, QPushButton, QVBoxLayout
 from src.database.league import LeagueDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog
 

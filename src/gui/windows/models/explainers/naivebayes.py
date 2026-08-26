@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Type
-from PyQt6.QtWidgets import QVBoxLayout
+from PySide6.QtWidgets import QVBoxLayout
 from src.database.model import ModelDatabase
 from src.gui.windows.models.explainer import ExplainerDialog
 from src.interpretability.explainers.naivebayes import NaiveBayesExplainer

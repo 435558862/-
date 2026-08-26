@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Dict, Any, Type
-from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QVBoxLayout
 from src.database.model import ModelDatabase
 from src.gui.i18n import option_zh
 from src.gui.windows.models.trainer import TrainerDialog

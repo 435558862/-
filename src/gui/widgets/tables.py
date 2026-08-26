@@ -2,9 +2,9 @@ import os
 import pandas as pd
 from typing import Dict, List, Optional, Union
 from openpyxl import load_workbook
-from PyQt6.QtCore import QAbstractTableModel, QItemSelection, QItemSelectionModel, QModelIndex, Qt
-from PyQt6.QtGui import QAction, QFont, QKeyEvent
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QAbstractTableModel, QItemSelection, QItemSelectionModel, QModelIndex, Qt
+from PySide6.QtGui import QAction, QFont, QKeyEvent
+from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QFileDialog, QStyledItemDelegate, QTableWidgetItem, QMenu,
     QDialog, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit, QComboBox, QCheckBox,
     QToolButton, QPushButton, QHeaderView, QMainWindow, QMessageBox, QTableView, QTableWidget

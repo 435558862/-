@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QSlider
+from PySide6.QtWidgets import QSlider
 
 
 def add_snap_behavior(slider: QSlider, step):

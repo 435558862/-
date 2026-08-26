@@ -6,9 +6,9 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-from PyQt6.QtCore import QTimer, Qt
-from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPalette, QPen
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPalette, QPen
+from PySide6.QtWidgets import (
     QComboBox, QDialog, QHBoxLayout, QLabel, QMessageBox, QPushButton,
     QStyle, QStyledItemDelegate, QVBoxLayout, QWidget,
 )
