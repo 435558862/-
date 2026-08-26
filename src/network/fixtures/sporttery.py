@@ -37,7 +37,7 @@ RESULT_API = (
 class SportteryMobileClient:
     """Fast official mobile-calculator client (one request for all HAD matches)."""
 
-    def __init__(self, timeout: float = 30.0, retries: int = 3):
+    def __init__(self, timeout: float = 8.0, retries: int = 2):
         self.timeout = timeout
         self.retries = retries
         self.session = requests.Session()
@@ -88,7 +88,7 @@ class SportteryMobileClient:
 class SportteryResultClient:
     """Official settled football results used for leakage-free daily review."""
 
-    def __init__(self, timeout: float = 30.0, retries: int = 3):
+    def __init__(self, timeout: float = 8.0, retries: int = 2):
         self.timeout = timeout
         self.retries = retries
         self.session = requests.Session()

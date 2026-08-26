@@ -1,6 +1,34 @@
 import pandas as pd
+from datetime import datetime
 
-from src.gui.windows.sporttery import SportteryPredictionsDialog
+from src.gui.windows.sporttery import (
+    SportteryPredictionsDialog, _score_recommendation_mask, _upcoming_predictions,
+)
+
+
+def test_default_view_hides_kicked_off_matches_but_keeps_future_rows():
+    predictions = pd.DataFrame([
+        {'赛事编号': '周日001', '比赛时间': '2026-08-23 09:30'},
+        {'赛事编号': '周日002', '比赛时间': '2026-08-23 21:30'},
+    ])
+    visible = _upcoming_predictions(
+        predictions, now=datetime(2026, 8, 23, 12, 0),
+    )
+    assert visible['赛事编号'].tolist() == ['周日002']
+
+
+def test_date_filter_cannot_restore_kicked_off_ticket_rows():
+    predictions = pd.DataFrame([
+        {'赛事编号': '周六028', '比赛时间': '2026-08-23 09:30'},
+        {'赛事编号': '周日001', '比赛时间': '2026-08-23 20:00'},
+    ])
+    visible = _upcoming_predictions(
+        predictions, now=datetime(2026, 8, 23, 19, 0),
+    )
+    same_date = visible.loc[
+        visible['比赛时间'].astype(str).str.startswith('2026-08-23')
+    ]
+    assert same_date['赛事编号'].tolist() == ['周日001']
 
 
 def test_handicap_display_hides_full_distribution_and_keeps_ranked_picks():
@@ -22,7 +50,7 @@ def test_handicap_display_hides_full_distribution_and_keeps_ranked_picks():
     assert display.loc[0, '让球首选/次选'] == '让负（66.0%）/让平（21.2%）'
 
 
-def test_single_display_combines_confidence_scores_and_upset_result():
+def test_single_display_combines_all_scores_without_percentages():
     predictions = pd.DataFrame([{
         '赛事编号': '周二003',
         '联赛': '欧洲冠军联赛',
@@ -38,15 +66,34 @@ def test_single_display_combines_confidence_scores_and_upset_result():
         '首选比分概率': 0.12,
         '次选比分': '1-0',
         '次选比分概率': 0.10,
+        '第三比分': '2-0',
         '比分爆冷': '1-2',
         '爆冷比分概率': 0.08,
+        '大小球进取比分': '3-1',
     }])
 
     display = SportteryPredictionsDialog._display_predictions(predictions)
 
-    assert display.loc[0, '置信度'] == '中'
+    assert '置信度' not in display.columns
     assert display.loc[0, '胜负首选'] == '胜（60.0%）'
-    assert display.loc[0, '比分首选'] == '2-1（12.0%）'
-    assert display.loc[0, '比分次选'] == '1-0（10.0%）'
-    assert display.loc[0, '爆冷方向'] == '客胜冷门（20.0%）'
-    assert display.loc[0, '冷门比分'] == '1-2（8.0%）'
+    scores = display.loc[0, '比分推荐（首/次1/次2/冷/进取）']
+    assert scores == '2-1 / 1-0 / 2-0 / 1-2 / 3-1'
+    assert '%' not in scores
+
+
+def test_all_scores_remain_visible_even_when_confidence_is_low():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日001', '比分推荐状态': '可信度不足',
+        '首选比分': '1-1', '次选比分': '1-0', '第三比分': '2-1',
+    }])
+    display = SportteryPredictionsDialog._display_predictions(predictions)
+    assert display.loc[0, '比分推荐（首/次1/次2/冷/进取）'] == '1-1 / 1-0 / 2-1'
+
+
+def test_only_audited_score_recommendations_are_marked():
+    predictions = pd.DataFrame([
+        {'比分推荐状态': '推荐', '原始最高概率比分概率': 0.13},
+        {'比分推荐状态': '可信度不足', '原始最高概率比分概率': 0.11},
+        {'比分推荐状态': '', '原始最高概率比分概率': 0.12},
+    ])
+    assert _score_recommendation_mask(predictions).tolist() == [True, False, True]

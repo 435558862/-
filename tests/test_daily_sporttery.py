@@ -1,13 +1,24 @@
 import unittest
+import numpy as np
+import pandas as pd
 from datetime import date
 from unittest.mock import patch
 
 from src.network.fixtures.sporttery import latest_had_odds, latest_hhad_odds
 from src.services.daily_sporttery import (
+    _cached_league_model,
+    _calibrate_draw_probability,
+    _clear_prediction_model_cache,
     _cup_market_features,
     _handicap_probabilities,
+    _diverse_score_ranking,
+    _aggressive_upset_score,
+    _implied_had_from_handicap_market,
+    _implied_had_without_result_market,
     _market_baseline_probabilities,
+    _monte_carlo_summary,
     _market_selection,
+    _over_under_model_is_reliable,
     _result_model_is_reliable,
     _predict_supported_match,
     _score_ranking_consistent_with_total,
@@ -15,22 +26,74 @@ from src.services.daily_sporttery import (
     _upset_score,
     identify_league,
 )
+from src.services.team_names import resolve_model_team
 
 
 class DailySportteryTests(unittest.TestCase):
 
-    def test_ticket_sort_uses_weekday_before_daily_sequence(self):
+    def test_draw_calibration_uses_league_prior_without_breaking_sum(self):
+        history = pd.DataFrame({'Result': ['D'] * 30 + ['H'] * 40 + ['A'] * 30})
+        result = _calibrate_draw_probability(
+            np.array([0.48, 0.20, 0.32]),
+            np.array([0.42, 0.30, 0.28]),
+            history,
+        )
+        self.assertGreater(result[1], 0.20)
+        self.assertAlmostEqual(float(result.sum()), 1.0)
+
+    def test_over_under_model_must_beat_its_sealed_baseline(self):
+        weak = {'train': {'tuning': {
+            'test_accuracy': 0.55, 'majority_baseline': 0.59,
+        }}}
+        useful = {'train': {'tuning': {
+            'test_accuracy': 0.57, 'majority_baseline': 0.51,
+        }}}
+        self.assertFalse(_over_under_model_is_reliable(weak))
+        self.assertTrue(_over_under_model_is_reliable(useful))
+
+    @patch('src.services.daily_sporttery._cached_model_database')
+    def test_dedicated_model_is_loaded_once_per_prediction_batch(self, database):
+        model = database.return_value.load_model.return_value
+        _clear_prediction_model_cache()
+        first = _cached_league_model('英超', '英超胜平负模型')
+        second = _cached_league_model('英超', '英超胜平负模型')
+        self.assertIs(first, second)
+        database.return_value.load_model.assert_called_once_with('英超胜平负模型')
+        _clear_prediction_model_cache()
+
+    def test_official_full_and_short_names_resolve_to_dedicated_model(self):
+        self.assertEqual(
+            resolve_model_team('英超', ['曼彻斯特联', '曼联']), 'Man United',
+        )
+        self.assertEqual(
+            resolve_model_team('西甲', ['维戈塞尔塔', '塞尔塔']), 'Celta',
+        )
+        self.assertEqual(resolve_model_team('意甲', '弗洛西诺内'), 'Frosinone')
+        self.assertIsNone(resolve_model_team('英超', '完全不存在球队'))
+
+    def test_ticket_sort_uses_real_date_then_daily_sequence(self):
         import pandas as pd
         frame = pd.DataFrame([
-            {'赛事编号': '周三003', '比赛时间': '2026-08-13'},
-            {'赛事编号': '周二010', '比赛时间': '2026-08-12'},
-            {'赛事编号': '周三001', '比赛时间': '2026-08-13'},
-            {'赛事编号': '周二003', '比赛时间': '2026-08-12'},
-            {'赛事编号': '星期二001', '比赛时间': '2026-08-13'},
+            {'赛事编号': '周三003', '比赛时间': '2026-08-12 20:00'},
+            {'赛事编号': '周二010', '比赛时间': '2026-08-11 21:00'},
+            {'赛事编号': '周三001', '比赛时间': '2026-08-12 18:00'},
+            {'赛事编号': '周二003', '比赛时间': '2026-08-11 19:00'},
+            {'赛事编号': '星期二001', '比赛时间': '2026-08-11 17:00'},
         ])
         sorted_frame = _sort_by_match_number(frame)
         self.assertEqual(sorted_frame['赛事编号'].tolist(), [
             '星期二001', '周二003', '周二010', '周三001', '周三003',
+        ])
+
+    def test_next_monday_never_precedes_current_weekend(self):
+        import pandas as pd
+        frame = pd.DataFrame([
+            {'赛事编号': '周一001', '比赛时间': '2026-08-24 18:00'},
+            {'赛事编号': '周日002', '比赛时间': '2026-08-23 20:00'},
+            {'赛事编号': '周六003', '比赛时间': '2026-08-22 21:00'},
+        ])
+        self.assertEqual(_sort_by_match_number(frame)['赛事编号'].tolist(), [
+            '周六003', '周日002', '周一001',
         ])
 
     def test_ticket_sort_without_dates_keeps_weekdays_separate(self):
@@ -45,6 +108,8 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(identify_league('西甲'), '西甲')
         self.assertEqual(identify_league('日本职业联赛'), '日职')
         self.assertEqual(identify_league('韩国职业联赛'), '韩职')
+        self.assertIsNone(identify_league('巴西甲级联赛'))
+        self.assertEqual(identify_league('西甲 皇家马德里 VS 巴塞罗那'), '西甲')
 
     def test_extracts_latest_had_fixed_bonus(self):
         value = {'oddsHistory': {'hadList': [
@@ -76,6 +141,43 @@ class DailySportteryTests(unittest.TestCase):
         )
         self.assertTrue(np.allclose(probabilities, [0.6, 0.4, 0.0]))
 
+    def test_handicap_only_market_produces_internal_had_input(self):
+        inferred = _implied_had_from_handicap_market(
+            {'line': -2.0, 'H': 2.30, 'D': 3.50, 'A': 2.45},
+        )
+        probabilities = 1.0 / np.array([
+            inferred['H'], inferred['D'], inferred['A'],
+        ])
+        probabilities /= probabilities.sum()
+        self.assertAlmostEqual(float(probabilities.sum()), 1.0)
+        self.assertGreater(probabilities[0], probabilities[2])
+
+    def test_fixture_without_had_or_hhad_still_gets_hidden_input(self):
+        inferred = _implied_had_without_result_market({})
+        self.assertEqual(set(inferred), {'H', 'D', 'A'})
+        self.assertTrue(all(value > 1.0 for value in inferred.values()))
+
+    @patch('src.services.daily_sporttery._load_cup_market_artifact', return_value=None)
+    def test_handicap_only_row_keeps_other_prediction_outputs(self, _artifact):
+        handicap = {'line': -2.0, 'H': 2.30, 'D': 3.50, 'A': 2.45}
+        inferred = _implied_had_from_handicap_market(handicap)
+        row = _predict_supported_match(
+            raw={
+                'matchNumStr': '周六020', 'matchId': 2040992,
+                'matchDate': '2026-08-22', 'matchTime': '20:00:00',
+                'leagueAllName': '意大利甲级联赛', 'sellStatus': '2',
+            },
+            league=None, home_cn='国际米兰', away_cn='蒙扎',
+            home='国际米兰', away='蒙扎', odds=inferred,
+            handicap_odds=handicap, regular_market_offered=False,
+        )
+        self.assertTrue(pd.isna(row['官方胜奖金']))
+        self.assertEqual(row['官方让球数'], -2.0)
+        self.assertIn(row['让球首选'], ('胜', '平', '负'))
+        self.assertIn(row['大小球首选'], ('大于2.5球', '小于2.5球'))
+        self.assertTrue(row['首选比分'])
+        self.assertTrue(row['半全场首选'])
+
     def test_selects_best_score_for_market_longshot_outcome(self):
         import numpy as np
         score, probability = _upset_score(
@@ -99,6 +201,39 @@ class DailySportteryTests(unittest.TestCase):
         self.assertGreater(first_home + first_away, 2)
         self.assertEqual((first_home, first_away), (2, 1))
 
+    def test_main_score_ranking_is_not_overwritten_by_over_under_direction(self):
+        classes = np.array([14, 15, 21, 8])
+        probabilities = np.array([0.20, 0.18, 0.12, 0.19])
+        ranking = np.argsort(probabilities)[::-1][:3]
+        self.assertEqual(divmod(int(classes[ranking[0]]), 7), (2, 0))
+
+    def test_score_shortlist_covers_a_different_match_script(self):
+        classes = np.array([15, 7, 14, 8, 1])  # 2-1, 1-0, 2-0, 1-1, 0-1
+        probabilities = np.array([0.25, 0.20, 0.18, 0.17, 0.16])
+        ranking = _diverse_score_ranking(probabilities, classes)
+        self.assertEqual(classes[ranking].tolist(), [15, 7, 8])
+
+    def test_aggressive_score_is_high_scoring_and_in_market_cold_side(self):
+        classes = np.array([21, 22, 4, 5, 12])  # 3-0, 3-1, 0-4, 0-5, 1-5
+        probabilities = np.array([0.08, 0.06, 0.03, 0.004, 0.02])
+        probability, score = _aggressive_upset_score(
+            probabilities, classes,
+            np.array([0.60, 0.25, 0.15]), frozenset(),
+        )
+        self.assertEqual(score, '0-4')
+        self.assertAlmostEqual(probability, 0.03)
+
+    def test_monte_carlo_summary_is_reproducible_and_complete(self):
+        odds = {'H': 1.90, 'D': 3.40, 'A': 4.20}
+        ttg = {f's{i}': 7.0 + i * 0.4 for i in range(8)}
+        first = _monte_carlo_summary(odds, ttg, -1, 123)
+        second = _monte_carlo_summary(odds, ttg, -1, 123)
+        self.assertEqual(first, second)
+        self.assertEqual(first['模拟次数'], 10_000)
+        self.assertEqual(len(first['模拟Top3比分'].split(' / ')), 3)
+        self.assertTrue(first['模拟让球'])
+        self.assertEqual(first['模拟模型来源'], '官方赔率独立市场蒙特卡洛')
+
     def test_upset_score_skips_already_displayed_picks(self):
         import numpy as np
         # 1-1 is the strongest draw but is already the main pick; the upset row
@@ -118,6 +253,26 @@ class DailySportteryTests(unittest.TestCase):
             self.assertAlmostEqual(float(baseline[key].sum()), 1.0, places=8)
         self.assertEqual(len(baseline['score']), 49)
         self.assertEqual(len(baseline['half_full']), 9)
+
+    @patch('src.services.daily_sporttery._load_cup_market_artifact', return_value=None)
+    def test_confirmed_lineup_shift_is_bounded_and_applied(self, _artifact):
+        row = _predict_supported_match(
+            raw={
+                'matchNumStr': '周六001', 'matchId': 1,
+                'matchDate': '2026-08-22', 'matchTime': '19:30:00',
+                'leagueAllName': '未训练联赛', 'sellStatus': '2',
+            },
+            league=None, home_cn='主队', away_cn='客队', home='主队', away='客队',
+            odds={'H': 2.0, 'D': 3.2, 'A': 3.6}, handicap_odds=None,
+            lineup_analysis={
+                'status': '已确认', 'summary': '已确认首发',
+                'probability_shift': 0.04,
+            },
+        )
+        baseline = _market_baseline_probabilities({'H': 2.0, 'D': 3.2, 'A': 3.6})
+        self.assertGreater(row['模型主胜概率'], baseline['result'][0])
+        self.assertEqual(row['首发状态'], '已确认')
+        self.assertIn('首发主队利好', row['最终结论'])
 
     @patch('src.services.daily_sporttery.load_selection_profile', return_value=None)
     def test_market_selection_uses_audited_selective_thresholds(self, _profile):

@@ -54,14 +54,14 @@ class DescriptiveAnalyzerWindow(QDialog):
         self._combo_feature = QComboBox()
         self._combo_feature.setFixedWidth(150)
         for team in self._feature_types:
-            self._combo_feature.addItem(team)
+            self._combo_feature.addItem(team, team)
         form.addRow(QLabel("Team:"), self._combo_feature)
 
         # Colormap
         self._combo_colormap = QComboBox()
         self._combo_colormap.setFixedWidth(150)
         for colormap in self._colormap_dict:
-            self._combo_colormap.addItem(colormap)
+            self._combo_colormap.addItem(colormap, colormap)
         form.addRow(QLabel("Colormap:"), self._combo_colormap)
 
         # Analyze button (centered row)
@@ -79,7 +79,8 @@ class DescriptiveAnalyzerWindow(QDialog):
 
     def _analyze(self):
         season = self._seasons[self._combo_season.currentIndex()]
-        feature_type = self._feature_types[self._combo_feature.currentText()]
-        colormap = self._colormap_dict[self._combo_colormap.currentText()]
+        feature_type = self._feature_types[self._combo_feature.currentData()]
+        colormap = self._colormap_dict[self._combo_colormap.currentData()]
         ax = self._analyzer.generate_plot(season=season, colormap=colormap, feature_type=feature_type)
         PlotWindow(ax=ax, parent=self, title='Descriptive Statistics Analysis').show()
+

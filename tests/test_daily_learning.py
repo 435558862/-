@@ -46,7 +46,16 @@ def test_daily_review_settles_once_and_builds_truth_dataset(tmp_path, monkeypatc
         '建议状态': '谨慎主推',
         '预测依据': '测试模型',
         '首选比分': '2-1',
+        '次选比分': '1-1',
+        '第三比分': '2-0',
+        '比分爆冷': '0-1',
+        '大小球进取比分': '3-1',
         '大小球首选': '大于2.5球',
+        '官方让球数': -1,
+        '让球首选': '负',
+        '让球次选': '平',
+        '半全场首选': '平胜',
+        '半全场次选': '胜胜',
     }]).to_csv(reports / '2026-08-09-竞彩预测.csv', index=False)
 
     monkeypatch.setattr(daily_learning, 'REPORT_ROOT', reports)
@@ -82,6 +91,15 @@ def test_daily_review_settles_once_and_builds_truth_dataset(tmp_path, monkeypatc
     assert second['settled_samples'] == 1
     assert len(settled) == 1
     assert settled.loc[0, 'actual_result_label'] == '胜'
+    assert settled.loc[0, 'actual_score'] == '2-1'
+    assert settled.loc[0, 'actual_handicap'] == '平'
+    assert settled.loc[0, 'handicap_hit'] == 0
+    assert settled.loc[0, 'handicap_second_hit'] == 1
+    assert settled.loc[0, 'actual_half_full'] == '胜胜'
+    assert settled.loc[0, 'half_full_hit'] == 0
+    assert settled.loc[0, 'half_full_second_hit'] == 1
+    assert settled.loc[0, 'score_hit_any'] == 1
+    assert settled.loc[0, 'score_hit_source'] == '首'
 
 
 def test_suspended_result_is_not_used_as_training_truth():
@@ -220,3 +238,21 @@ def test_low_live_accuracy_triggers_model_specific_market_fallback(tmp_path, mon
     daily_learning._write_json(status_path, {'accuracy_by_model': audit})
     assert not daily_learning.model_result_is_allowed('英超专用模型')
     assert daily_learning.model_result_is_allowed('西甲专用模型')
+
+
+def test_dedicated_model_weight_stays_shadowed_until_live_sample_gate(tmp_path, monkeypatch):
+    status_path = tmp_path / 'status.json'
+    monkeypatch.setattr(daily_learning, 'STATUS_PATH', status_path)
+    daily_learning._write_json(status_path, {'accuracy_by_model': {
+        '英超专用模型': {
+            'samples': 20, 'edge_vs_market': 0.20, 'action': 'active',
+        },
+    }})
+    assert daily_learning.model_result_blend_weight('英超专用模型') == 0.10
+
+    daily_learning._write_json(status_path, {'accuracy_by_model': {
+        '英超专用模型': {
+            'samples': 40, 'edge_vs_market': 0.02, 'action': 'active',
+        },
+    }})
+    assert daily_learning.model_result_blend_weight('英超专用模型') == 0.25

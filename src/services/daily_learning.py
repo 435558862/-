@@ -21,6 +21,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from src.network.fixtures.sporttery import SportteryResultClient
+from src.services.draw_calibration import AUDIT_PATH as DRAW_AUDIT_PATH, train_draw_calibrator
 
 
 REPORT_ROOT = Path('storage/jingcai/reports')
@@ -39,7 +40,7 @@ TEST_ROWS = 60
 HOLDOUT_FRACTION = 0.10
 MAX_HOLDOUT_ROWS = 500
 RETRAIN_STEP = 10
-TRAINING_EVALUATION_VERSION = 3
+TRAINING_EVALUATION_VERSION = 4
 MODEL_GUARD_MIN_SAMPLES = 30
 MODEL_GUARD_WINDOW = 60
 DEFAULT_OFFICIAL_LOOKBACK_DAYS = 7
@@ -208,6 +209,35 @@ def model_result_is_allowed(model_category: str) -> bool:
         return True
 
 
+def model_result_blend_weight(model_category: str) -> float:
+    """Return a conservative live-audit weight for a dedicated model.
+
+    New or tied models are blended with the market instead of replacing it;
+    only a sufficiently sampled model with positive live edge earns more weight.
+    """
+    if not STATUS_PATH.exists():
+        return 0.35
+    try:
+        status = json.loads(STATUS_PATH.read_text(encoding='utf-8'))
+        audit = status.get('accuracy_by_model', {}).get(model_category, {})
+        samples = int(audit.get('samples') or 0)
+        edge = float(audit.get('edge_vs_market') or 0.0)
+        if audit.get('action') == 'fallback_market':
+            return 0.0
+        # Before 30 settled live predictions the dedicated model is shadowed:
+        # it contributes only 10%, so it can accumulate an audit without being
+        # allowed to dominate a recommendation. Between 30 and 49 it earns a
+        # cautious weight only with a positive edge; 50+ samples unlock the
+        # normal dynamic blend.
+        if samples < MODEL_GUARD_MIN_SAMPLES:
+            return 0.10
+        if samples < 50:
+            return 0.25 if edge > 0.0 else 0.10
+        return min(0.70, max(0.10, 0.35 + edge * 4.0))
+    except (OSError, ValueError, TypeError):
+        return 0.35
+
+
 def _prediction_reports(today: date) -> pd.DataFrame:
     frames = []
     for path in REPORT_ROOT.glob('*-竞彩预测.csv'):
@@ -281,13 +311,45 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
     home_goals, away_goals = score
     actual_result = 0 if home_goals > away_goals else 1 if home_goals == away_goals else 2
     labels = ['胜', '平', '负']
-    predicted_score = str(prediction.get('首选比分') or '')
-    predicted_ou = str(prediction.get('大小球首选') or '')
+    predicted_score = _first_text(prediction.get('首选比分'))
+    predicted_score_second = _first_text(prediction.get('次选比分'))
+    predicted_score_third = _first_text(prediction.get('第三比分'))
+    predicted_score_upset = _first_text(
+        prediction.get('比分爆冷'), prediction.get('爆冷比分'),
+    )
+    predicted_score_aggressive = _first_text(prediction.get('大小球进取比分'))
+    score_candidates = [
+        ('首', predicted_score), ('次1', predicted_score_second),
+        ('次2', predicted_score_third), ('冷', predicted_score_upset),
+        ('进', predicted_score_aggressive),
+    ]
+    actual_score = f'{home_goals}-{away_goals}'
+    score_hit_source = next(
+        (label for label, value in score_candidates if _parse_score(value) == score), '',
+    )
+    predicted_ou = _first_text(prediction.get('大小球首选'))
     actual_over = home_goals + away_goals > 2
+
+    handicap_line = _float(prediction, '官方让球数')
+    predicted_handicap = _first_text(prediction.get('让球首选'))
+    predicted_handicap_second = _first_text(prediction.get('让球次选'))
+    actual_handicap = ''
+    if np.isfinite(handicap_line):
+        adjusted = home_goals + handicap_line - away_goals
+        actual_handicap = '胜' if adjusted > 1e-9 else '平' if abs(adjusted) <= 1e-9 else '负'
+
+    half_score = _parse_score(result.get('sectionsNo1'))
+    actual_half_full = ''
+    if half_score is not None:
+        half_result = 0 if half_score[0] > half_score[1] else 1 if half_score[0] == half_score[1] else 2
+        actual_half_full = labels[half_result] + labels[actual_result]
+    predicted_half_full = _first_text(prediction.get('半全场首选'))
+    predicted_half_full_second = _first_text(prediction.get('半全场次选'))
     return {
         'prediction_date': prediction['_prediction_date'],
         'match_id': prediction['_match_id'],
         'match_date': str(result.get('matchDate') or prediction.get('比赛时间') or ''),
+        'match_time': _first_text(prediction.get('比赛时间')),
         'match_number': str(prediction.get('赛事编号') or result.get('matchNumStr') or ''),
         'league': str(prediction.get('联赛') or result.get('leagueName') or ''),
         'home': str(prediction.get('主队') or result.get('allHomeTeam') or ''),
@@ -307,14 +369,47 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
         'model_category': _prediction_model_category(prediction),
         'dedicated_league': str(prediction.get('专用模型联赛') or ''),
         'confidence': str(prediction.get('置信等级') or ''),
+        'draw_probability_change': _float(prediction, '平局概率变化'),
+        'hhad_line_change': _float(prediction, '让球线变化'),
+        'ttg_expected_change': _float(prediction, '总进球预期变化'),
         'predicted_score': predicted_score,
+        'predicted_score_second': predicted_score_second,
+        'predicted_score_third': predicted_score_third,
+        'predicted_score_upset': predicted_score_upset,
+        'predicted_score_aggressive': predicted_score_aggressive,
         'predicted_over_under': predicted_ou,
+        'handicap_line': handicap_line,
+        'predicted_handicap': predicted_handicap,
+        'predicted_handicap_second': predicted_handicap_second,
+        'predicted_half_full': predicted_half_full,
+        'predicted_half_full_second': predicted_half_full_second,
         'home_goals': home_goals,
         'away_goals': away_goals,
+        'actual_score': actual_score,
         'actual_result': actual_result,
         'actual_result_label': labels[actual_result],
+        'actual_handicap': actual_handicap,
+        'actual_half_full': actual_half_full,
         'result_hit': int(str(prediction.get('胜平负首选') or '') == labels[actual_result]),
-        'score_hit': int(predicted_score == f'{home_goals}-{away_goals}'),
+        'score_hit': int(_parse_score(predicted_score) == score),
+        'score_hit_any': int(bool(score_hit_source)),
+        'score_hit_source': score_hit_source,
+        'handicap_hit': (
+            int(predicted_handicap == actual_handicap)
+            if predicted_handicap and actual_handicap else np.nan
+        ),
+        'handicap_second_hit': (
+            int(predicted_handicap_second == actual_handicap)
+            if predicted_handicap_second and actual_handicap else np.nan
+        ),
+        'half_full_hit': (
+            int(predicted_half_full == actual_half_full)
+            if predicted_half_full and actual_half_full else np.nan
+        ),
+        'half_full_second_hit': (
+            int(predicted_half_full_second == actual_half_full)
+            if predicted_half_full_second and actual_half_full else np.nan
+        ),
         'over_under_hit': int(
             predicted_ou == ('大于2.5球' if actual_over else '小于2.5球')
         ),
@@ -559,7 +654,13 @@ def _learn_selection_profile(
     valid = valid.sort_values(sort_columns, kind='stable').reset_index(drop=True)
     if len(valid) < 500:
         return None
-    recent = valid.tail(min(1000, len(valid))).copy()
+    # Thresholds are selected without seeing the newest chronological audit
+    # block. Reported hit rates include that untouched block, preventing the
+    # same matches from both choosing and validating a recommendation line.
+    audit_rows = max(100, min(500, int(len(valid) * 0.20)))
+    calibration = valid.iloc[:-audit_rows].copy()
+    audit = valid.iloc[-audit_rows:].copy()
+    recent = calibration.tail(min(1000, len(calibration))).copy()
     # Keep a small safety margin above 70% so ordinary sampling noise does not
     # turn a borderline tier into a main recommendation.
     high_threshold = _choose_selection_threshold(valid, recent, 0.625, 0.71)
@@ -577,25 +678,32 @@ def _learn_selection_profile(
         (observe_threshold, '观察'),
         (0.0, '跳过'),
     ):
-        full_result = _threshold_result(valid, threshold)
+        full_result = _threshold_result(calibration, threshold)
         recent_result = _threshold_result(recent, threshold)
+        audit_result = _threshold_result(audit, threshold)
         rows.append({
             'threshold': threshold,
             'grade': grade,
             # Use the weaker of long-run and recent hit rates in the UI.
-            'accuracy': min(full_result['accuracy'], recent_result['accuracy']),
-            'coverage': recent_result['coverage'],
-            'samples': recent_result['samples'],
+            'accuracy': min(
+                full_result['accuracy'], recent_result['accuracy'],
+                audit_result['accuracy'],
+            ),
+            'coverage': audit_result['coverage'],
+            'samples': audit_result['samples'],
             'full_samples': full_result['samples'],
+            'audit_samples': audit_result['samples'],
         })
     profile = {
         'learned_at': datetime.now().isoformat(timespec='seconds'),
         'as_of': today.isoformat(),
         'total_samples': len(valid),
-        'recent_samples': len(recent),
+        'recent_samples': len(audit),
+        'calibration_samples': len(calibration),
+        'audit_samples': len(audit),
         'period': (
-            f'{str(recent["match_date"].min())[:10]}至'
-            f'{str(recent["match_date"].max())[:10]}'
+            f'{str(audit["match_date"].min())[:10]}至'
+            f'{str(audit["match_date"].max())[:10]}'
         ),
         'rows': rows,
     }
@@ -1048,6 +1156,18 @@ def review_and_learn(
         errors.append(f'历史赔率：{exception}')
     training_data = _combined_training_data(settled, official_history)
     training = _train_if_ready(training_data, previous_status)
+    draw_audit = previous_status.get('draw_calibration', {})
+    if not draw_audit and DRAW_AUDIT_PATH.exists():
+        try:
+            draw_audit = json.loads(DRAW_AUDIT_PATH.read_text(encoding='utf-8'))
+        except (OSError, ValueError, TypeError):
+            draw_audit = {}
+    if new_records or new_official or not DRAW_AUDIT_PATH.exists():
+        try:
+            draw_audit = train_draw_calibrator(training_data)
+        except Exception:
+            logging.exception('平局校准候选训练失败，继续保留旧校准。')
+            draw_audit = {'status': '训练异常，保留旧校准', 'deployable': False}
     selection_profile = _learn_selection_profile(training_data, today)
     selected = settled[
         settled.get('advice', pd.Series(dtype=str)).fillna('').astype(str).str.contains('主推')
@@ -1074,6 +1194,7 @@ def review_and_learn(
         ),
         'accuracy_by_model': _accuracy_by_model(settled),
         'selection_profile': selection_profile,
+        'draw_calibration': draw_audit,
         'review_error': '；'.join(errors),
         **training,
     }

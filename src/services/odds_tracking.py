@@ -12,9 +12,11 @@ prediction pipeline.
 
 import json
 import logging
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 HISTORY_PATH = Path('storage/jingcai/odds_history.jsonl')
 
@@ -26,7 +28,41 @@ def _float(value) -> Optional[float]:
         return None
 
 
-def _extract_observation(raw: dict) -> Optional[dict]:
+def _kickoff_context(raw: dict, captured_at: str) -> dict:
+    """Attach leakage-safe time-to-kickoff metadata to every observation."""
+    match_date = str(raw.get('matchDate') or '')[:10]
+    match_time = str(raw.get('matchTime') or '')[:8]
+    if not match_date or not match_time:
+        return {}
+    try:
+        kickoff = datetime.fromisoformat(f'{match_date}T{match_time}').replace(
+            tzinfo=ZoneInfo('Asia/Shanghai'),
+        )
+        captured = datetime.fromisoformat(captured_at.replace('Z', '+00:00'))
+        if captured.tzinfo is None:
+            captured = captured.replace(tzinfo=ZoneInfo('Asia/Shanghai'))
+        captured = captured.astimezone(ZoneInfo('Asia/Shanghai'))
+    except (ValueError, TypeError):
+        return {}
+    hours = (kickoff - captured).total_seconds() / 3600.0
+    if hours > 30:
+        window = '早盘档'
+    elif hours > 15:
+        window = '赛前24小时档'
+    elif hours > 3:
+        window = '赛前6小时档'
+    elif hours > 0:
+        window = '赛前1小时档'
+    else:
+        window = '开赛后'
+    return {
+        'kickoff_at': kickoff.isoformat(),
+        'hours_to_kickoff': round(hours, 2),
+        'snapshot_window': window,
+    }
+
+
+def _extract_observation(raw: dict, captured_at: str = '') -> Optional[dict]:
     """Build one compact odds observation from a raw official match row."""
     match_id = raw.get('matchId')
     if match_id in (None, ''):
@@ -48,6 +84,7 @@ def _extract_observation(raw: dict) -> Optional[dict]:
         'away': str(raw.get('awayTeamAllName') or ''),
         'had': {'H': home_odds, 'D': draw_odds, 'A': away_odds},
         'had_update': had_update,
+        **(_kickoff_context(raw, captured_at) if captured_at else {}),
     }
     if line is not None:
         observation['hhad'] = {
@@ -75,6 +112,7 @@ def _latest_key(observation: dict) -> tuple:
     return (
         observation['had']['H'], observation['had']['D'], observation['had']['A'],
         observation.get('had_update', ''),
+        observation.get('snapshot_window', ''),
         hhad.get('line'), hhad.get('H'), hhad.get('D'), hhad.get('A'),
         ttg.get('s0'), ttg.get('s1'), ttg.get('s2'), ttg.get('s3'),
         ttg.get('s4'), ttg.get('s5'), ttg.get('s6'), ttg.get('s7'),
@@ -91,9 +129,12 @@ def record_odds_snapshots(
     Returns the number of appended observations. Never raises.
     """
     try:
+        captured_at = captured_at or datetime.now(timezone.utc).isoformat(
+            timespec='seconds',
+        )
         observations = []
         for raw in matches or []:
-            observation = _extract_observation(raw)
+            observation = _extract_observation(raw, captured_at)
             if observation is not None:
                 observations.append(observation)
         if not observations:
@@ -112,9 +153,6 @@ def record_odds_snapshots(
                         continue
                     previous[str(stored.get('match_id', ''))] = _latest_key(stored)
 
-        captured_at = captured_at or datetime.now(timezone.utc).isoformat(
-            timespec='seconds',
-        )
         path.parent.mkdir(parents=True, exist_ok=True)
         appended = 0
         with path.open('a', encoding='utf-8') as handle:
@@ -130,11 +168,13 @@ def record_odds_snapshots(
         return 0
 
 
-def read_odds_series(path: Path = HISTORY_PATH) -> Dict[str, List[dict]]:
-    """Return chronological odds observations grouped by match id."""
+@lru_cache(maxsize=8)
+def _read_odds_series_cached(
+        path_text: str, modified_ns: int, file_size: int,
+) -> Dict[str, List[dict]]:
+    """Parse one immutable file revision; the signature invalidates itself."""
+    path = Path(path_text)
     series: Dict[str, List[dict]] = {}
-    if not path.exists():
-        return series
     with path.open('r', encoding='utf-8') as handle:
         for line in handle:
             line = line.strip()
@@ -148,6 +188,18 @@ def read_odds_series(path: Path = HISTORY_PATH) -> Dict[str, List[dict]]:
     for rows in series.values():
         rows.sort(key=lambda row: str(row.get('captured_at', '')))
     return series
+
+
+def read_odds_series(path: Path = HISTORY_PATH) -> Dict[str, List[dict]]:
+    """Return grouped odds without reparsing an unchanged growing JSONL file."""
+    path = Path(path)
+    try:
+        stat = path.stat()
+    except FileNotFoundError:
+        return {}
+    return _read_odds_series_cached(
+        str(path.resolve()), stat.st_mtime_ns, stat.st_size,
+    )
 
 
 def drift_summary(match_id: str, path: Path = HISTORY_PATH) -> Optional[dict]:
@@ -167,6 +219,54 @@ def drift_summary(match_id: str, path: Path = HISTORY_PATH) -> Optional[dict]:
             for key in ('H', 'D', 'A')
         },
     }
+
+
+def market_quality_metrics(match_id, path: Path = HISTORY_PATH,
+                           series: Optional[Dict[str, List[dict]]] = None) -> dict:
+    """Return leakage-safe market quality and secondary-market movement.
+
+    The official feed is a single source, so this deliberately exposes that
+    limitation instead of pretending to provide a multi-bookmaker consensus.
+    """
+    if series is None:
+        series = read_odds_series(path)
+    rows = series.get(str(match_id), [])
+    result = {
+        'source_count': 1 if rows else 0,
+        'multi_company_available': False,
+        'return_rate': None,
+        'hhad_line_change': None,
+        'ttg_expected_change': None,
+    }
+    if not rows:
+        return result
+    try:
+        inverse = [1.0 / float(rows[-1]['had'][key]) for key in ('H', 'D', 'A')]
+        result['return_rate'] = 1.0 / sum(inverse)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        pass
+    if len(rows) < 2:
+        return result
+    try:
+        result['hhad_line_change'] = (
+            float(rows[-1]['hhad']['line']) - float(rows[0]['hhad']['line'])
+        )
+    except (KeyError, TypeError, ValueError):
+        pass
+
+    def expected_total(row):
+        ttg = row.get('ttg') or {}
+        try:
+            weights = [1.0 / float(ttg[f's{goals}']) for goals in range(8)]
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            return None
+        total = sum(weights)
+        return sum(goals * weight for goals, weight in enumerate(weights)) / total
+
+    opening_total, latest_total = expected_total(rows[0]), expected_total(rows[-1])
+    if opening_total is not None and latest_total is not None:
+        result['ttg_expected_change'] = latest_total - opening_total
+    return result
 
 
 def format_match_drift(match_id, path: Path = HISTORY_PATH,
@@ -189,6 +289,113 @@ def format_match_drift(match_id, path: Path = HISTORY_PATH,
         elif difference < 0:
             parts.append(f'{labels[key]}↓{abs(difference):g}')
     return '赔率平稳' if not parts else '·'.join(parts)
+
+
+def format_market_flow(match_id, path: Path = HISTORY_PATH,
+                       series: Optional[Dict[str, List[dict]]] = None) -> str:
+    """Return one concise, actionable latest market direction."""
+    if series is None:
+        series = read_odds_series(path)
+    rows = series.get(str(match_id), [])
+    if len(rows) < 2:
+        return '待积累'
+
+    def probability(row):
+        try:
+            inverse = [1.0 / float(row['had'][key]) for key in ('H', 'D', 'A')]
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            return None
+        total = sum(inverse)
+        return [value / total for value in inverse] if total > 0 else None
+
+    first, last = probability(rows[0]), probability(rows[-1])
+    if first is None or last is None:
+        return '待积累'
+    change = [current - opening for opening, current in zip(first, last)]
+    strongest = max(range(3), key=change.__getitem__)
+    movement = float(change[strongest])
+    if movement < 0.005:
+        return '暂无明确购买方向'
+
+    outcomes = ('胜', '平', '负')
+    prefix = '购买方向' if movement >= 0.015 else '参考购买'
+    return f'{prefix}：{outcomes[strongest]}'
+
+
+def market_flow_gate(match_id, model_pick: str,
+                     path: Path = HISTORY_PATH,
+                     series: Optional[Dict[str, List[dict]]] = None) -> dict:
+    """Judge whether first-to-latest market movement supports a model pick."""
+    if series is None:
+        series = read_odds_series(path)
+    rows = series.get(str(match_id), [])
+    if len(rows) < 2:
+        return {'state': 'insufficient', 'label': '快照不足', 'direction': ''}
+
+    def probabilities(row):
+        try:
+            values = [1.0 / float(row['had'][key]) for key in ('H', 'D', 'A')]
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            return None
+        total = sum(values)
+        return [value / total for value in values] if total > 0 else None
+
+    vectors = [value for row in rows if (value := probabilities(row)) is not None]
+    if len(vectors) < 2:
+        return {'state': 'insufficient', 'label': '快照不足', 'direction': ''}
+    changes = [vectors[-1][index] - vectors[0][index] for index in range(3)]
+    strongest = int(max(range(3), key=changes.__getitem__))
+    labels = ('胜', '平', '负')
+    direction = labels[strongest]
+    elapsed_hours = None
+    try:
+        started = datetime.fromisoformat(
+            str(rows[0].get('captured_at') or '').replace('Z', '+00:00'),
+        )
+        ended = datetime.fromisoformat(
+            str(rows[-1].get('captured_at') or '').replace('Z', '+00:00'),
+        )
+        elapsed_hours = max((ended - started).total_seconds() / 3600.0, 1 / 60)
+    except (TypeError, ValueError):
+        pass
+    speed = (
+        abs(changes[strongest]) / elapsed_hours
+        if elapsed_hours is not None else None
+    )
+    details = {
+        'direction': direction,
+        'observations': len(vectors),
+        'change': float(changes[strongest]),
+        'draw_change': float(changes[1]),
+        'speed_per_hour': float(speed) if speed is not None else None,
+    }
+    if changes[strongest] < 0.015:
+        return {'state': 'stable', 'label': '盘口稳定', **details}
+
+    favorites = [int(max(range(3), key=vector.__getitem__)) for vector in vectors]
+    reversals = sum(left != right for left, right in zip(favorites, favorites[1:]))
+    if len(vectors) >= 3 and reversals >= 2:
+        return {
+            'state': 'unstable', 'label': f'盘口反复·暂不主推',
+            **details,
+        }
+    # A very abrupt move is treated as unstable until another snapshot confirms
+    # it. This prevents one late bad tick from becoming a recommendation signal.
+    if speed is not None and speed >= 0.08 and len(vectors) < 3:
+        return {
+            'state': 'unstable', 'label': f'流向{direction}过快·等待确认',
+            **details,
+        }
+    if str(model_pick) == direction:
+        return {
+            'state': 'agree', 'label': f'模型与盘口同向{direction}',
+            **details,
+        }
+    return {
+        'state': 'conflict',
+        'label': f'盘口流向{direction}·与模型{model_pick}冲突',
+        **details,
+    }
 
 
 def intent_for_match(match_id, odds, path: Path = HISTORY_PATH,

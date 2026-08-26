@@ -4,9 +4,10 @@ import json
 import logging
 import re
 import unicodedata
+import zlib
 from functools import lru_cache
 from math import exp
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 from urllib.request import urlopen
@@ -19,11 +20,20 @@ from src.database.league import LeagueDatabase
 from src.database.model import ModelDatabase
 from src.services.daily_learning import (
     load_selection_profile,
+    model_result_blend_weight,
     model_result_is_allowed,
     predict_generic_probabilities,
     review_and_learn,
 )
-from src.services.odds_tracking import record_odds_snapshots
+from src.services.odds_tracking import (
+    market_quality_metrics,
+    market_flow_gate,
+    read_odds_series,
+    record_odds_snapshots,
+)
+from src.services.lineups import fetch_lineup_analysis
+from src.services.draw_calibration import calibrate_draw
+from src.services.team_names import resolve_model_team
 from src.network.fixtures.sporttery import (
     SportteryMobileClient,
     SportteryScraper,
@@ -116,7 +126,7 @@ CLUBELO_TEAM_ALIASES = {
 
 
 def _sort_by_match_number(frame: pd.DataFrame) -> pd.DataFrame:
-    """Sort tickets by weekday label first, then by the daily sequence."""
+    """Sort by real match date, then the sequence printed on that ticket."""
     if frame.empty or '赛事编号' not in frame.columns:
         return frame.reset_index(drop=True)
 
@@ -134,13 +144,25 @@ def _sort_by_match_number(frame: pd.DataFrame) -> pd.DataFrame:
         return weekday, number
 
     keys = frame['赛事编号'].map(ticket_key)
+    if '比赛时间' in frame.columns:
+        match_dates = pd.to_datetime(
+            frame['比赛时间'].astype(str).str.slice(0, 10), errors='coerce',
+        )
+    else:
+        match_dates = pd.Series(pd.NaT, index=frame.index, dtype='datetime64[ns]')
+    # Dated rows are authoritative across week boundaries. Old rows without a
+    # date retain the weekday fallback and are placed after dated fixtures.
+    missing_date = match_dates.isna()
     return frame.assign(
-        _星期排序=keys.map(lambda key: key[0]),
+        _缺少日期排序=missing_date.astype(int),
+        _比赛日期排序=match_dates,
+        _星期排序=[key[0] if missing else 0 for key, missing in zip(keys, missing_date)],
         _赛事编号排序=keys.map(lambda key: key[1]),
     ).sort_values(
-        ['_星期排序', '_赛事编号排序'], kind='stable',
+        ['_缺少日期排序', '_比赛日期排序', '_星期排序', '_赛事编号排序'],
+        kind='stable', na_position='last',
     ).drop(columns=[
-        '_星期排序', '_赛事编号排序',
+        '_缺少日期排序', '_比赛日期排序', '_星期排序', '_赛事编号排序',
     ]).reset_index(drop=True)
 
 
@@ -155,7 +177,10 @@ def _field(row: dict, *names, default=''):
 def identify_league(name: str) -> Optional[str]:
     normalized = str(name).replace(' ', '')
     for league, aliases in LEAGUE_ALIASES.items():
-        if any(alias in normalized for alias in aliases):
+        # Short aliases such as "西甲" must never match inside another
+        # official name such as "巴西甲级联赛". Official fields are exact;
+        # displayText fallbacks place the league at the beginning.
+        if any(normalized == alias or normalized.startswith(alias) for alias in aliases):
             return league
     return None
 
@@ -180,6 +205,56 @@ def _display_fields(raw: dict) -> Tuple[str, str, str, str]:
 def _devig(odds: Dict[str, float]) -> np.ndarray:
     inverse = 1.0 / np.array([odds['H'], odds['D'], odds['A']], dtype=np.float64)
     return inverse / inverse.sum()
+
+
+def _implied_had_from_handicap_market(
+        handicap_odds: Dict[str, float],
+        ttg: Optional[dict] = None,
+) -> Dict[str, float]:
+    """Infer a hidden 1X2 feature input when only official HHAD is sold."""
+    handicap_target = _devig(handicap_odds)
+    total_target = _official_ttg_over_under(ttg)
+    best_loss = float('inf')
+    best_grid = None
+    for home_goals in np.arange(0.20, 4.51, 0.10):
+        for away_goals in np.arange(0.20, 4.51, 0.10):
+            grid = _score_grid(float(home_goals), float(away_goals), 6)
+            handicap = _handicap_probabilities(
+                grid.reshape(-1), np.arange(49, dtype=np.int32),
+                handicap_odds['line'],
+            )
+            loss = float(np.square(handicap - handicap_target).sum())
+            if total_target is not None:
+                totals = np.add.outer(np.arange(7), np.arange(7))
+                under = float(grid[totals <= 2].sum())
+                loss += 0.45 * float(np.square(
+                    np.array([under, 1.0 - under]) - total_target,
+                ).sum())
+            else:
+                loss += 0.002 * float((home_goals + away_goals - 2.7) ** 2)
+            if loss < best_loss:
+                best_loss, best_grid = loss, grid
+    result = np.clip(_outcome_probabilities(best_grid), 1e-6, 1.0)
+    return {'H': 1.0 / result[0], 'D': 1.0 / result[1], 'A': 1.0 / result[2]}
+
+
+def _implied_had_without_result_market(raw: dict) -> Dict[str, float]:
+    """Build a hidden feature input so every official fixture stays visible."""
+    official_score = _official_crs_score(raw.get('crs'))
+    if official_score is not None:
+        score, classes = official_score
+        result = np.zeros(3, dtype=np.float64)
+        for probability, target_class in zip(score, classes):
+            home, away = divmod(int(target_class), 7)
+            result[0 if home > away else 1 if home == away else 2] += probability
+    else:
+        official_half_full = _official_hafu_half_full(raw.get('hafu'))
+        if official_half_full is not None:
+            result = official_half_full.reshape(3, 3).sum(axis=0)
+        else:
+            result = np.array([0.385, 0.230, 0.385], dtype=np.float64)
+    result = np.clip(result / result.sum(), 1e-6, 1.0)
+    return {'H': 1.0 / result[0], 'D': 1.0 / result[1], 'A': 1.0 / result[2]}
 
 
 def _normalize_club_name(value: str) -> str:
@@ -211,6 +286,18 @@ def _clubelo_ratings(as_of: str) -> dict[str, float]:
     """Return a dated ClubElo snapshot, with a durable offline cache."""
     CLUBELO_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
     cache_path = CLUBELO_CACHE_ROOT / f'{as_of}.csv'
+    # Elo moves gradually. Reusing a snapshot up to seven days old makes the
+    # UI instant when ClubElo is unavailable, without materially changing the
+    # strength feature used by the market model.
+    if not cache_path.exists():
+        cached = sorted(CLUBELO_CACHE_ROOT.glob('*.csv'), reverse=True)
+        if cached:
+            try:
+                age = date.fromisoformat(as_of) - date.fromisoformat(cached[0].stem)
+                if timedelta(0) <= age <= timedelta(days=7):
+                    cache_path = cached[0]
+            except ValueError:
+                pass
     if not cache_path.exists():
         payload = None
         for url in (
@@ -218,7 +305,7 @@ def _clubelo_ratings(as_of: str) -> dict[str, float]:
             f'http://api.clubelo.com/{as_of}',
         ):
             try:
-                with urlopen(url, timeout=30) as response:
+                with urlopen(url, timeout=8) as response:
                     payload = response.read()
                 break
             except Exception:
@@ -346,9 +433,12 @@ def _calibrated_cup_probabilities(
         return None, False
 
 
-def _market_selection(max_probability: float) -> dict:
+def _market_selection(max_probability: float, league_name: str = '') -> dict:
     """Return an honest selective-prediction grade from held-out history."""
     learned = load_selection_profile()
+    league_profile = _league_selection_profile(league_name)
+    if league_profile:
+        learned = league_profile
     if learned is not None:
         rows = sorted(
             learned['rows'], key=lambda row: float(row['threshold']), reverse=True,
@@ -374,6 +464,163 @@ def _market_selection(max_probability: float) -> dict:
                 'period': '2025-08-11至2026-08-14',
             }
     raise AssertionError('Market selection profile must include a zero threshold.')
+
+
+@lru_cache(maxsize=64)
+def _league_selection_profile(league_name: str) -> Optional[dict]:
+    """Learn conservative per-league thresholds from official settled odds."""
+    if not league_name:
+        return None
+    path = Path('storage/jingcai/learning/official_market_history.csv')
+    if not path.exists():
+        return None
+    try:
+        data = pd.read_csv(path)
+        names = data.get('league', pd.Series('', index=data.index)).fillna('').astype(str)
+        aliases = LEAGUE_ALIASES.get(league_name, (league_name,))
+        mask = pd.Series(False, index=data.index)
+        for alias in aliases:
+            mask |= names.str.contains(str(alias), regex=False)
+        frame = data.loc[mask].tail(1000).copy()
+        if len(frame) < 250:
+            return None
+        frame = frame.sort_values('match_date', kind='stable').reset_index(drop=True)
+        audit_rows = max(50, int(len(frame) * 0.20))
+        calibration = frame.iloc[:-audit_rows].copy()
+        audit = frame.iloc[-audit_rows:].copy()
+        odds = calibration[['odds_home', 'odds_draw', 'odds_away']].to_numpy(float)
+        inverse = 1.0 / odds
+        probabilities = inverse / inverse.sum(axis=1, keepdims=True)
+        confidence = probabilities.max(axis=1)
+        predicted = probabilities.argmax(axis=1)
+        actual = pd.to_numeric(calibration['actual_result'], errors='coerce').to_numpy()
+        audit_odds = audit[['odds_home', 'odds_draw', 'odds_away']].to_numpy(float)
+        audit_inverse = 1.0 / audit_odds
+        audit_probability = audit_inverse / audit_inverse.sum(axis=1, keepdims=True)
+        audit_actual = pd.to_numeric(audit['actual_result'], errors='coerce').to_numpy()
+
+        def choose(minimum, target, minimum_samples):
+            for threshold in np.arange(minimum, 0.801, 0.005):
+                selected = confidence >= threshold
+                if selected.sum() >= minimum_samples:
+                    accuracy = float(np.mean(predicted[selected] == actual[selected]))
+                    if accuracy >= target:
+                        audit_selected = audit_probability.max(axis=1) >= threshold
+                        audit_accuracy = (
+                            float(np.mean(
+                                audit_probability[audit_selected].argmax(axis=1)
+                                == audit_actual[audit_selected]
+                            )) if audit_selected.any() else 0.0
+                        )
+                        return (
+                            round(float(threshold), 3), min(accuracy, audit_accuracy),
+                            int(audit_selected.sum()),
+                        )
+            return 0.80, 0.0, 0
+
+        high, high_acc, high_n = choose(0.625, 0.70, 40)
+        selected, selected_acc, selected_n = choose(max(0.675, high + 0.02), 0.74, 25)
+        observe, observe_acc, observe_n = choose(0.55, 0.62, 60)
+        rows = [
+            {'threshold': selected, 'grade': '精选主推', 'accuracy': selected_acc,
+             'coverage': selected_n / len(audit), 'samples': selected_n},
+            {'threshold': high, 'grade': '高置信主推', 'accuracy': high_acc,
+             'coverage': high_n / len(audit), 'samples': high_n},
+            {'threshold': observe, 'grade': '观察', 'accuracy': observe_acc,
+             'coverage': observe_n / len(audit), 'samples': observe_n},
+            {'threshold': 0.0, 'grade': '跳过',
+             'accuracy': float(np.mean(
+                 audit_probability.argmax(axis=1) == audit_actual
+             )), 'coverage': 1.0, 'samples': len(audit)},
+        ]
+        return {
+            'rows': rows,
+            'period': f'{league_name}时间滚动校准{len(calibration)}场/审计{len(audit)}场',
+        }
+    except Exception:
+        logging.exception('联赛独立阈值计算失败：%s', league_name)
+        return None
+
+
+def _calibrate_draw_probability(probabilities: np.ndarray,
+                                market: np.ndarray,
+                                history: Optional[pd.DataFrame],
+                                league: str = '', home: str = '', away: str = '',
+                                draw_flow: float = 0.0,
+                                hhad_line_change: float = 0.0,
+                                ttg_expected_change: float = 0.0) -> np.ndarray:
+    """Calibrate draws using league prior, market draw price and strength gap."""
+    result = np.asarray(probabilities, dtype=np.float64).copy()
+    learned = calibrate_draw(
+        result, league, home, away, market,
+        draw_flow, hhad_line_change, ttg_expected_change,
+    )
+    if learned is not None:
+        return learned
+    if history is None or len(history) < 100 or 'Result' not in history:
+        return result / result.sum()
+    labels = history['Result'].astype(str).str.upper()
+    draw_prior = float(labels.isin(('D', 'X', '平')).tail(1000).mean())
+    if not 0.15 <= draw_prior <= 0.40:
+        return result / result.sum()
+    strength_gap = abs(float(market[0]) - float(market[2]))
+    target = 0.55 * float(market[1]) + 0.45 * draw_prior
+    if strength_gap <= 0.10:
+        target *= 1.06
+    elif strength_gap >= 0.30:
+        target *= 0.94
+    calibrated_draw = float(np.clip(0.75 * result[1] + 0.25 * target, 0.12, 0.42))
+    other = result[[0, 2]]
+    other_sum = float(other.sum())
+    if other_sum <= 0:
+        return result / result.sum()
+    result[1] = calibrated_draw
+    result[[0, 2]] = other / other_sum * (1.0 - calibrated_draw)
+    return result
+
+
+def _sale_context(raw: dict) -> dict:
+    """Expose official sale state and a conservative pre-kickoff deadline."""
+    match_date = str(raw.get('matchDate') or '')[:10]
+    match_time = str(raw.get('matchTime') or '')[:8]
+    status = str(raw.get('sellStatus') or '')
+    match_status = str(raw.get('matchStatus') or '')
+    selling = status == '2' or match_status.casefold() == 'selling'
+    result = {
+        '官方销售状态': '销售中' if selling else '可能已停售',
+        '参考投注截止': '',
+        '距参考截止分钟': np.nan,
+        '建议临场同步时段': '',
+        '投注时间提示': '请以购彩平台实际停售倒计时为准',
+        '同步时段': '常规同步',
+    }
+    try:
+        kickoff = pd.Timestamp(f'{match_date} {match_time}', tz='Asia/Shanghai')
+        safe_deadline = kickoff - pd.Timedelta(minutes=10)
+        now = pd.Timestamp.now(tz='Asia/Shanghai')
+        minutes = (safe_deadline - now).total_seconds() / 60
+        kickoff_minutes = (kickoff - now).total_seconds() / 60
+        window_start = kickoff - pd.Timedelta(minutes=60)
+        window_end = kickoff - pd.Timedelta(minutes=30)
+        result['参考投注截止'] = safe_deadline.strftime('%m-%d %H:%M')
+        result['距参考截止分钟'] = round(minutes, 1)
+        result['建议临场同步时段'] = (
+            f'{window_start.strftime("%m-%d %H:%M")}～'
+            f'{window_end.strftime("%H:%M")}'
+        )
+        if 30 <= kickoff_minutes <= 60 and selling:
+            result['同步时段'] = '临场增强窗口'
+            result['投注时间提示'] = f'当前为最后赔率窗口，距开赛约{kickoff_minutes:.0f}分钟'
+        elif kickoff_minutes > 60 and selling:
+            result['投注时间提示'] = '尚早，请在建议临场时段重新同步后确认'
+        elif minutes < 0 or not selling:
+            result['同步时段'] = '停止推荐'
+            result['投注时间提示'] = '已过参考线或官方已停售，请勿按本场下单'
+        else:
+            result['投注时间提示'] = f'临近参考截止，剩余约{max(0, minutes):.0f}分钟'
+    except (TypeError, ValueError):
+        pass
+    return result
 
 
 def _poisson_pmf(expected_goals: float, max_goals: int) -> np.ndarray:
@@ -591,10 +838,29 @@ def _market_baseline_probabilities(
 
 
 def _model_probabilities(model_db: ModelDatabase, model_id: str, fixture: pd.DataFrame):
-    model, config = model_db.load_model(model_id)
+    model, config = _cached_league_model(model_db.league_id, model_id)
     if model is None:
         raise RuntimeError(f'找不到模型：{model_id}')
     return model.predict_proba(fixture)[0], config
+
+
+@lru_cache(maxsize=16)
+def _cached_model_database(league: str) -> ModelDatabase:
+    """Read a league index once during one daily prediction batch."""
+    return ModelDatabase(league)
+
+
+@lru_cache(maxsize=96)
+def _cached_league_model(league: str, model_id: str):
+    """Load each trained classifier once instead of once per fixture."""
+    return _cached_model_database(league).load_model(model_id)
+
+
+def _clear_prediction_model_cache():
+    # Training may replace checkpoints while the GUI stays open. A new sync
+    # always starts with a fresh cache, then safely reuses models in that batch.
+    _cached_league_model.cache_clear()
+    _cached_model_database.cache_clear()
 
 
 def _result_model_is_reliable(config: Optional[dict]) -> bool:
@@ -611,6 +877,18 @@ def _result_model_is_reliable(config: Optional[dict]) -> bool:
     if sample_count is not None and int(sample_count) < 100:
         return False
     return float(accuracy) >= 0.50
+
+
+def _over_under_model_is_reliable(config: Optional[dict]) -> bool:
+    """Use a trained O/U model only when its sealed test beats its baseline."""
+    if not config:
+        return True
+    tuning = config.get('train', {}).get('tuning', {})
+    accuracy = tuning.get('test_accuracy')
+    baseline = tuning.get('majority_baseline')
+    if accuracy is None or baseline is None:
+        return True
+    return float(accuracy) > float(baseline)
 
 
 def _handicap_probabilities(
@@ -654,6 +932,179 @@ def _upset_score(
     return class_to_score(score_classes[best]), float(score_probabilities[best])
 
 
+def _directional_score(score_probabilities, score_classes, prefer_over, excluded):
+    """Choose a distinct assertive score consistent with the O/U direction."""
+    candidates = []
+    for index, target_class in enumerate(score_classes):
+        score = class_to_score(target_class)
+        if score in excluded:
+            continue
+        home, away = divmod(int(target_class), 7)
+        total = home + away
+        if (prefer_over and total >= 4) or (not prefer_over and total <= 1):
+            candidates.append((float(score_probabilities[index]), score))
+    return max(candidates, default=(float('nan'), ''), key=lambda item: item[0])
+
+
+def _aggressive_upset_score(
+        score_probabilities: np.ndarray,
+        score_classes: np.ndarray,
+        market_probabilities: np.ndarray,
+        excluded: frozenset,
+) -> Tuple[float, str]:
+    """Select an evidence-backed high-scoring result in the coldest 1X2 side."""
+    upset_outcome = int(np.argmin(market_probabilities))
+    candidates = []
+    for index, target_class in enumerate(score_classes):
+        score = class_to_score(target_class)
+        if score in excluded:
+            continue
+        home, away = divmod(int(target_class), 7)
+        outcome = 0 if home > away else 1 if home == away else 2
+        probability = float(score_probabilities[index])
+        if home + away >= 4 and outcome == upset_outcome and probability >= 0.005:
+            candidates.append((probability, score))
+    return max(candidates, default=(float('nan'), ''), key=lambda item: item[0])
+
+
+def _monte_carlo_summary(
+        official_odds: Dict[str, float],
+        official_ttg: Optional[dict],
+        handicap_line: Optional[float],
+        seed_value: object,
+        simulations: int = 10_000,
+) -> dict:
+    """Independent market Monte Carlo; never consumes trained-model outputs."""
+    market = _market_baseline_probabilities(official_odds, official_ttg)
+    base_home = float(market['home_goals'])
+    base_away = float(market['away_goals'])
+    ttg_values = []
+    for goals in range(8):
+        try:
+            odd = float((official_ttg or {})[f's{goals}'])
+        except (KeyError, TypeError, ValueError):
+            ttg_values = []
+            break
+        if odd <= 1.0:
+            ttg_values = []
+            break
+        ttg_values.append(1.0 / odd)
+    if ttg_values:
+        ttg_probability = np.asarray(ttg_values, dtype=np.float64)
+        ttg_probability /= ttg_probability.sum()
+        market_total = float(np.dot(ttg_probability, np.array([
+            0, 1, 2, 3, 4, 5, 6, 7.5,
+        ], dtype=np.float64)))
+        fitted_total = max(0.20, base_home + base_away)
+        total_scale = float(np.clip(market_total / fitted_total, 0.65, 1.45))
+        base_home *= total_scale
+        base_away *= total_scale
+
+    seed = zlib.crc32(str(seed_value).encode('utf-8'))
+    rng = np.random.default_rng(seed)
+    # Shared tempo produces correlated high/low-scoring scenarios; separate
+    # team shocks represent day-of-match finishing and defensive variation.
+    tempo = rng.lognormal(mean=-0.5 * 0.18 ** 2, sigma=0.18, size=simulations)
+    home_shock = rng.lognormal(mean=-0.5 * 0.12 ** 2, sigma=0.12, size=simulations)
+    away_shock = rng.lognormal(mean=-0.5 * 0.12 ** 2, sigma=0.12, size=simulations)
+    home_lambda = np.clip(base_home * tempo * home_shock, 0.03, 5.5)
+    away_lambda = np.clip(base_away * tempo * away_shock, 0.03, 5.5)
+    half_homes = rng.poisson(home_lambda * 0.45)
+    half_aways = rng.poisson(away_lambda * 0.45)
+    homes = half_homes + rng.poisson(home_lambda * 0.55)
+    aways = half_aways + rng.poisson(away_lambda * 0.55)
+
+    encoded_scores = np.minimum(homes, 6) * 7 + np.minimum(aways, 6)
+    counts = np.bincount(encoded_scores, minlength=49)
+    simulated_score_probability = counts / float(simulations)
+    top_columns = np.argsort(simulated_score_probability)[::-1][:3]
+
+    result_index = np.where(homes > aways, 0, np.where(homes == aways, 1, 2))
+    result_probability = np.bincount(result_index, minlength=3) / float(simulations)
+    result_pick = int(np.argmax(result_probability))
+    totals = homes + aways
+    total_bands = np.array([
+        np.mean(totals <= 1), np.mean((totals >= 2) & (totals <= 3)),
+        np.mean(totals >= 4),
+    ])
+    total_labels = ('0-1球', '2-3球', '4球以上')
+
+    half_result = np.where(
+        half_homes > half_aways, 0,
+        np.where(half_homes == half_aways, 1, 2),
+    )
+    half_full_index = half_result * 3 + result_index
+    half_probability = np.bincount(
+        half_full_index, minlength=len(HALF_FULL_LABELS),
+    ) / float(simulations)
+    half_top = np.argsort(half_probability)[::-1][:2]
+
+    handicap_text = ''
+    if handicap_line is not None and np.isfinite(handicap_line):
+        difference = homes + float(handicap_line) - aways
+        handicap_index = np.where(
+            difference > 0, 0, np.where(difference == 0, 1, 2),
+        )
+        handicap_probability = (
+            np.bincount(handicap_index, minlength=3) / float(simulations)
+        )
+        handicap_pick = int(np.argmax(handicap_probability))
+        handicap_text = (
+            f'让{OUTCOME_LABELS[handicap_pick]} '
+            f'{handicap_probability[handicap_pick]:.1%}'
+        )
+    maximum_result = float(result_probability.max())
+    confidence_score = (
+        5 if maximum_result >= 0.70 else 4 if maximum_result >= 0.60
+        else 3 if maximum_result >= 0.52 else 2 if maximum_result >= 0.45 else 1
+    )
+    return {
+        '模拟次数': simulations,
+        '模拟Top3比分': ' / '.join(
+            f'{class_to_score(index)} '
+            f'{simulated_score_probability[index]:.1%}'
+            for index in top_columns
+        ),
+        '模拟胜负': f'{OUTCOME_LABELS[result_pick]} {result_probability[result_pick]:.1%}',
+        '模拟让球': handicap_text,
+        '模拟总进球': (
+            f'{total_labels[int(np.argmax(total_bands))]} '
+            f'{float(total_bands.max()):.1%}'
+        ),
+        '模拟半全场': ' / '.join(
+            f'{HALF_FULL_LABELS[index]} {half_probability[index]:.1%}'
+            for index in half_top
+        ),
+        '模拟可信度': '★' * confidence_score + '☆' * (5 - confidence_score),
+        '模拟最高赛果概率': maximum_result,
+        '模拟模型来源': '官方赔率独立市场蒙特卡洛',
+    }
+
+
+def _diverse_score_ranking(
+        score_probabilities: np.ndarray,
+        score_classes: np.ndarray,
+) -> np.ndarray:
+    """Keep the modal score, then cover a stable and a different-result script."""
+    ranked = list(np.argsort(score_probabilities)[::-1])
+    if len(ranked) <= 2:
+        return np.asarray(ranked, dtype=np.int32)
+    first = ranked[0]
+    first_home, first_away = divmod(int(score_classes[first]), 7)
+    first_outcome = 0 if first_home > first_away else 1 if first_home == first_away else 2
+    second = ranked[1]
+    third = next((
+        index for index in ranked[1:]
+        if index != second and (
+            0 if divmod(int(score_classes[index]), 7)[0]
+            > divmod(int(score_classes[index]), 7)[1]
+            else 1 if divmod(int(score_classes[index]), 7)[0]
+            == divmod(int(score_classes[index]), 7)[1] else 2
+        ) != first_outcome
+    ), ranked[2])
+    return np.asarray([first, second, third], dtype=np.int32)
+
+
 def _score_ranking_consistent_with_total(
         score_probabilities: np.ndarray,
         score_classes: np.ndarray,
@@ -691,9 +1142,19 @@ def _predict_supported_match(
         handicap_odds: Optional[Dict[str, float]],
         display_league: Optional[str] = None,
         fallback_reason: str = '',
+        odds_series: Optional[dict] = None,
+        lineup_analysis: Optional[dict] = None,
+        regular_market_offered: bool = True,
 ) -> dict:
     market_prob = _devig(odds)
-    market_selection = _market_selection(float(market_prob.max()))
+    preliminary_flow = market_flow_gate(
+        _field(raw, 'matchId'), '', series=odds_series,
+    )
+    market_quality = market_quality_metrics(
+        _field(raw, 'matchId'), series=odds_series,
+    )
+    selection_league = display_league or league or ''
+    market_selection = _market_selection(float(market_prob.max()), selection_league)
     model_db = None
     fixture = None
     score_classes = None
@@ -769,11 +1230,17 @@ def _predict_supported_match(
                     '1': odds['H'], 'X': odds['D'], '2': odds['A'],
                 }]),
             )
-            model_db = ModelDatabase(league)
+            model_db = _cached_model_database(league)
             result_prob, result_config = _model_probabilities(
                 model_db, f'{league}胜平负模型', fixture,
             )
-            ou_prob, _ = _model_probabilities(model_db, f'{league}大小球模型', fixture)
+            ou_prob, ou_config = _model_probabilities(
+                model_db, f'{league}大小球模型', fixture,
+            )
+            if not _over_under_model_is_reliable(ou_config):
+                ou_prob = _market_baseline_probabilities(
+                    odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
+                )['over_under']
             score_prob, _ = _model_probabilities(model_db, f'{league}比分模型', fixture)
             half_full_prob, _ = _model_probabilities(
                 model_db, f'{league}半全场模型', fixture,
@@ -794,20 +1261,53 @@ def _predict_supported_match(
                 prediction_basis = '专用模型近期实战低于市场，自动回退官方赔率'
                 confidence = '较低'
             else:
+                category = f'{league}专用模型'
+                blend_weight = model_result_blend_weight(category)
+                result_prob = (
+                    blend_weight * np.asarray(result_prob, dtype=np.float64)
+                    + (1.0 - blend_weight) * market_prob
+                )
+                result_prob = _calibrate_draw_probability(
+                    result_prob, market_prob, history,
+                    league=selection_league, home=home_cn, away=away_cn,
+                    draw_flow=preliminary_flow.get('draw_change') or 0.0,
+                    hhad_line_change=market_quality.get('hhad_line_change') or 0.0,
+                    ttg_expected_change=market_quality.get('ttg_expected_change') or 0.0,
+                )
+                prediction_basis = (
+                    f'{category}{blend_weight:.0%} + 官方赔率{1.0-blend_weight:.0%}'
+                    '，含联赛平局校准'
+                )
                 trained_result_active = True
+
+    lineup_analysis = lineup_analysis or {}
+    lineup_shift = float(lineup_analysis.get('probability_shift') or 0.0)
+    if lineup_analysis.get('status') == '已确认' and lineup_shift:
+        # Shift only between home and away, retain the calibrated draw mass and
+        # cap the adjustment in the lineup service at four percentage points.
+        result_prob = np.asarray(result_prob, dtype=np.float64).copy()
+        result_prob[0] = max(0.03, result_prob[0] + lineup_shift)
+        result_prob[2] = max(0.03, result_prob[2] - lineup_shift)
+        result_prob /= result_prob.sum()
+        prediction_basis += f'；确认首发校正{lineup_shift:+.1%}'
 
     edge = result_prob - market_prob
     best = int(edge.argmax())
     if score_classes is None:
         score_classes = np.asarray(
-            model_db.load_model(f'{league}比分模型')[0].classifier.classes_,
+            _cached_league_model(league, f'{league}比分模型')[0].classifier.classes_,
             dtype=np.int32,
         )
     raw_top_score_column = int(np.argmax(score_prob))
-    prefer_over = bool(ou_prob[1] >= ou_prob[0])
-    top_score_columns = _score_ranking_consistent_with_total(
-        score_prob, score_classes, prefer_over,
+    score_recommendation_active = bool(
+        float(score_prob[raw_top_score_column]) >= 0.12
     )
+    prefer_over = bool(ou_prob[1] >= ou_prob[0])
+    # Exact-score ranking must follow the score distribution itself. The old
+    # rule forced every displayed score onto the O/U side; live review showed
+    # that reduced first-score accuracy from 10.53% to 8.77%. O/U still has a
+    # separate directional score below and must not overwrite the main pick.
+    top_score_columns = _diverse_score_ranking(score_prob, score_classes)
     top_scores = [
         f'{class_to_score(score_classes[i])} {score_prob[i]:.1%}'
         for i in top_score_columns
@@ -816,10 +1316,63 @@ def _predict_supported_match(
     top_half_full = np.argsort(half_full_prob)[-3:][::-1]
     ranked_half_full = [HALF_FULL_LABELS[i] for i in top_half_full]
     result_pick = OUTCOME_LABELS[int(np.argmax(result_prob))]
+    final_selection = _market_selection(
+        float(np.max(result_prob)), selection_league,
+    )
+    flow_gate = market_flow_gate(
+        _field(raw, 'matchId'), result_pick, series=odds_series,
+    )
+    advice = final_selection['grade']
+    # Strict recommendation gate: only two audited tiers can be called a pick.
+    if advice not in ('精选主推', '高置信主推'):
+        advice = '观察' if advice == '观察' else '跳过'
+    if flow_gate['state'] in ('conflict', 'unstable'):
+        advice = '跳过'
+    # A draw can only be recommended when recorded market flow also points to
+    # the draw. Calibration may rank it first, but never forces it into a pick.
+    if result_pick == '平' and flow_gate['state'] != 'agree':
+        advice = '跳过'
+    lineup_conflict = bool(
+        abs(lineup_shift) >= 0.016
+        and (
+            (result_pick == '胜' and lineup_shift < 0)
+            or (result_pick == '负' and lineup_shift > 0)
+            or result_pick == '平'
+        )
+    )
+    if lineup_conflict:
+        advice = '跳过'
+    sale = _sale_context(raw)
+    # Accuracy-first mode: an early-board prediction remains visible for
+    # analysis, but only a sync inside the verified late window may be a pick.
+    if sale['同步时段'] != '临场增强窗口':
+        advice = '跳过'
+    conclusion_parts = [
+        advice,
+        f'{result_pick} {float(result_prob[int(np.argmax(result_prob))]):.1%}',
+    ]
+    if lineup_analysis.get('status') == '已确认':
+        if lineup_shift:
+            direction = '主队利好' if lineup_shift > 0 else '客队利好'
+            conclusion_parts.append(f'首发{direction}，已修正{abs(lineup_shift):.1%}')
+        else:
+            conclusion_parts.append('首发已核验，暂无可靠修正')
+    elif lineup_analysis.get('status') == '待公布':
+        conclusion_parts.append('首发待公布')
+    if lineup_conflict:
+        conclusion_parts.append('阵容与原方向冲突')
+    if flow_gate['state'] == 'conflict':
+        conclusion_parts.append('盘口反向')
+    elif flow_gate['state'] == 'unstable':
+        conclusion_parts.append('盘口不稳')
     ou_pick = '大于2.5球' if prefer_over else '小于2.5球'
     upset_score, upset_score_probability = _upset_score(
         score_prob, score_classes, market_prob,
         excluded=frozenset(ranked_scores[:3]),
+    )
+    directional_probability, directional_score = _aggressive_upset_score(
+        score_prob, score_classes, market_prob,
+        frozenset([*ranked_scores[:3], upset_score]),
     )
     handicap_probability = np.full(3, np.nan)
     handicap_market = np.full(3, np.nan)
@@ -830,7 +1383,7 @@ def _predict_supported_match(
     if handicap_odds is not None:
         handicap_model_id = f'{league}让球胜负模型' if league else ''
         handicap_model = (
-            model_db.load_model(handicap_model_id)[0]
+            _cached_league_model(league, handicap_model_id)[0]
             if model_db is not None and model_db.model_exists(handicap_model_id)
             else None
         )
@@ -852,10 +1405,27 @@ def _predict_supported_match(
         handicap_ranking = np.argsort(handicap_probability)[::-1]
         handicap_pick = OUTCOME_LABELS[int(handicap_ranking[0])]
         handicap_second_pick = OUTCOME_LABELS[int(handicap_ranking[1])]
+    monte_carlo = _monte_carlo_summary(
+        odds, raw.get('ttg'),
+        handicap_odds['line'] if handicap_odds else None,
+        _field(raw, 'matchId', default=f'{home_cn}-{away_cn}'),
+    )
+    monte_risks = []
+    if monte_carlo['模拟最高赛果概率'] < 0.50:
+        monte_risks.append('胜负分散')
+    if float(score_prob[raw_top_score_column]) < 0.12:
+        monte_risks.append('比分离散')
+    if flow_gate['state'] in ('conflict', 'unstable'):
+        monte_risks.append('盘口冲突/震荡')
+    if lineup_analysis.get('status') != '已确认':
+        monte_risks.append('首发未确认')
     return {
         '赛事编号': _field(raw, 'matchNumStr', 'matchNum'),
         '比赛ID': _field(raw, 'matchId'),
-        '比赛时间': _field(raw, 'matchDate', 'matchTime', 'matchDateTime', 'startTime'),
+        '比赛时间': (
+            f'{str(raw.get("matchDate") or "")[:10]} '
+            f'{str(raw.get("matchTime") or "")[:5]}'
+        ).strip() or _field(raw, 'matchDateTime', 'startTime'),
         '联赛': display_league or league or str(_field(
             raw, 'leagueAllName', 'leagueName', 'leagueAbbName', default='未识别联赛',
         )),
@@ -863,23 +1433,50 @@ def _predict_supported_match(
         '客队': away_cn,
         '主队模型名': home,
         '客队模型名': away,
-        '官方胜奖金': odds['H'],
-        '官方平奖金': odds['D'],
-        '官方负奖金': odds['A'],
+        '官方胜奖金': odds['H'] if regular_market_offered else np.nan,
+        '官方平奖金': odds['D'] if regular_market_offered else np.nan,
+        '官方负奖金': odds['A'] if regular_market_offered else np.nan,
         '模型主胜概率': result_prob[0],
         '模型平局概率': result_prob[1],
         '模型客胜概率': result_prob[2],
         '胜平负首选': result_pick,
         '胜平负首选概率': float(result_prob[int(np.argmax(result_prob))]),
+        '最终结论': '｜'.join(conclusion_parts),
         '市场去水主胜概率': market_prob[0],
         '市场去水平局概率': market_prob[1],
         '市场去水客胜概率': market_prob[2],
-        '最大价值方向': OUTCOME_LABELS[best] if trained_result_active else '',
-        '最大概率优势': edge[best] if trained_result_active else np.nan,
-        '建议状态': (
-            '观察' if trained_result_active and edge[best] >= 0.03
-            else '跳过' if trained_result_active else market_selection['grade']
+        '最大价值方向': (
+            OUTCOME_LABELS[best]
+            if trained_result_active and regular_market_offered else ''
         ),
+        '最大概率优势': (
+            edge[best] if trained_result_active and regular_market_offered else np.nan
+        ),
+        '建议状态': advice,
+        '盘口门控': flow_gate['label'],
+        '首发状态': lineup_analysis.get('status', '未获取'),
+        '阵容分析': lineup_analysis.get('summary', '未到首发公布时间'),
+        '主队阵型': lineup_analysis.get('home_formation', ''),
+        '客队阵型': lineup_analysis.get('away_formation', ''),
+        '主队首发': lineup_analysis.get('home_starting', ''),
+        '客队首发': lineup_analysis.get('away_starting', ''),
+        '主队轮换数': lineup_analysis.get('home_rotation'),
+        '客队轮换数': lineup_analysis.get('away_rotation'),
+        '主队核心缺阵数': lineup_analysis.get('home_missing_core', 0),
+        '客队核心缺阵数': lineup_analysis.get('away_missing_core', 0),
+        '主队门将变化': lineup_analysis.get('home_goalkeeper_changed', False),
+        '客队门将变化': lineup_analysis.get('away_goalkeeper_changed', False),
+        '阵容方向冲突': lineup_conflict,
+        '阵容概率校正': lineup_shift,
+        '盘口变化速度/小时': flow_gate.get('speed_per_hour'),
+        '平局概率变化': flow_gate.get('draw_change'),
+        '赔率快照数': flow_gate.get('observations', 0),
+        '官方赔率返还率': market_quality.get('return_rate'),
+        '让球线变化': market_quality.get('hhad_line_change'),
+        '总进球预期变化': market_quality.get('ttg_expected_change'),
+        '赔率来源数': market_quality.get('source_count', 0),
+        '多公司数据可用': market_quality.get('multi_company_available', False),
+        **sale,
         '预测依据': prediction_basis,
         '专用模型联赛': dedicated_model_league,
         '模型类别': (
@@ -890,11 +1487,11 @@ def _predict_supported_match(
         '置信等级': confidence,
         '估算球队': '、'.join(estimated_teams),
         '市场最高概率': float(market_prob.max()),
-        '市场筛选阈值': market_selection['threshold'],
-        '同阈值历史命中率': market_selection['accuracy'],
-        '同阈值历史覆盖率': market_selection['coverage'],
-        '筛选回测样本数': market_selection['samples'],
-        '筛选回测期间': market_selection['period'],
+        '市场筛选阈值': final_selection['threshold'],
+        '同阈值历史命中率': final_selection['accuracy'],
+        '同阈值历史覆盖率': final_selection['coverage'],
+        '筛选回测样本数': final_selection['samples'],
+        '筛选回测期间': final_selection['period'],
         '官方让球数': handicap_odds['line'] if handicap_odds else np.nan,
         '官方让胜奖金': handicap_odds['H'] if handicap_odds else np.nan,
         '官方让平奖金': handicap_odds['D'] if handicap_odds else np.nan,
@@ -927,10 +1524,20 @@ def _predict_supported_match(
             f'{HALF_FULL_LABELS[i]} {half_full_prob[i]:.1%}' for i in top_half_full
         ),
         '首选比分': ranked_scores[0],
+        '比分推荐状态': '推荐' if score_recommendation_active else '可信度不足',
+        '比分推荐阈值': 0.12,
         '首选比分概率': float(score_prob[top_score_columns[0]]),
         '次选比分': ranked_scores[1],
         '次选比分概率': float(score_prob[top_score_columns[1]]),
         '第三比分': ranked_scores[2],
+        '大小球进取比分': directional_score,
+        '大小球进取比分概率': directional_probability,
+        '进取比分依据': (
+            '市场最低概率方向＋4球以上＋模型概率不低于0.5%'
+            if directional_score else ''
+        ),
+        **monte_carlo,
+        '蒙特风险': '；'.join(monte_risks) or '暂未发现显著冲突',
         '最可能比分Top3': ' / '.join(top_scores),
         '原始最高概率比分': class_to_score(score_classes[raw_top_score_column]),
         '原始最高概率比分概率': float(score_prob[raw_top_score_column]),
@@ -945,33 +1552,50 @@ def run_daily_sporttery(
         output_root: Path = Path('storage/jingcai'),
         headless: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    _clear_prediction_model_cache()
     today = date.today().isoformat()
-    try:
-        review_and_learn()
-    except Exception:
-        # Daily review must never prevent today's predictions. The learning
-        # state remains auditable and the next manual sync retries it.
-        logging.exception('每日自动复盘失败，本次继续生成预测。')
+    # Historical review is handled by the five-hour background task and by the
+    # dedicated manual-review button.  Running it here made every foreground
+    # sync wait through several unavailable network requests before today's
+    # fixtures were even loaded.
     raw_path = output_root / 'raw' / f'{today}.json'
     try:
         matches = SportteryMobileClient().snapshot(raw_path)
-    except RuntimeError:
+    except RuntimeError as api_error:
         logging.exception('官方移动端接口失败，切换浏览器备用方案。')
-        with SportteryScraper(headless=headless) as scraper:
-            matches = scraper.snapshot(
-                raw_path,
-                include_bonus=lambda row: identify_league(
-                    str(_field(row, 'leagueAllName', 'leagueName', 'leagueAbbName'))
-                    or _display_fields(row)[1]
-                ) is not None,
+        try:
+            with SportteryScraper(headless=headless, timeout=12.0) as scraper:
+                matches = scraper.snapshot(
+                    raw_path,
+                    include_bonus=lambda row: identify_league(
+                        str(_field(row, 'leagueAllName', 'leagueName', 'leagueAbbName'))
+                        or _display_fields(row)[1]
+                    ) is not None,
+                )
+        except Exception as scraper_error:
+            # An outage must not blank an already usable screen.  Rebuild the
+            # predictions from today's last successful official snapshot.
+            try:
+                cached = json.loads(raw_path.read_text(encoding='utf-8'))
+                matches = list(cached.get('matches') or [])
+            except (OSError, ValueError, TypeError) as cache_error:
+                raise RuntimeError(
+                    '官方接口和浏览器备用抓取均不可用，且没有可读取的今日缓存。'
+                ) from cache_error
+            if not matches:
+                raise RuntimeError(
+                    '官方接口和浏览器备用抓取均不可用，今日缓存中没有比赛。'
+                ) from scraper_error
+            logging.warning(
+                '官方数据暂时不可用，使用今日最近缓存（%s 场）：API=%s；浏览器=%s',
+                len(matches), api_error, scraper_error,
             )
 
     # Append odds snapshots so 盘口分析 can track open-to-kickoff drift.
     record_odds_snapshots(matches)
+    odds_series = read_odds_series()
+    lineup_analysis = fetch_lineup_analysis(matches)
 
-    aliases = json.loads(
-        Path('storage/network/sporttery_team_aliases.json').read_text(encoding='utf-8'),
-    )
     predictions, skipped = [], []
     for raw in matches:
         display_num, display_league, display_home, display_away = _display_fields(raw)
@@ -985,18 +1609,29 @@ def run_daily_sporttery(
         away_cn = str(_field(
             raw, 'awayTeamAllName', 'awayTeamName', 'awayTeamAbbName', default=display_away,
         ))
+        home_model = resolve_model_team(league, [
+            raw.get('homeTeamAllName'), raw.get('homeTeamName'),
+            raw.get('homeTeamAbbName'), display_home, home_cn,
+        ]) if league else None
+        away_model = resolve_model_team(league, [
+            raw.get('awayTeamAllName'), raw.get('awayTeamName'),
+            raw.get('awayTeamAbbName'), display_away, away_cn,
+        ]) if league else None
         if display_num and not raw.get('matchNumStr'):
             raw['matchNumStr'] = display_num
         reason = ''
         mapped = (
             league is not None
-            and home_cn in aliases.get(league, {})
-            and away_cn in aliases.get(league, {})
+            and home_model is not None
+            and away_model is not None
         )
         odds = latest_had_odds(raw if raw.get('had') else (raw.get('fixedBonus') or {}))
         handicap_odds = latest_hhad_odds(raw)
-        if odds is None:
-            reason = '未提供胜平负固定奖金'
+        regular_market_offered = odds is not None
+        if odds is None and handicap_odds is not None:
+            odds = _implied_had_from_handicap_market(handicap_odds, raw.get('ttg'))
+        elif odds is None:
+            odds = _implied_had_without_result_market(raw)
 
         if reason:
             skipped.append({
@@ -1011,14 +1646,17 @@ def run_daily_sporttery(
         try:
             predictions.append(_predict_supported_match(
                 raw, league if mapped else None, home_cn, away_cn,
-                aliases[league][home_cn] if mapped else home_cn,
-                aliases[league][away_cn] if mapped else away_cn,
+                home_model if mapped else home_cn,
+                away_model if mapped else away_cn,
                 odds, handicap_odds,
                 display_league=league or league_name,
                 fallback_reason=(
                     '球队尚未映射' if league is not None and not mapped
                     else '未训练联赛'
                 ),
+                odds_series=odds_series,
+                lineup_analysis=lineup_analysis.get(str(raw.get('matchId') or ''), {}),
+                regular_market_offered=regular_market_offered,
             ))
         except Exception as error:
             logging.exception('竞彩场次预测失败：%s', raw.get('matchId'))
@@ -1031,12 +1669,27 @@ def run_daily_sporttery(
                 '跳过原因': f'预测失败：{error}',
             })
 
-    prediction_df = _sort_by_match_number(pd.DataFrame(predictions))
+    prediction_df = pd.DataFrame(predictions)
     skipped_df = _sort_by_match_number(pd.DataFrame(skipped))
     report_dir = output_root / 'reports'
     report_dir.mkdir(parents=True, exist_ok=True)
+    # The official selling feed removes a fixture after its sales cutoff.  A
+    # refresh must update the current rows without erasing earlier matches from
+    # the same daily card (including confirmed lineups needed for review).
+    latest_path = report_dir / '最新竞彩预测.csv'
+    if latest_path.exists() and latest_path.stat().st_size > 0:
+        try:
+            previous = pd.read_csv(latest_path)
+        except pd.errors.EmptyDataError:
+            previous = pd.DataFrame()
+        if not previous.empty and '比赛时间' in previous.columns:
+            previous_dates = previous['比赛时间'].fillna('').astype(str).str[:10]
+            previous = previous.loc[previous_dates.ge(today)].copy()
+        if not previous.empty:
+            prediction_df = pd.concat([previous, prediction_df], ignore_index=True)
+            identity = '比赛ID' if '比赛ID' in prediction_df.columns else '赛事编号'
+            prediction_df = prediction_df.drop_duplicates(identity, keep='last')
+    prediction_df = _sort_by_match_number(prediction_df.reset_index(drop=True))
     prediction_df.to_csv(report_dir / f'{today}-竞彩预测.csv', index=False)
-    skipped_df.to_csv(report_dir / f'{today}-未覆盖场次.csv', index=False)
-    prediction_df.to_csv(report_dir / '最新竞彩预测.csv', index=False)
-    skipped_df.to_csv(report_dir / '最新未覆盖场次.csv', index=False)
+    prediction_df.to_csv(latest_path, index=False)
     return prediction_df, skipped_df

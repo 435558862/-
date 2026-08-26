@@ -53,7 +53,7 @@ class VarianceAnalyzerWindow(QDialog):
         self._combo_colormap = QComboBox()
         self._combo_colormap.setFixedWidth(150)
         for colormap in self._colormap_dict:
-            self._combo_colormap.addItem(colormap)
+            self._combo_colormap.addItem(colormap, colormap)
         form.addRow(QLabel("Colormap:"), self._combo_colormap)
 
         # Analyze button (centered in its row)
@@ -71,6 +71,7 @@ class VarianceAnalyzerWindow(QDialog):
 
     def _analyze(self):
         season = self._seasons[self._combo_season.currentIndex()]
-        colormap = self._colormap_dict[self._combo_colormap.currentText()]
+        colormap = self._colormap_dict[self._combo_colormap.currentData()]
         ax = self._analyzer.generate_plot(season=season, colormap=colormap)
         PlotWindow(ax=ax, parent=self, title='Variance Analysis').show()
+

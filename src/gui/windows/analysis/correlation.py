@@ -56,21 +56,21 @@ class CorrelationsAnalyzerWindow(QDialog):
         self._combo_method = QComboBox()
         self._combo_method.setFixedWidth(150)
         for method in self._methods:
-            self._combo_method.addItem(method)
+            self._combo_method.addItem(method, method)
         form.addRow(QLabel("Method:"), self._combo_method)
 
         # Team
         self._combo_feature = QComboBox()
         self._combo_feature.setFixedWidth(150)
         for team in self._feature_types:
-            self._combo_feature.addItem(team)
+            self._combo_feature.addItem(team, team)
         form.addRow(QLabel("Team:"), self._combo_feature)
 
         # Colormap
         self._combo_colormap = QComboBox()
         self._combo_colormap.setFixedWidth(150)
         for colormap in self._colormap_dict:
-            self._combo_colormap.addItem(colormap)
+            self._combo_colormap.addItem(colormap, colormap)
         form.addRow(QLabel("Colormap:"), self._combo_colormap)
 
         # Analyze button (centered row)
@@ -89,7 +89,8 @@ class CorrelationsAnalyzerWindow(QDialog):
     def _analyze(self):
         season = self._seasons[self._combo_season.currentIndex()]
         method = self._methods[self._combo_method.currentIndex()]
-        feature_type = self._feature_types[self._combo_feature.currentText()]
-        colormap = self._colormap_dict[self._combo_colormap.currentText()]
+        feature_type = self._feature_types[self._combo_feature.currentData()]
+        colormap = self._colormap_dict[self._combo_colormap.currentData()]
         ax = self._analyzer.generate_plot(season=season, colormap=colormap, method=method, feature_type=feature_type)
         PlotWindow(ax=ax, parent=self, title='Correlation Analysis').show()
+

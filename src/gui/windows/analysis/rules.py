@@ -55,7 +55,7 @@ class RulesAnalyzerWindow(QDialog):
         self._combo_target = QComboBox()
         self._combo_target.setFixedWidth(150)
         for target in self._target_types:
-            self._combo_target.addItem(target)
+            self._combo_target.addItem(target, target)
         form.addRow(QLabel("Target:"), self._combo_target)
 
         # Max Depth
@@ -81,7 +81,8 @@ class RulesAnalyzerWindow(QDialog):
 
     def _analyze(self):
         season = self._seasons[self._combo_season.currentIndex()]
-        target_type = self._target_types[self._combo_target.currentText()]
-        max_depth = self._depths[self._combo_target.currentIndex()]
+        target_type = self._target_types[self._combo_target.currentData()]
+        max_depth = self._depths[self._combo_depth.currentIndex()]
         ax = self._analyzer.generate_plot(season=season, target_type=target_type, max_depth=max_depth)
         PlotWindow(ax=ax, parent=self, title='Tree-based Extracted Rules').show()
+

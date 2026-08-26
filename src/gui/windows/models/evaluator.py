@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QDialog, QFrame, QLabel, QComboBox, QHBoxLayout, QMessageBox, QPushButton, QVBoxLayout, QSlider
 from superqt import QLabeledSlider
 from src.database.model import ModelDatabase
@@ -15,10 +15,16 @@ from src.preprocessing.utils.target import construct_targets
 class EvaluatorDialog(QDialog):
     """ Evaluator dialog which re-evaluates the model in the specified data. """
 
+    # QTableWidget creates one Python/Qt object per cell.  Building it for the
+    # complete history blocks the GUI for a long time on large league files.
+    # Metrics still use every row; this limit only applies to visual rendering.
+    MAX_DISPLAY_ROWS = 1000
+
     def __init__(self, df: pd.DataFrame, model_db: ModelDatabase):
         super().__init__()
 
         self._df = df.reset_index(drop=True)
+        self._display_count = min(self._df.shape[0], self.MAX_DISPLAY_ROWS)
 
         self._model_db = model_db
         self._model_ids = model_db.get_model_ids()
@@ -96,8 +102,10 @@ class EvaluatorDialog(QDialog):
             )
             return QDialog.Rejected
 
-        QTimer.singleShot(0, self._show_instructions)
-        super().exec()
+        # Do not open a second modal QMessageBox here.  Under WSLg that child
+        # dialog can appear behind this window, leaving the evaluator disabled
+        # and making the application look frozen.
+        return super().exec()
 
     def _initialize_window(self):
         self.setWindowTitle(self._title)
@@ -106,6 +114,14 @@ class EvaluatorDialog(QDialog):
     def _add_widgets(self):
         root = QVBoxLayout(self)
 
+        instructions = QLabel(
+            '选择预测目标、模型和回测范围。指标使用全部比赛计算；'
+            f'表格仅显示最近 {self._display_count} 场，以保证操作流畅。'
+        )
+        instructions.setWordWrap(True)
+        instructions.setStyleSheet('color: #666; padding: 2px 6px;')
+        root.addWidget(instructions)
+
         # --- Model initialization ---
         model_hbox = QHBoxLayout()
         model_hbox.addStretch(1)
@@ -113,7 +129,7 @@ class EvaluatorDialog(QDialog):
         self._combo_target = QComboBox()
         self._combo_target.setFixedWidth(120)
         for target in self._target_types:
-            self._combo_target.addItem(target)
+            self._combo_target.addItem(target, target)
         self._combo_target.setCurrentIndex(-1)
         self._combo_target.currentIndexChanged.connect(self._on_target_change)
         model_hbox.addWidget(QLabel(' Target: '))
@@ -129,7 +145,7 @@ class EvaluatorDialog(QDialog):
         self._combo_dataset = QComboBox()
         self._combo_dataset.setFixedWidth(120)
         for dataset_type in self._datasets:
-            self._combo_dataset.addItem(dataset_type)
+            self._combo_dataset.addItem(dataset_type, dataset_type)
         self._combo_dataset.currentIndexChanged.connect(self._on_dataset_change)
         self._combo_dataset.setEnabled(False)
         model_hbox.addWidget(QLabel(' Dataset: '))
@@ -259,7 +275,7 @@ class EvaluatorDialog(QDialog):
         metrics_row.addStretch(1)
         root.addLayout(metrics_row)
 
-        table_df = self._df[
+        table_df = self._df.iloc[:self._display_count][
             ['Date', 'Season', 'Week', 'Home', 'Away', '1', 'X', '2', 'Result', 'Result-U/O']
         ].copy()
         table_df[['Predicted', 'Prob(1)', 'Prob(X)', 'Prob(2)', 'Prob(U)', 'Prob(O)']] = ''
@@ -267,7 +283,7 @@ class EvaluatorDialog(QDialog):
         root.addWidget(self._table)
 
     def _on_target_change(self):
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
         self._add_model_ids(target_type=target_type)
         self._adjust_table_columns(target_type=target_type)
         self._reset_evaluator_state()
@@ -276,7 +292,7 @@ class EvaluatorDialog(QDialog):
         model_id = self._combo_model.currentText()
         if not model_id:
             return
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
         runner = TaskRunnerDialog(
             title='模型回测',
             info=f'正在载入 {model_id} 并计算全部比赛…',
@@ -485,11 +501,11 @@ class EvaluatorDialog(QDialog):
             return
 
         # Filter probabilities by dataset (All/Eval/Train)
-        dataset_mask = self._dataset_mask_dict[self._combo_dataset.currentText()]
+        dataset_mask = self._dataset_mask_dict[self._combo_dataset.currentData()]
         y_prob = self._y_prob[dataset_mask]
 
         # Filter probabilities by target.
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
 
         if target_type == TargetType.RESULT:
             p1 = self._slider_percentile_1.value()
@@ -522,7 +538,7 @@ class EvaluatorDialog(QDialog):
 
         if self._y_prob is None:
             columns = ['Predicted', 'Prob(1)', 'Prob(X)', 'Prob(2)', 'Prob(U)', 'Prob(O)']
-            data = np.array([['']*self._df.shape[0] for _ in range(6)], dtype=str).transpose()
+            data = np.full((self._display_count, len(columns)), '', dtype=str)
             self._table.modify_columns(columns=columns, data=data)
             return
 
@@ -532,7 +548,7 @@ class EvaluatorDialog(QDialog):
             raise ValueError(f'Expected y_prob to be 2D, got {self._y_prob.shape}')
 
         # Convert predictions to labels.
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
 
         if target_type == TargetType.RESULT:
             mapper = np.array(['H', 'D', 'A'])
@@ -541,15 +557,18 @@ class EvaluatorDialog(QDialog):
             mapper = np.array(['U', 'O'])
             columns = ['Predicted', 'Prob(U)', 'Prob(O)']
 
-        mapped_y_pred = mapper.take(self._y_pred)
-        data = np.hstack([np.expand_dims(mapped_y_pred, axis=-1), self._y_prob])
+        mapped_y_pred = mapper.take(self._y_pred[:self._display_count])
+        data = np.hstack([
+            np.expand_dims(mapped_y_pred, axis=-1),
+            self._y_prob[:self._display_count],
+        ])
         self._table.modify_columns(columns=columns, data=data)
 
     def _compute_hidden_mask(self):
         """ Computes hidden mask (matches/rows to hide). """
 
         # Filter by dataset.
-        dataset_mask = self._dataset_mask_dict[self._combo_dataset.currentText()]
+        dataset_mask = self._dataset_mask_dict[self._combo_dataset.currentData()]
 
         # Filter by range.
         odd_range = self._odd_ranges[self._combo_range.currentIndex()]
@@ -565,7 +584,7 @@ class EvaluatorDialog(QDialog):
         if self._y_prob is None:
             return mask
 
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
         if target_type == TargetType.RESULT:
             thresholds = np.float32([self._prob_percentiles['1'][1], self._prob_percentiles['X'][1], self._prob_percentiles['2'][1]])
         else:
@@ -586,16 +605,17 @@ class EvaluatorDialog(QDialog):
             filter_mask = self._compute_hidden_mask()
 
             # Hide matches.
-            hidden_row_ids = self._df[~filter_mask].index.tolist()
+            display_filter_mask = filter_mask[:self._display_count]
+            hidden_row_ids = np.flatnonzero(~display_filter_mask).tolist()
             self._table.set_new_hidden_rows(row_ids=hidden_row_ids)
 
             # Highlight matches and update metrics.
             if self._y_pred is not None:
                 highlight_mask = self._correct_mask & filter_mask
-                highlight_ids = self._df[highlight_mask].index.tolist()
+                highlight_ids = np.flatnonzero(highlight_mask[:self._display_count]).tolist()
                 self._table.highlight_rows(row_ids=highlight_ids)
 
-                target_type = self._target_types[self._combo_target.currentText()]
+                target_type = self._target_types[self._combo_target.currentData()]
                 y_true = self._y_true_dict[target_type][filter_mask]
                 y_pred = self._y_pred[filter_mask]
                 metrics_df = self._model.compute_metrics(y_true=y_true, y_pred=y_pred)
@@ -603,7 +623,8 @@ class EvaluatorDialog(QDialog):
                 self._f1_label.setText(f'F1: {metrics_df.at[0, "F1"]}')
                 self._prec_label.setText(f'Precision: {metrics_df.at[0, "Precision"]}')
                 self._rec_label.setText(f'Recall: {metrics_df.at[0, "Recall"]}')
-                self._samples_label.setText(f'Correct: {len(highlight_ids)}/{y_pred.shape[0]}')
+                correct_count = int(highlight_mask.sum())
+                self._samples_label.setText(f'Correct: {correct_count}/{y_pred.shape[0]}')
                 self._profit_balance_label.setText(f'Prof. Balance: {self._compute_profit_balance(y_pred=y_pred, filter_mask=filter_mask)}')
             else:
                 self._acc_label.setText('Accuracy: 0.0')
@@ -620,7 +641,7 @@ class EvaluatorDialog(QDialog):
 
     def _display_seasonal_metrics(self):
         filter_mask = self._compute_hidden_mask()
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
         y_pred = self._y_pred[filter_mask]
         eval_df = pd.DataFrame({
             'y_true': self._y_true_dict[target_type][filter_mask],
@@ -639,7 +660,7 @@ class EvaluatorDialog(QDialog):
         SimpleTableDialog(df=seasonal_metrics_df, parent=self, title='Seasonal Metrics').show()
 
     def _compute_profit_balance(self, y_pred: pd.Series, filter_mask: np.ndarray) -> float:
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
 
         if target_type == TargetType.RESULT:
             odds_df = self._df.loc[filter_mask, ['1', 'X', '2']]
@@ -651,7 +672,7 @@ class EvaluatorDialog(QDialog):
         return profit_balance
 
     def _set_percentile_tooltips(self):
-        target_type = self._target_types[self._combo_target.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
 
         if self._prob_percentiles is None:
             tooltip_1 = 'Prob(1): 0.0'
@@ -688,3 +709,4 @@ class EvaluatorDialog(QDialog):
             'You can also specify odd-range and probability percentile filters to utilize during predictions.'
             'The filters will not change the model outputs, but will evaluate the model on the selected matches.'
         )
+

@@ -16,6 +16,8 @@ if str(PROJECT_ROOT) not in sys.path:
 os.chdir(PROJECT_ROOT)
 
 from src.services.daily_learning import review_and_learn
+from src.network.fixtures.sporttery import SportteryMobileClient
+from src.services.odds_tracking import record_odds_snapshots
 
 
 def main() -> int:
@@ -34,6 +36,13 @@ def main() -> int:
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(message)s',
     )
+    try:
+        matches = SportteryMobileClient(timeout=12.0, retries=2).selling_matches()
+        snapshots = record_odds_snapshots(matches)
+        logging.info('五小时盘口巡检：获取 %s 场，新增 %s 条。', len(matches), snapshots)
+    except Exception:
+        # A temporary odds outage must not prevent completed-result review.
+        logging.exception('五小时盘口巡检失败，本次继续复盘。')
     try:
         result = review_and_learn(full_backfill=args.full_backfill)
     except Exception:

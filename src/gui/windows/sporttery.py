@@ -1,32 +1,468 @@
 import json
+from queue import Empty, Queue
 import re
-from datetime import date
+from threading import Thread
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPalette, QPen
 from PyQt6.QtWidgets import (
     QComboBox, QDialog, QHBoxLayout, QLabel, QMessageBox, QPushButton,
-    QVBoxLayout, QWidget,
+    QStyle, QStyledItemDelegate, QVBoxLayout, QWidget,
 )
 
 from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.tables import ExcelTable
+from src.network.fixtures.sporttery import SportteryMobileClient
 from src.services.daily_learning import review_and_learn
 from src.services.daily_sporttery import LEAGUE_ALIASES, _sort_by_match_number, run_daily_sporttery
-from src.services.odds_tracking import odds_early_warning, read_odds_series
+from src.services.market_trends import build_trend_rows, live_snapshot_from_match, summarize_trend
+from src.services.odds_tracking import (
+    format_market_flow, read_odds_series, record_odds_snapshots,
+)
+from src.services.yesterday_review import load_yesterday_hit_report
 
 
 REPORT_ROOT = Path('storage/jingcai/reports')
 PREDICTION_PATH = REPORT_ROOT / '最新竞彩预测.csv'
-SKIPPED_PATH = REPORT_ROOT / '最新未覆盖场次.csv'
 LEARNING_STATUS_PATH = Path('storage/jingcai/learning/status.json')
 WINDOWS_EXPORT_ROOT = Path('/mnt/c/Users/Administrator/Desktop/ProphitBet-竞彩预测')
 ALL_MODELS = '__all__'
 DEDICATED_MODELS = '__dedicated__'
 GENERIC_MODELS = '__generic__'
+SIMULATION_MODELS = '__simulation__'
+INDEPENDENT_SIMULATION_SOURCE = '官方赔率独立市场蒙特卡洛'
 DEDICATED_LEAGUE_COLUMN = '专用模型联赛'
 REQUIRED_DEDICATED_MODELS = ('胜平负模型', '大小球模型', '比分模型', '半全场模型')
+
+
+class _ComboPopupDelegate(QStyledItemDelegate):
+    """Paint combo rows explicitly so desktop themes cannot force black selection."""
+
+    def paint(self, painter, option, index):
+        selected = bool(option.state & QStyle.StateFlag.State_Selected)
+        hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
+        background = '#2f79bd' if selected else '#dcebf8' if hovered else '#ffffff'
+        foreground = '#ffffff' if selected else '#202020'
+        painter.save()
+        painter.fillRect(option.rect, QColor(background))
+        painter.setPen(QColor(foreground))
+        painter.drawText(
+            option.rect.adjusted(6, 0, -4, 0),
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            str(index.data(Qt.ItemDataRole.DisplayRole) or ''),
+        )
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        size = super().sizeHint(option, index)
+        size.setHeight(25)
+        return size
+
+
+class YesterdayHitDetailsDialog(QDialog):
+    """A compact, cache-only view of yesterday's honest settlement details."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        frame, summary = load_yesterday_hit_report()
+        title = (
+            f'{summary["date"]} 最近已结算命中（昨日待补）'
+            if summary.get('is_fallback') else f'{summary["date"]} 昨日命中明细'
+        )
+        self.setWindowModality(Qt.WindowModality.NonModal)
+        self.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
+        self.resize(1280, 620)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(7, 7, 7, 7)
+        root.setSpacing(5)
+        headline = QLabel(summary['headline'])
+        headline.setObjectName('yesterdayHeadline')
+        headline.setWordWrap(True)
+        root.addWidget(headline)
+        if summary['patterns']:
+            patterns = QLabel(f'规律：{summary["patterns"]}')
+            patterns.setObjectName('yesterdayPatterns')
+            patterns.setWordWrap(True)
+            root.addWidget(patterns)
+        table = ExcelTable(
+            parent=self,
+            df=frame,
+            readonly=True,
+            supports_sorting=True,
+            supports_query_search=False,
+        )
+        self._highlight_hit_rows(table, frame)
+        root.addWidget(table)
+        self.setStyleSheet('''
+            QLabel#yesterdayHeadline {
+                color: #202020; font-size: 12px; font-weight: 600;
+                padding: 4px 5px; background: #eef5fb;
+                border: 1px solid #c8d9e8; border-radius: 3px;
+            }
+            QLabel#yesterdayPatterns {
+                color: #404040; font-size: 12px; padding: 2px 5px;
+            }
+            QTableWidget {
+                color: #202020; background: #ffffff;
+                alternate-background-color: #f6f8fa;
+                gridline-color: #cfd4d8; font-size: 12px;
+            }
+            QHeaderView::section {
+                color: #202020; background: #e8edf1;
+                border: 0; border-right: 1px solid #bdc5cb;
+                border-bottom: 1px solid #9da5ab;
+                padding: 2px 4px; font-size: 12px; font-weight: 600;
+            }
+        ''')
+
+    @staticmethod
+    def _highlight_hit_rows(table: ExcelTable, frame: pd.DataFrame) -> None:
+        """Highlight only the market cells that actually hit."""
+        foreground = QBrush(QColor('#c62828'))
+        background = QBrush(QColor('#fff1f1'))
+        hit_marks = ('（命中）', '（首中）', '（次中）', '（次1中）', '（次2中）',
+                     '（冷中）', '（进中）')
+        for row_index in range(table.rowCount()):
+            for column_index in range(table.columnCount()):
+                item = table.item(row_index, column_index)
+                if item is not None and any(mark in item.text() for mark in hit_marks):
+                    item.setForeground(foreground)
+                    item.setBackground(background)
+                    item.setToolTip('该项命中')
+
+
+class _MarketTrendChart(QWidget):
+    """Small dependency-free H/D/A implied-probability chart."""
+
+    COLORS = {'H': '#ef5350', 'D': '#2f80d0', 'A': '#18a66a'}
+    LABELS = {'H': '胜', 'D': '平', 'A': '负'}
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._rows = []
+        self.setMinimumHeight(300)
+
+    def set_rows(self, rows):
+        self._rows = list(rows or [])
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), QColor('#ffffff'))
+        left, top, right, bottom = 48, 28, 18, 34
+        width = max(1, self.width() - left - right)
+        height = max(1, self.height() - top - bottom)
+        painter.setFont(QFont('', 9))
+        values = [
+            float(row[key])
+            for row in self._rows for key in ('H', 'D', 'A')
+            if row.get(key) is not None
+        ]
+        minimum, maximum = 0.0, 1.0
+        if values:
+            span = max(values) - min(values)
+            padding = max(0.012, span * 0.12)
+            minimum = max(0.0, min(values) - padding)
+            maximum = min(1.0, max(values) + padding)
+            if maximum - minimum < 0.04:
+                middle = (maximum + minimum) / 2
+                minimum, maximum = max(0.0, middle - 0.02), min(1.0, middle + 0.02)
+        value_span = max(0.0001, maximum - minimum)
+        for step in range(6):
+            value = minimum + value_span * step / 5
+            y = top + height * (1.0 - (value - minimum) / value_span)
+            painter.setPen(QPen(QColor('#dce3e9'), 1))
+            painter.drawLine(left, int(y), left + width, int(y))
+            painter.setPen(QColor('#66717a'))
+            painter.drawText(4, int(y) - 8, 40, 16, Qt.AlignmentFlag.AlignRight,
+                             f'{value:.0%}')
+        legend_x = left
+        for key in ('H', 'D', 'A'):
+            painter.setPen(QPen(QColor(self.COLORS[key]), 3))
+            painter.drawLine(legend_x, 12, legend_x + 18, 12)
+            painter.setPen(QColor('#303840'))
+            painter.drawText(legend_x + 23, 4, 30, 17,
+                             Qt.AlignmentFlag.AlignLeft, self.LABELS[key])
+            legend_x += 62
+        if not self._rows:
+            painter.setPen(QColor('#6b747c'))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter,
+                             '正在等待实时赔率…')
+            return
+        denominator = max(1, len(self._rows) - 1)
+        for key in ('H', 'D', 'A'):
+            path = QPainterPath()
+            for index, row in enumerate(self._rows):
+                x = left + width * index / denominator
+                y = top + height * (1.0 - (float(row[key]) - minimum) / value_span)
+                if index == 0:
+                    path.moveTo(x, y)
+                else:
+                    path.lineTo(x, y)
+            painter.setPen(QPen(QColor(self.COLORS[key]), 2))
+            painter.drawPath(path)
+            painter.setBrush(QColor(self.COLORS[key]))
+            for point_index, point_row in enumerate(self._rows):
+                point_x = left + width * point_index / denominator
+                point_y = top + height * (
+                    1.0 - (float(point_row[key]) - minimum) / value_span
+                )
+                painter.drawEllipse(int(point_x) - 3, int(point_y) - 3, 6, 6)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+        label_indexes = sorted({0, len(self._rows) // 2, len(self._rows) - 1})
+        painter.setPen(QColor('#66717a'))
+        for index in label_indexes:
+            label = str(self._rows[index].get('label') or '')[-8:]
+            x = left + width * index / denominator
+            painter.drawText(int(x) - 38, top + height + 8, 76, 18,
+                             Qt.AlignmentFlag.AlignCenter, label)
+
+
+class MarketTrendDialog(QDialog):
+    """Live H/D/A trend chart polling the official mobile odds feed."""
+
+    def __init__(self, predictions: pd.DataFrame, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('实时市场走势图')
+        self.setWindowModality(Qt.WindowModality.NonModal)
+        self.resize(1080, 640)
+        self._series = {key: list(rows) for key, rows in read_odds_series().items()}
+        self._live_queue = Queue()
+        self._live_running = False
+        self._did_select_live = False
+        self._table = None
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(7, 7, 7, 7)
+        root.setSpacing(5)
+        controls = QHBoxLayout()
+        controls.addWidget(QLabel('比赛'))
+        self._match_selector = QComboBox()
+        self._match_selector.setMinimumWidth(430)
+        controls.addWidget(self._match_selector)
+        controls.addWidget(QLabel('区间'))
+        self._range_selector = QComboBox()
+        for label, value in (('6小时', 6), ('12小时', 12), ('24小时', 24),
+                             ('72小时', 72), ('全部', None)):
+            self._range_selector.addItem(label, value)
+        self._range_selector.setCurrentIndex(2)
+        controls.addWidget(self._range_selector)
+        controls.addStretch(1)
+        root.addLayout(controls)
+
+        self._live_status = QLabel('实时数据源：竞彩网官方移动端｜正在连接…')
+        self._live_status.setObjectName('liveMarketStatus')
+        self._live_status.setWordWrap(True)
+        root.addWidget(self._live_status)
+        self._summary = QLabel()
+        self._summary.setObjectName('marketTrendSummary')
+        self._summary.setWordWrap(True)
+        root.addWidget(self._summary)
+        self._chart = _MarketTrendChart(self)
+        root.addWidget(self._chart, 3)
+        self._table_container = QWidget(self)
+        self._table_layout = QVBoxLayout(self._table_container)
+        self._table_layout.setContentsMargins(0, 0, 0, 0)
+        root.addWidget(self._table_container, 2)
+
+        seen = set()
+        for _, row in predictions.iterrows():
+            value = row.get('比赛ID')
+            try:
+                match_id = str(int(value))
+            except (TypeError, ValueError):
+                match_id = str(value or '').strip()
+            if not match_id or match_id in seen:
+                continue
+            seen.add(match_id)
+            label = (
+                f'{row.get("赛事编号", "")}  {row.get("联赛", "")}  '
+                f'{row.get("主队", "")} vs {row.get("客队", "")}'
+            )
+            self._match_selector.addItem(label.strip(), match_id)
+        if self._match_selector.count() == 0:
+            for match_id, rows in self._series.items():
+                latest = rows[-1] if rows else {}
+                label = (
+                    f'{latest.get("match_num", "")}  {latest.get("league", "")}  '
+                    f'{latest.get("home", "")} vs {latest.get("away", "")}'
+                )
+                self._match_selector.addItem(label.strip(), match_id)
+
+        self._match_selector.currentIndexChanged.connect(self._render)
+        self._range_selector.currentIndexChanged.connect(self._render)
+        self.setStyleSheet('''
+            QLabel#marketTrendSummary {
+                color: #1f2b34; background: #edf5fb;
+                border: 1px solid #c2d8e8; border-radius: 3px;
+                padding: 6px; font-size: 12px; font-weight: 600;
+            }
+            QComboBox {
+                color: #202020; background: #ffffff;
+                border: 1px solid #aeb5bb; border-radius: 3px;
+                padding: 2px 20px 2px 5px;
+            }
+        ''')
+        self._render()
+
+        self._live_poll_timer = QTimer(self)
+        self._live_poll_timer.setInterval(60_000)
+        self._live_poll_timer.timeout.connect(self._start_live_poll)
+        self._live_poll_timer.start()
+        self._live_result_timer = QTimer(self)
+        self._live_result_timer.setInterval(250)
+        self._live_result_timer.timeout.connect(self._collect_live_poll)
+        self._live_result_timer.start()
+        QTimer.singleShot(0, self._start_live_poll)
+
+    def _start_live_poll(self):
+        if self._live_running:
+            return
+        self._live_running = True
+        self._live_status.setText(
+            '实时数据源：竞彩网官方移动端｜正在刷新…｜每60秒自动采集'
+        )
+        Thread(target=self._fetch_live_market, daemon=True).start()
+
+    def _fetch_live_market(self):
+        captured_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        try:
+            matches = SportteryMobileClient(
+                timeout=8.0, retries=1,
+            ).selling_matches()
+            self._live_queue.put(('ok', captured_at, matches))
+        except Exception as error:
+            self._live_queue.put(('error', captured_at, str(error)))
+
+    def _collect_live_poll(self):
+        try:
+            state, captured_at, payload = self._live_queue.get_nowait()
+        except Empty:
+            return
+        self._live_running = False
+        shown_time = datetime.fromisoformat(
+            captured_at.replace('Z', '+00:00'),
+        ).astimezone().strftime('%H:%M:%S')
+        if state == 'error':
+            self._live_status.setText(
+                f'实时数据暂不可用｜{shown_time}｜{str(payload)[:120]}'
+            )
+            return
+        live_ids = set()
+        first_live_id = None
+        selector_ids = {
+            str(self._match_selector.itemData(index) or '')
+            for index in range(self._match_selector.count())
+        }
+        appended = 0
+        unchanged = 0
+        for raw in payload:
+            snapshot = live_snapshot_from_match(raw, captured_at)
+            if snapshot is None:
+                continue
+            match_id = snapshot['match_id']
+            live_ids.add(match_id)
+            if first_live_id is None:
+                first_live_id = match_id
+            if match_id not in selector_ids:
+                match_number = (
+                    raw.get('matchNumStr') or raw.get('matchNum') or ''
+                )
+                league = raw.get('leagueAllName') or raw.get('leagueAbbName') or ''
+                home = raw.get('homeTeamAllName') or raw.get('homeTeamAbbName') or ''
+                away = raw.get('awayTeamAllName') or raw.get('awayTeamAbbName') or ''
+                label = f'{match_number}  {league}  {home} vs {away}'.strip()
+                self._match_selector.addItem(label, match_id)
+                selector_ids.add(match_id)
+            rows = self._series.setdefault(match_id, [])
+            if rows and self._same_market_snapshot(rows[-1], snapshot):
+                unchanged += 1
+            else:
+                rows.append(snapshot)
+                self._series[match_id] = rows[-300:]
+                appended += 1
+        selected_id = str(self._match_selector.currentData() or '')
+        if not self._did_select_live and first_live_id:
+            if selected_id not in live_ids:
+                for index in range(self._match_selector.count()):
+                    if str(self._match_selector.itemData(index) or '') == first_live_id:
+                        self._match_selector.setCurrentIndex(index)
+                        selected_id = first_live_id
+                        break
+            self._did_select_live = True
+        selected_note = (
+            '当前比赛已更新' if selected_id in live_ids
+            else '当前比赛已停售或官方暂未返回'
+        )
+        self._live_status.setText(
+            f'实时数据源：竞彩网官方移动端｜{shown_time}｜'
+            f'新增走势点{appended}场、未变{unchanged}场｜{selected_note}｜每60秒自动采集'
+        )
+        self._render()
+
+    @staticmethod
+    def _same_market_snapshot(left: dict, right: dict) -> bool:
+        """Do not draw artificial horizontal segments for unchanged odds."""
+        keys = ('had', 'hhad', 'ttg')
+        return all((left.get(key) or {}) == (right.get(key) or {}) for key in keys)
+
+    def closeEvent(self, event):
+        self._live_poll_timer.stop()
+        self._live_result_timer.stop()
+        super().closeEvent(event)
+
+    def _render(self):
+        match_id = self._match_selector.currentData()
+        hours = self._range_selector.currentData()
+        rows = build_trend_rows(match_id, self._series, hours=hours)
+        summary = summarize_trend(rows)
+        probabilities = summary.get('latest_probabilities') or {}
+        probability_text = ' / '.join(
+            f'{label}{probabilities.get(key, 0):.1%}'
+            for key, label in (('H', '胜'), ('D', '平'), ('A', '负'))
+        ) if probabilities else '--'
+        self._summary.setText(
+            f'综合结论：{summary["conclusion"]}　｜　'
+            f'{summary["handicap"]}　｜　{summary["total_goals"]}　｜　'
+            f'稳定性：{summary["stability"]}　｜　实时曲线点：{summary["observations"]}个\n'
+            f'当前胜平负：{probability_text}'
+        )
+        self._chart.set_rows(rows)
+        while self._table_layout.count():
+            item = self._table_layout.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+        frame = pd.DataFrame([{
+            '记录时间': row['label'],
+            '胜': f'{row["H"]:.1%}', '平': f'{row["D"]:.1%}',
+            '负': f'{row["A"]:.1%}',
+            '让球线': '' if row['hhad_line'] is None else f'{row["hhad_line"]:g}',
+            '大球': '' if row['over'] is None else f'{row["over"]:.1%}',
+            '小球': '' if row['under'] is None else f'{row["under"]:.1%}',
+        } for row in rows])
+        self._table = ExcelTable(
+            parent=self, df=frame, readonly=True, supports_sorting=False,
+            supports_query_search=False,
+        )
+        header = self._table.horizontalHeader()
+        header.setStretchLastSection(False)
+        widths = (145, 52, 52, 52, 62, 72, 72)
+        for column_index, width in enumerate(widths):
+            if column_index < self._table.columnCount():
+                self._table.setColumnWidth(column_index, width)
+        self._table.verticalHeader().setDefaultSectionSize(26)
+        self._table_layout.addWidget(self._table)
 
 
 def _safe_filename(value: str) -> str:
@@ -88,10 +524,42 @@ def _prediction_model_scopes(df: pd.DataFrame) -> pd.Series:
     return leagues.where(basis.eq('历史数据训练模型'), '')
 
 
+def _upcoming_predictions(
+        predictions: pd.DataFrame,
+        now: datetime | None = None,
+) -> pd.DataFrame:
+    """Keep only fixtures that have not kicked off; retain malformed dates visibly."""
+    if predictions.empty or '比赛时间' not in predictions.columns:
+        return predictions.copy()
+    kickoff = pd.to_datetime(predictions['比赛时间'], errors='coerce')
+    return predictions.loc[
+        kickoff.isna() | kickoff.gt(now or datetime.now())
+    ].copy()
+
+
+def _score_recommendation_mask(predictions: pd.DataFrame) -> pd.Series:
+    """Rows whose audited top-score probability reaches the 12% gate."""
+    status = predictions.get(
+        '比分推荐状态', pd.Series('', index=predictions.index),
+    ).fillna('').astype(str)
+    probability = pd.to_numeric(
+        predictions.get(
+            '原始最高概率比分概率', pd.Series(float('nan'), index=predictions.index),
+        ),
+        errors='coerce',
+    )
+    return status.eq('推荐') | (status.eq('') & probability.ge(0.12))
+
+
 def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFrame:
     """Strictly isolate one dedicated league or the generic/market rows."""
     if df.empty or model_key in ('', ALL_MODELS):
         return df.copy()
+    if model_key == SIMULATION_MODELS:
+        source = df.get('模拟模型来源', pd.Series('', index=df.index))
+        return df.loc[source.fillna('').astype(str).eq(
+            INDEPENDENT_SIMULATION_SOURCE,
+        )].copy()
     scopes = _prediction_model_scopes(df)
     if model_key == DEDICATED_MODELS:
         mask = scopes.ne('')
@@ -107,41 +575,196 @@ class SportteryPredictionsDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Today Sporttery Predictions')
+        self.setWindowTitle('今日竞彩预测')
         self.resize(1250, 650)
         self._predictions = pd.DataFrame()
-        self._skipped = pd.DataFrame()
         self._table_container = QWidget()
         self._table_layout = QVBoxLayout(self._table_container)
+        self._table_layout.setContentsMargins(0, 0, 0, 0)
         self._summary = QLabel()
         self._model_selector = QComboBox()
+        self._date_selector = QComboBox()
+        self._advice_selector = QComboBox()
+        self._yesterday_dialog = None
+        self._market_dialog = None
+        self._odds_pulse_running = False
+        self._odds_pulse_queue = Queue()
         self._trained_leagues = trained_dedicated_leagues()
         self._build_ui()
         self._load_saved_reports()
+        self._odds_pulse_timer = QTimer(self)
+        self._odds_pulse_timer.setInterval(5 * 60_000)
+        self._odds_pulse_timer.timeout.connect(self._start_odds_pulse)
+        self._odds_pulse_timer.start()
+        self._odds_pulse_result_timer = QTimer(self)
+        self._odds_pulse_result_timer.setInterval(300)
+        self._odds_pulse_result_timer.timeout.connect(self._collect_odds_pulse)
+        self._odds_pulse_result_timer.start()
+        QTimer.singleShot(12_000, self._start_odds_pulse)
+
+    def _start_odds_pulse(self):
+        """Persist actual market changes while the prediction window is open."""
+        if self._odds_pulse_running:
+            return
+        self._odds_pulse_running = True
+        Thread(target=self._fetch_odds_pulse, daemon=True).start()
+
+    def _fetch_odds_pulse(self):
+        try:
+            matches = SportteryMobileClient(timeout=8.0, retries=1).selling_matches()
+            saved = record_odds_snapshots(matches)
+            self._odds_pulse_queue.put(('ok', len(matches), saved))
+        except Exception as error:
+            self._odds_pulse_queue.put(('error', 0, str(error)))
+
+    def _collect_odds_pulse(self):
+        try:
+            state, count, payload = self._odds_pulse_queue.get_nowait()
+        except Empty:
+            return
+        self._odds_pulse_running = False
+        if state == 'ok':
+            self._summary.setToolTip(
+                f'后台盘口采集：{count}场，新增真实变化 {payload} 条。'
+            )
+
+    def closeEvent(self, event):
+        self._odds_pulse_timer.stop()
+        self._odds_pulse_result_timer.stop()
+        super().closeEvent(event)
 
     def _build_ui(self):
         root = QVBoxLayout(self)
-        controls = QHBoxLayout()
-        sync_button = QPushButton('手动同步竞猜数据并预测')
+        root.setContentsMargins(6, 6, 6, 6)
+        root.setSpacing(5)
+
+        action_bar = QHBoxLayout()
+        action_bar.setSpacing(5)
+        sync_button = QPushButton('同步最新赔率并预测')
+        sync_button.setToolTip('重新获取官方最新赔率；建议在安全截止前20～60分钟执行')
         sync_button.clicked.connect(self._sync)
-        review_button = QPushButton('补同步历史赛果并复盘')
+        review_button = QPushButton('补赛果并复盘')
         review_button.clicked.connect(self._review_history)
-        export_button = QPushButton('导出Excel到Windows')
+        yesterday_button = QPushButton('昨日命中复盘')
+        yesterday_button.setToolTip('查看昨日已结算场次的逐项命中明细和简短规律')
+        yesterday_button.clicked.connect(self._show_yesterday_hits)
+        market_button = QPushButton('市场走势')
+        market_button.setObjectName('marketTrendButton')
+        market_button.setToolTip('查看欧赔概率、让球和大小球的初盘到临盘走势')
+        market_button.clicked.connect(self._show_market_trends)
+        export_button = QPushButton('导出 Excel')
         export_button.clicked.connect(self._export)
-        snapshot_button = QPushButton('打快照')
-        snapshot_button.clicked.connect(self._snapshot_odds)
-        controls.addWidget(sync_button)
-        controls.addWidget(review_button)
-        controls.addWidget(snapshot_button)
-        controls.addWidget(export_button)
-        controls.addWidget(QLabel('竞彩模型：'))
-        self._model_selector.setMinimumWidth(210)
+        for button, width in (
+                (sync_button, 136), (review_button, 102),
+                (yesterday_button, 100), (market_button, 80),
+                (export_button, 78)):
+            button.setFixedSize(width, 25)
+            action_bar.addWidget(button)
+        action_bar.addStretch(1)
+        self._summary.setObjectName('summaryLabel')
+        self._summary.setMinimumWidth(195)
+        action_bar.addWidget(self._summary)
+        root.addLayout(action_bar)
+
+        filter_panel = QWidget(self)
+        filter_panel.setObjectName('filterPanel')
+        filters = QHBoxLayout(filter_panel)
+        filters.setContentsMargins(4, 3, 4, 3)
+        filters.setSpacing(5)
+        filters.addWidget(QLabel('模型'))
+        self._model_selector.setMinimumWidth(220)
+        self._model_selector.setFixedHeight(24)
         self._model_selector.currentIndexChanged.connect(lambda _: self._render())
-        controls.addWidget(self._model_selector)
-        controls.addStretch(1)
-        controls.addWidget(self._summary)
-        root.addLayout(controls)
+        filters.addWidget(self._model_selector)
+        filters.addSpacing(6)
+        filters.addWidget(QLabel('比赛日期'))
+        self._date_selector.setMinimumWidth(165)
+        self._date_selector.setFixedHeight(24)
+        self._date_selector.currentIndexChanged.connect(lambda _: self._render())
+        filters.addWidget(self._date_selector)
+        filters.addStretch(1)
+        root.addWidget(filter_panel)
         root.addWidget(self._table_container)
+
+        self.setStyleSheet('''
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #ffffff, stop:0.55 #f5f6f7, stop:1 #e2e5e8);
+                color: #202020; border: 1px solid #aeb5bb;
+                border-bottom: 2px solid #8f979e; border-radius: 3px;
+                padding: 1px 6px 2px 6px; font-size: 12px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #ffffff, stop:1 #dceaf7);
+                border-color: #7199bd; border-bottom-color: #557d9f;
+            }
+            QPushButton:pressed {
+                background: #d9e4ee; border: 1px solid #7f8b94;
+                padding-top: 2px; padding-bottom: 1px;
+            }
+            QWidget#filterPanel {
+                border-top: 1px solid #d7d7d7; border-bottom: 1px solid #d7d7d7;
+            }
+            QComboBox {
+                color: #202020;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #ffffff, stop:1 #e7eaed);
+                border: 1px solid #aeb5bb; border-bottom: 2px solid #90989f;
+                border-radius: 3px; padding: 0 22px 0 5px; font-size: 12px;
+            }
+            QComboBox:hover { border-color: #6f9dcc; }
+            QComboBox::drop-down {
+                width: 18px; border-left: 1px solid #b8bec4;
+                background: #e8ebee;
+            }
+            QComboBox QAbstractItemView {
+                color: #202020; background: #ffffff;
+                border: 1px solid #90989f; outline: 0;
+                selection-background-color: #2f79bd;
+                selection-color: #ffffff;
+                font-size: 12px;
+            }
+            QLabel#summaryLabel {
+                color: #404040; padding: 3px 5px; font-size: 12px;
+            }
+            QTableWidget {
+                color: #202020; background: #ffffff;
+                alternate-background-color: #f6f8fa;
+                gridline-color: #cfd4d8; font-size: 12px;
+            }
+            QHeaderView::section {
+                color: #202020;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #ffffff, stop:1 #dfe3e6);
+                border: 0; border-right: 1px solid #b8bec3;
+                border-bottom: 1px solid #969da3;
+                padding: 2px 4px; font-size: 12px; font-weight: 600;
+            }
+        ''')
+
+        # Combo popups are separate Qt views. The application theme can style
+        # them after the dialog stylesheet is applied, so pin their palette on
+        # the popup itself to prevent black-on-black/white-on-white selections.
+        for combo in (self._model_selector, self._date_selector):
+            popup = combo.view()
+            palette = popup.palette()
+            palette.setColor(QPalette.ColorRole.Base, QColor('#ffffff'))
+            palette.setColor(QPalette.ColorRole.Window, QColor('#ffffff'))
+            palette.setColor(QPalette.ColorRole.Text, QColor('#202020'))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor('#202020'))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor('#2f79bd'))
+            palette.setColor(QPalette.ColorRole.HighlightedText, QColor('#ffffff'))
+            popup.setPalette(palette)
+            popup.setItemDelegate(_ComboPopupDelegate(popup))
+            popup.setStyleSheet('''
+                QListView { background: #ffffff; color: #202020;
+                    border: 1px solid #90989f; outline: 0; }
+                QListView::item { background: #ffffff; color: #202020;
+                    min-height: 24px; padding: 1px 5px; }
+                QListView::item:hover { background: #dcebf8; color: #202020; }
+                QListView::item:selected { background: #2f79bd; color: #ffffff; }
+            ''')
 
     @staticmethod
     def _display_predictions(df: pd.DataFrame) -> pd.DataFrame:
@@ -213,10 +836,20 @@ class SportteryPredictionsDialog(QDialog):
             score_with_probability('半全场首选', '半全场首选概率') + '/'
             + score_with_probability('半全场次选', '半全场次选概率')
         )
-        display['比分首选'] = score_with_probability('首选比分', '首选比分概率')
-        display['比分次选'] = score_with_probability('次选比分', '次选比分概率')
-        display['爆冷方向'] = display.apply(upset_direction, axis=1)
-        display['冷门比分'] = score_with_probability('比分爆冷', '爆冷比分概率')
+        def combined_scores(row: pd.Series) -> str:
+            values = []
+            for column in (
+                '首选比分', '次选比分', '第三比分',
+                '比分爆冷', '大小球进取比分',
+            ):
+                value = row.get(column)
+                if pd.notna(value) and str(value).strip() and str(value).strip() not in values:
+                    values.append(str(value).strip())
+            return ' / '.join(values)
+
+        display['比分推荐（首/次1/次2/冷/进取）'] = display.apply(
+            combined_scores, axis=1,
+        )
         display['置信度'] = display.get(
             '置信等级', pd.Series('', index=display.index),
         ).fillna('').astype(str)
@@ -230,21 +863,87 @@ class SportteryPredictionsDialog(QDialog):
                 '模型类别', pd.Series('', index=display.index),
             ),
         ).fillna('').astype(str)
+        display['模拟半全场'] = display.get(
+            '模拟半全场', pd.Series('', index=display.index),
+        ).fillna('').astype(str).map(
+            lambda value: ' / '.join(
+                part.strip() for part in value.split('/')[:2] if part.strip()
+            ),
+        )
+
+        def simulation_difference(row: pd.Series) -> str:
+            def first_choice(value: object) -> str:
+                text = '' if pd.isna(value) else str(value).strip()
+                return re.split(r'[\s/｜]', text, maxsplit=1)[0]
+
+            def comparison(label: str, primary: str, simulated: str) -> str:
+                if not primary or not simulated:
+                    return ''
+                mark = '✓' if primary == simulated else '✕'
+                return f'{label} {primary}={simulated}{mark}' if mark == '✓' else (
+                    f'{label} {primary}→{simulated}{mark}'
+                )
+
+            parts = []
+            primary_result = first_choice(row.get('胜平负首选'))[:1]
+            simulated_result = first_choice(row.get('模拟胜负'))[:1]
+            parts.append(comparison('胜负', primary_result, simulated_result))
+
+            primary_handicap = first_choice(row.get('让球首选'))
+            if primary_handicap in ('胜', '平', '负'):
+                primary_handicap = f'让{primary_handicap}'
+            simulated_handicap = first_choice(row.get('模拟让球'))
+            parts.append(comparison('让球', primary_handicap, simulated_handicap))
+
+            primary_total = first_choice(row.get('大小球首选'))
+            simulated_total = first_choice(row.get('模拟总进球'))
+            if primary_total and simulated_total:
+                # 两者输出口径不同：主模型给大小方向，模拟模型给进球区间，直接并排展示。
+                parts.append(f'进球 {primary_total}→{simulated_total}')
+
+            primary_score = str(row.get('首选比分') or '').strip()
+            simulated_match = re.match(
+                r'(\d+\+?-\d+\+?)', str(row.get('模拟Top3比分') or '').strip(),
+            )
+            simulated_score = simulated_match.group(1) if simulated_match else ''
+            parts.append(comparison('比分', primary_score, simulated_score))
+
+            primary_half_full = first_choice(row.get('半全场首选'))
+            simulated_half_full = first_choice(row.get('模拟半全场'))
+            parts.append(comparison('半全场', primary_half_full, simulated_half_full))
+            return '｜'.join(part for part in parts if part)
+
+        display['模拟差异'] = display.apply(simulation_difference, axis=1)
         odds_series = read_odds_series()
         match_ids = display.get('比赛ID', pd.Series('', index=display.index))
-        model_picks = display.get(
-            '胜平负首选', pd.Series('', index=display.index),
-        ).fillna('').astype(str)
-        display['盘口预警'] = [
-            odds_early_warning(mid, pick, series=odds_series)
-            for mid, pick in zip(match_ids, model_picks)
+        calculated_flow = [format_market_flow(mid, series=odds_series) for mid in match_ids]
+        stored_gate = display.get('盘口门控', pd.Series('', index=display.index)).fillna('')
+        display['盘口流向'] = [
+            flow if flow not in ('', '待积累') else (gate or flow)
+            for gate, flow in zip(stored_gate, calculated_flow)
         ]
+        remaining = pd.to_numeric(
+            display.get('距参考截止分钟', pd.Series(float('nan'), index=display.index)),
+            errors='coerce',
+        )
+        display['距参考截止'] = remaining.map(
+            lambda value: '' if pd.isna(value) else (
+                f'约{float(value):.0f}分钟' if value >= 0 else '已过参考线'
+            )
+        )
         preferred = [
-            '赛事编号', '联赛', '胜负模型', '主队', '客队', '置信度',
-            '胜平负概率', '胜负首选', '盘口预警', '市场概率档参考', '分析依据',
+            '赛事编号', '比赛时间', '联赛', '胜负模型', '主队', '客队',
+            '距参考截止',
+            '建议临场同步时段',
+            '胜负首选',
+            '模拟差异', '模拟可信度', '模拟模型来源',
+            '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场', '模拟Top3比分',
+            '盘口流向',
+            '阵容分析',
+            '市场概率档参考', '分析依据',
             '官方让球数', '让球首选/次选',
-            '大小球首选', '半全场首选/次选', '比分首选', '比分次选',
-            '爆冷方向', '冷门比分',
+            '大小球首选', '比分推荐（首/次1/次2/冷/进取）',
+            '蒙特风险',
         ]
         shown = display[[column for column in preferred if column in display.columns]].copy()
         for column in shown.columns:
@@ -269,12 +968,9 @@ class SportteryPredictionsDialog(QDialog):
         self._predictions = _sort_by_match_number(
             read_report(PREDICTION_PATH, ['赛事编号', '联赛', '主队', '客队']),
         )
-        self._skipped = _sort_by_match_number(
-            read_report(
-                SKIPPED_PATH, ['赛事编号', '官方联赛', '主队', '客队', '跳过原因'],
-            ),
-        )
         self._refresh_model_selector()
+        self._refresh_date_selector()
+        self._refresh_advice_selector()
         self._render()
 
     def _refresh_model_selector(self):
@@ -297,21 +993,81 @@ class SportteryPredictionsDialog(QDialog):
         self._model_selector.addItem(
             f'通用/市场模型（{generic_count}场）', GENERIC_MODELS,
         )
+        simulated = self._predictions.get(
+            '模拟模型来源', pd.Series('', index=self._predictions.index),
+        ).fillna('').astype(str).eq(INDEPENDENT_SIMULATION_SOURCE)
+        self._model_selector.addItem(
+            f'蒙特卡洛模拟（{int(simulated.sum())}场）', SIMULATION_MODELS,
+        )
         for league in leagues:
             self._model_selector.addItem(
                 f'{league}专用模型（{int(counts.get(league, 0))}场）', league,
             )
         if current is None:
-            current = DEDICATED_MODELS if dedicated_count else GENERIC_MODELS
+            # Opening the window must show the complete report.  Defaulting to
+            # a model subset made valid rows look as if they had not loaded.
+            current = ALL_MODELS
         index = self._model_selector.findData(current)
         self._model_selector.setCurrentIndex(index if index >= 0 else 0)
         self._model_selector.blockSignals(False)
 
     def _visible_predictions(self) -> pd.DataFrame:
-        return filter_predictions_by_model(
+        visible = filter_predictions_by_model(
             self._predictions,
             self._model_selector.currentData() or ALL_MODELS,
         )
+        # This is a betting/prediction view, never a history viewer. Ticket
+        # labels such as 周六 may kick off after midnight on Sunday; filtering
+        # by the real kickoff timestamp prevents those settled rows reappearing
+        # when a date is selected.
+        visible = _upcoming_predictions(visible)
+        selected_date = self._date_selector.currentData()
+        if selected_date and '比赛时间' in visible.columns:
+            dates = visible['比赛时间'].fillna('').astype(str).str.slice(0, 10)
+            visible = visible.loc[dates.eq(str(selected_date))]
+        return _sort_by_match_number(visible)
+
+    def _refresh_advice_selector(self):
+        current = self._advice_selector.currentData()
+        advice = self._predictions.get(
+            '建议状态', pd.Series('', index=self._predictions.index),
+        ).fillna('').astype(str)
+        selected = int(advice.eq('精选主推').sum())
+        high = int(advice.eq('高置信主推').sum())
+        self._advice_selector.blockSignals(True)
+        self._advice_selector.clear()
+        self._advice_selector.addItem(f'正式推荐（{selected + high}场）', '正式推荐')
+        self._advice_selector.addItem(f'精选主推（{selected}场）', '精选主推')
+        self._advice_selector.addItem(f'高置信主推（{high}场）', '高置信主推')
+        self._advice_selector.addItem(f'全部场次（{len(self._predictions)}场）', '')
+        if current is None or (current == '正式推荐' and selected + high == 0):
+            # Never open on an empty recommendation view when the report itself
+            # contains fixtures.  Users can still select each recommendation
+            # grade explicitly when such rows exist.
+            current = ''
+        index = self._advice_selector.findData(current)
+        self._advice_selector.setCurrentIndex(index if index >= 0 else 0)
+        self._advice_selector.blockSignals(False)
+
+    def _refresh_date_selector(self):
+        current = self._date_selector.currentData()
+        upcoming = _upcoming_predictions(self._predictions)
+        if '比赛时间' in upcoming.columns:
+            dates = upcoming['比赛时间'].fillna('').astype(str).str.slice(0, 10)
+            dates = sorted(value for value in dates.unique() if re.fullmatch(r'\d{4}-\d{2}-\d{2}', value))
+        else:
+            dates = []
+        self._date_selector.blockSignals(True)
+        self._date_selector.clear()
+        upcoming_count = len(_upcoming_predictions(self._predictions))
+        self._date_selector.addItem(f'当前可投注（{upcoming_count}场）', '')
+        for value in dates:
+            count = int(upcoming['比赛时间'].astype(str).str.startswith(value).sum())
+            weekday = '一二三四五六日'[date.fromisoformat(value).weekday()]
+            self._date_selector.addItem(f'{value} 周{weekday}（{count}场）', value)
+        index = self._date_selector.findData(current)
+        self._date_selector.setCurrentIndex(index if index >= 0 else 0)
+        self._date_selector.blockSignals(False)
 
     def _render(self):
         visible = self._visible_predictions()
@@ -319,52 +1075,56 @@ class SportteryPredictionsDialog(QDialog):
             item = self._table_layout.takeAt(0)
             if item.widget() is not None:
                 item.widget().deleteLater()
-        self._table_layout.addWidget(ExcelTable(
+        display_frame = self._display_predictions(visible)
+        table = ExcelTable(
             parent=self,
-            df=self._display_predictions(visible),
+            df=display_frame,
             readonly=True,
-            supports_sorting=False,
-        ))
-        selected = self._model_selector.currentText().split('（', 1)[0]
+            supports_sorting=True,
+        )
+        score_column = '比分推荐（首/次1/次2/冷/进取）'
+        if score_column in display_frame.columns:
+            column_index = display_frame.columns.get_loc(score_column)
+            recommended = _score_recommendation_mask(visible).reset_index(drop=True)
+            for row_index, is_recommended in enumerate(recommended):
+                if not is_recommended:
+                    continue
+                item = table.item(row_index, column_index)
+                if item is not None:
+                    item.setForeground(QBrush(QColor('#d60000')))
+                    font = QFont(item.font())
+                    font.setBold(True)
+                    item.setFont(font)
+        difference_column = '模拟差异'
+        if difference_column in display_frame.columns:
+            column_index = display_frame.columns.get_loc(difference_column)
+            for row_index, value in enumerate(display_frame[difference_column].fillna('')):
+                item = table.item(row_index, column_index)
+                if item is None:
+                    continue
+                text = str(value)
+                if '✕' in text:
+                    item.setForeground(QBrush(QColor('#c62828')))
+                    item.setBackground(QBrush(QColor('#fff1f1')))
+                elif '✓' in text:
+                    item.setForeground(QBrush(QColor('#137333')))
+                    item.setBackground(QBrush(QColor('#eef8f0')))
+                font = QFont(item.font())
+                font.setBold(True)
+                item.setFont(font)
+        table.horizontalHeader().setSectionsMovable(True)
+        table.horizontalHeader().setFixedHeight(26)
+        table.verticalHeader().setDefaultSectionSize(25)
+        table.verticalHeader().setMinimumSectionSize(23)
+        self._table_layout.addWidget(table)
         if visible.empty and not self._predictions.empty:
-            self._summary.setText(f'{selected}：今日没有符合条件的竞彩场次')
-        else:
-            advice = visible.get(
-                '建议状态', pd.Series('', index=visible.index),
-            ).fillna('').astype(str)
-            grade_counts = '｜'.join(
-                f'{grade} {int(advice.eq(grade).sum())}'
-                for grade in ('精选主推', '高置信主推', '观察', '跳过')
-            )
             self._summary.setText(
-                f'{selected}：{len(visible)} 场｜全部预测 {len(self._predictions)} 场'
-                f'｜{grade_counts}｜未覆盖 {len(self._skipped)} 场'
+                f'当前显示 0 场  ·  全部 {len(self._predictions)} 场'
             )
-
-    def _snapshot_odds(self):
-        runner = TaskRunnerDialog(
-            title='盘口快照',
-            info='正在获取官方盘口并记录快照…',
-            task_fn=self._capture_snapshot,
-            parent=self,
-        )
-        result = runner.run()
-        if runner.error_message is not None:
-            QMessageBox.critical(self, '快照失败', runner.error_message)
-            return
-        appended, total = result
-        self._load_saved_reports()
-        self._summary.setText(
-            f'快照完成：本次获取 {total} 场，新增记录 {appended} 场。'
-        )
-
-    @staticmethod
-    def _capture_snapshot():
-        from src.network.fixtures.sporttery import SportteryMobileClient
-        from src.services.odds_tracking import record_odds_snapshots
-        matches = SportteryMobileClient(timeout=12.0, retries=2).selling_matches()
-        appended = record_odds_snapshots(matches)
-        return appended, len(matches)
+        else:
+            self._summary.setText(
+                f'当前显示 {len(visible)} 场  ·  全部 {len(self._predictions)} 场'
+            )
 
     def _sync(self):
         runner = TaskRunnerDialog(
@@ -374,13 +1134,15 @@ class SportteryPredictionsDialog(QDialog):
             parent=self,
         )
         result = runner.run()
-        if runner.error_message is not None:
+        if runner.error_message is not None or result is None:
             QMessageBox.critical(
-                self, '同步失败', runner.error_message,
+                self, '同步失败', runner.error_message or '同步任务没有返回数据，请稍后重试。',
             )
             return
-        self._predictions, self._skipped = result
+        self._predictions, _ = result
         self._refresh_model_selector()
+        self._refresh_date_selector()
+        self._refresh_advice_selector()
         self._render()
         learning_message = ''
         if LEARNING_STATUS_PATH.exists():
@@ -396,7 +1158,7 @@ class SportteryPredictionsDialog(QDialog):
                 pass
         QMessageBox.information(
             self, '同步完成',
-            f'已生成 {len(self._predictions)} 场预测，另有 {len(self._skipped)} 场未覆盖。'
+            f'已生成 {len(self._predictions)} 场预测。'
             f'{learning_message}',
         )
 
@@ -449,10 +1211,39 @@ class SportteryPredictionsDialog(QDialog):
         if result.get('review_error'):
             QMessageBox.warning(
                 self, '部分赛果暂未补齐',
-                f'{message}\n官方接口提示：{result["review_error"]}',
+                f'{message}\n\n'
+                f'官方赛果服务暂时无响应，已保留现有复盘数据。'
+                f'等待补齐的 {int(result.get("pending_samples") or 0)} 场将在下次自动重试；'
+                f'不影响当前预测和已训练模型。',
             )
         else:
             QMessageBox.information(self, '补同步完成', message)
+
+    def _show_yesterday_hits(self):
+        # Reading the local settlement cache is intentionally instant and never
+        # starts a network request. Use the existing review button when official
+        # results still need to be synchronized.
+        if self._yesterday_dialog is not None:
+            self._yesterday_dialog.close()
+            self._yesterday_dialog.deleteLater()
+        self._yesterday_dialog = YesterdayHitDetailsDialog(self)
+        self._yesterday_dialog.show()
+        self._yesterday_dialog.raise_()
+        self._yesterday_dialog.activateWindow()
+
+    def _show_market_trends(self):
+        visible = self._visible_predictions()
+        if visible.empty and self._predictions.empty:
+            QMessageBox.information(self, '没有数据', '请先同步竞猜数据。')
+            return
+        source = visible if not visible.empty else self._predictions
+        if self._market_dialog is not None:
+            self._market_dialog.close()
+            self._market_dialog.deleteLater()
+        self._market_dialog = MarketTrendDialog(source, self)
+        self._market_dialog.show()
+        self._market_dialog.raise_()
+        self._market_dialog.activateWindow()
 
     def _export(self):
         visible = self._visible_predictions()
@@ -460,10 +1251,12 @@ class SportteryPredictionsDialog(QDialog):
             QMessageBox.information(self, '没有数据', '请先同步竞猜数据。')
             return
         selected = self._model_selector.currentText().split('（', 1)[0]
-        export_day = date.today().isoformat()
+        exported_at = datetime.now()
+        export_day = exported_at.date().isoformat()
+        timestamp = exported_at.strftime('%Y-%m-%d_%H-%M-%S-%f')[:-3]
         path = (
             WINDOWS_EXPORT_ROOT / export_day
-            / f'{export_day}-{_safe_filename(selected)}.xlsx'
+            / f'{timestamp}-{_safe_filename(selected)}.xlsx'
         )
         try:
             write_predictions_xlsx(self._display_predictions(visible), path)

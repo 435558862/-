@@ -55,14 +55,14 @@ class CoefficientsAnalyzerWindow(QDialog):
         self._combo_target = QComboBox()
         self._combo_target.setFixedWidth(150)
         for target in self._target_types:
-            self._combo_target.addItem(target)
+            self._combo_target.addItem(target, target)
         form.addRow(QLabel("Target:"), self._combo_target)
 
         # Colormap
         self._combo_colormap = QComboBox()
         self._combo_colormap.setFixedWidth(150)
         for colormap in self._colormap_dict:
-            self._combo_colormap.addItem(colormap)
+            self._combo_colormap.addItem(colormap, colormap)
         form.addRow(QLabel("Colormap:"), self._combo_colormap)
 
         # Analyze button (centered row)
@@ -80,7 +80,8 @@ class CoefficientsAnalyzerWindow(QDialog):
 
     def _analyze(self):
         season = self._seasons[self._combo_season.currentIndex()]
-        target_type = self._target_types[self._combo_target.currentText()]
-        colormap = self._colormap_dict[self._combo_colormap.currentText()]
+        target_type = self._target_types[self._combo_target.currentData()]
+        colormap = self._colormap_dict[self._combo_colormap.currentData()]
         ax = self._analyzer.generate_plot(season=season, colormap=colormap, target_type=target_type)
         PlotWindow(ax=ax, parent=self, title='Coefficient Analysis').show()
+

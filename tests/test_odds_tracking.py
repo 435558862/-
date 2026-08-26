@@ -9,6 +9,8 @@ def raw_match(match_id, h='1.58', d='3.55', a='4.65', update='20:02:46',
               line='-1', hh='2.93', hd='3.25', ha='2.08'):
     return {
         'matchId': match_id,
+        'matchDate': '2026-08-13',
+        'matchTime': '20:00:00',
         'matchNumStr': '周三001',
         'leagueAllName': '欧洲超级杯',
         'homeTeamAllName': '巴黎圣日尔曼',
@@ -20,6 +22,46 @@ def raw_match(match_id, h='1.58', d='3.55', a='4.65', update='20:02:46',
 
 
 class OddsTrackingTests(unittest.TestCase):
+
+    def test_market_flow_gate_agrees_and_conflicts(self):
+        series = {'1': [
+            {'had': {'H': 2.00, 'D': 3.20, 'A': 3.60}},
+            {'had': {'H': 1.75, 'D': 3.45, 'A': 4.20}},
+        ]}
+        self.assertEqual(
+            odds_tracking.market_flow_gate('1', '胜', series=series)['state'],
+            'agree',
+        )
+        self.assertEqual(
+            odds_tracking.market_flow_gate('1', '负', series=series)['state'],
+            'conflict',
+        )
+
+    def test_market_flow_gate_reports_time_normalized_speed(self):
+        series = {'1': [
+            {'captured_at': '2026-08-13T10:00:00+08:00',
+             'had': {'H': 2.00, 'D': 3.20, 'A': 3.60}},
+            {'captured_at': '2026-08-13T12:00:00+08:00',
+             'had': {'H': 1.75, 'D': 3.45, 'A': 4.20}},
+        ]}
+        gate = odds_tracking.market_flow_gate('1', '胜', series=series)
+        self.assertGreater(gate['speed_per_hour'], 0)
+        self.assertEqual(gate['observations'], 2)
+
+    def test_market_quality_exposes_return_and_secondary_market_changes(self):
+        series = {'1': [
+            {'had': {'H': 2.0, 'D': 3.2, 'A': 3.6},
+             'hhad': {'line': -1.0},
+             'ttg': {f's{i}': str(8.0 - i * 0.5) for i in range(8)}},
+            {'had': {'H': 1.9, 'D': 3.3, 'A': 3.8},
+             'hhad': {'line': -2.0},
+             'ttg': {f's{i}': str(8.5 - i * 0.5) for i in range(8)}},
+        ]}
+        metrics = odds_tracking.market_quality_metrics('1', series=series)
+        self.assertGreater(metrics['return_rate'], 0.8)
+        self.assertEqual(metrics['hhad_line_change'], -1.0)
+        self.assertIsNotNone(metrics['ttg_expected_change'])
+        self.assertFalse(metrics['multi_company_available'])
     def setUp(self):
         self._tmp = TemporaryDirectory()
         self.path = Path(self._tmp.name) / 'odds_history.jsonl'
@@ -36,6 +78,42 @@ class OddsTrackingTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['had'], {'H': 1.58, 'D': 3.55, 'A': 4.65})
         self.assertEqual(rows[0]['hhad']['line'], -1.0)
+
+    def test_snapshot_records_time_to_kickoff_without_future_information(self):
+        odds_tracking.record_odds_snapshots(
+            [raw_match(3)], path=self.path,
+            captured_at='2026-08-12T12:00:00+08:00',
+        )
+        row = odds_tracking.read_odds_series(self.path)['3'][0]
+        self.assertEqual(row['hours_to_kickoff'], 32.0)
+        self.assertEqual(row['snapshot_window'], '早盘档')
+
+    def test_same_odds_are_kept_once_when_entering_a_new_time_window(self):
+        odds_tracking.record_odds_snapshots(
+            [raw_match(4)], path=self.path,
+            captured_at='2026-08-12T22:00:00+08:00',
+        )
+        odds_tracking.record_odds_snapshots(
+            [raw_match(4)], path=self.path,
+            captured_at='2026-08-13T14:00:00+08:00',
+        )
+        rows = odds_tracking.read_odds_series(self.path)['4']
+        self.assertEqual([row['snapshot_window'] for row in rows], [
+            '赛前24小时档', '赛前6小时档',
+        ])
+
+    def test_unchanged_file_reuses_parsed_series_and_append_invalidates_it(self):
+        odds_tracking.record_odds_snapshots(
+            [raw_match(1)], path=self.path, captured_at='t1',
+        )
+        first = odds_tracking.read_odds_series(self.path)
+        self.assertIs(first, odds_tracking.read_odds_series(self.path))
+        odds_tracking.record_odds_snapshots(
+            [raw_match(1, h='1.49')], path=self.path, captured_at='t2',
+        )
+        second = odds_tracking.read_odds_series(self.path)
+        self.assertIsNot(first, second)
+        self.assertEqual(len(second['1']), 2)
 
     def test_skips_identical_latest_snapshot(self):
         odds_tracking.record_odds_snapshots(
@@ -104,6 +182,32 @@ class OddsTrackingTests(unittest.TestCase):
         self.assertEqual(
             odds_tracking.market_intent_label(balanced, {'A': -0.15}),
             '市场三方格局·变动向客',
+        )
+
+    def test_market_flow_reports_waiting_and_direction(self):
+        odds_tracking.record_odds_snapshots(
+            [raw_match(20)], path=self.path, captured_at='t1',
+        )
+        self.assertEqual(odds_tracking.format_market_flow(20, path=self.path), '待积累')
+        odds_tracking.record_odds_snapshots(
+            [raw_match(20, h='1.40', d='3.90', a='5.20')],
+            path=self.path, captured_at='t2',
+        )
+        label = odds_tracking.format_market_flow(20, path=self.path)
+        self.assertEqual(label, '购买方向：胜')
+
+    def test_market_flow_exposes_small_direction_without_weakening_gate(self):
+        series = {'1': [
+            {'captured_at': '2026-01-01T00:00:00+00:00',
+             'had': {'H': 2.00, 'D': 3.20, 'A': 3.60}},
+            {'captured_at': '2026-01-01T01:00:00+00:00',
+             'had': {'H': 1.99, 'D': 3.20, 'A': 3.60}},
+        ]}
+        label = odds_tracking.format_market_flow('1', series=series)
+        self.assertEqual(label, '暂无明确购买方向')
+        self.assertEqual(
+            odds_tracking.market_flow_gate('1', '胜', series=series)['state'],
+            'stable',
         )
 
     def test_snapshot_had_direction_uses_latest_odds(self):

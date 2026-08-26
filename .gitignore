@@ -11,6 +11,7 @@ __pycache__/
 
 # Runtime caches and scratch
 storage/matplotlib/
+storage/network/.api_football_key
 work/
 dist/
 windows-update-backups/

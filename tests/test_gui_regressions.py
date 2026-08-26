@@ -241,6 +241,7 @@ def test_sporttery_table_shows_decision_probabilities_and_audit_reference():
 
     display = sporttery_window.SportteryPredictionsDialog._display_predictions(predictions)
 
-    assert display.loc[0, '胜平负概率'] == '胜 70.0%｜平 18.0%｜负 12.0%'
+    assert '胜平负概率' not in display.columns
+    assert '官方销售状态' not in display.columns
     assert display.loc[0, '市场概率档参考'] == '同档命中 76.2%｜覆盖 13.7%｜137场'
     assert display.loc[0, '分析依据'] == '官方赔率市场基线'

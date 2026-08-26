@@ -6,3 +6,4 @@ from src.gui.windows.analysis.distributions import DistributionAnalyzerWindow
 from src.gui.windows.analysis.impurity import ImpurityAnalyzerWindow
 from src.gui.windows.analysis.variance import VarianceAnalyzerWindow
 from src.gui.windows.analysis.rules import RulesAnalyzerWindow
+

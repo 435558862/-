@@ -61,7 +61,7 @@ class DistributionAnalyzerWindow(QDialog):
         self._combo_colormap = QComboBox()
         self._combo_colormap.setFixedWidth(150)
         for colormap in self._colormap_dict:
-            self._combo_colormap.addItem(colormap)
+            self._combo_colormap.addItem(colormap, colormap)
         form.addRow(QLabel("Colormap:"), self._combo_colormap)
 
         # Analyze button (centered)
@@ -80,6 +80,7 @@ class DistributionAnalyzerWindow(QDialog):
     def _analyze(self):
         season = self._seasons[self._combo_season.currentIndex()]
         column = self._columns[self._combo_column.currentIndex()]
-        colormap = self._colormap_dict[self._combo_colormap.currentText()]
+        colormap = self._colormap_dict[self._combo_colormap.currentData()]
         ax = self._analyzer.generate_plot(season=season, colormap=colormap, column=column)
         PlotWindow(ax=ax, parent=self, title='Distributions Plot').show()
+

@@ -1,6 +1,8 @@
 """Chinese display names for internally English-normalized football teams."""
 
 import json
+import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 
@@ -50,10 +52,64 @@ DISPLAY_OVERRIDES = {
     },
 }
 
+# The official feed occasionally uses a different Chinese character from the
+# maintained alias file. Keep these explicit: an incorrect fuzzy match would
+# silently feed the wrong club into a dedicated model.
+INPUT_OVERRIDES = {
+    '意甲': {
+        '弗洛西诺内': 'Frosinone',
+        '弗洛西诺': 'Frosinone',
+    },
+}
+
+
+@lru_cache(maxsize=1)
+def _chinese_to_english() -> dict[str, dict[str, str]]:
+    aliases = json.loads(ALIASES_PATH.read_text(encoding='utf-8'))
+    for league, mapping in INPUT_OVERRIDES.items():
+        aliases.setdefault(league, {}).update(mapping)
+    return aliases
+
+
+def _normalize_chinese_team(value: object) -> str:
+    value = unicodedata.normalize('NFKC', str(value or '')).strip()
+    value = value.replace('足球俱乐部', '')
+    return re.sub(r"[\s·・.．'’‘_\-]+", '', value)
+
+
+def resolve_model_team(league_id: str, candidates) -> str | None:
+    """Resolve full/short official names to one dedicated-model team.
+
+    Exact normalized aliases are preferred. A conservative containment match
+    is accepted only when every match points to the same model team.
+    """
+    mapping = _chinese_to_english().get(str(league_id), {})
+    normalized = {
+        _normalize_chinese_team(chinese): english
+        for chinese, english in mapping.items()
+        if _normalize_chinese_team(chinese)
+    }
+    values = candidates if isinstance(candidates, (list, tuple, set)) else [candidates]
+    for candidate in values:
+        key = _normalize_chinese_team(candidate)
+        if key in normalized:
+            return normalized[key]
+    for candidate in values:
+        key = _normalize_chinese_team(candidate)
+        if len(key) < 3:
+            continue
+        matches = {
+            english for alias, english in normalized.items()
+            if len(alias) >= 3 and (alias in key or key in alias)
+        }
+        if len(matches) == 1:
+            return matches.pop()
+    return None
+
 
 @lru_cache(maxsize=1)
 def _english_to_chinese() -> dict[str, dict[str, str]]:
-    aliases = json.loads(ALIASES_PATH.read_text(encoding='utf-8'))
+    aliases = _chinese_to_english()
     result: dict[str, dict[str, str]] = {}
     for league, mapping in aliases.items():
         inverse: dict[str, str] = {}
