@@ -967,38 +967,81 @@ def _aggressive_upset_score(
     return max(candidates, default=(float('nan'), ''), key=lambda item: item[0])
 
 
+def _historical_goal_strengths(
+        history: Optional[pd.DataFrame], home: str, away: str,
+        match_date: Optional[date] = None,
+) -> Optional[Tuple[float, float, int, int]]:
+    """Estimate independent home/away goal rates from pre-match history only."""
+    if history is None or history.empty or not home or not away:
+        return None
+    required = {'Date', 'Home', 'Away', 'HG', 'AG'}
+    if not required.issubset(history.columns):
+        return None
+    frame = history[list(required)].copy()
+    frame['Date'] = pd.to_datetime(frame['Date'], errors='coerce')
+    frame['HG'] = pd.to_numeric(frame['HG'], errors='coerce')
+    frame['AG'] = pd.to_numeric(frame['AG'], errors='coerce')
+    frame = frame.dropna().sort_values('Date')
+    if match_date is not None:
+        frame = frame.loc[frame['Date'].dt.date < match_date]
+    if frame.empty:
+        return None
+    # Recent league environment prevents old high/low-scoring eras from
+    # dominating while retaining enough matches for a stable prior.
+    league_recent = frame.tail(1200)
+    league_home = float(league_recent['HG'].mean())
+    league_away = float(league_recent['AG'].mean())
+    if not np.isfinite(league_home + league_away) or min(league_home, league_away) <= 0:
+        return None
+    home_rows = frame.loc[frame['Home'].astype(str).eq(str(home))].tail(12)
+    away_rows = frame.loc[frame['Away'].astype(str).eq(str(away))].tail(12)
+    if len(home_rows) < 3 or len(away_rows) < 3:
+        return None
+
+    def shrink(values: pd.Series, prior: float, strength: float = 6.0) -> float:
+        sample = pd.to_numeric(values, errors='coerce').dropna()
+        return float((sample.sum() + strength * prior) / (len(sample) + strength))
+
+    home_scored = shrink(home_rows['HG'], league_home)
+    home_conceded = shrink(home_rows['AG'], league_away)
+    away_scored = shrink(away_rows['AG'], league_away)
+    away_conceded = shrink(away_rows['HG'], league_home)
+    home_lambda = home_scored * away_conceded / league_home
+    away_lambda = away_scored * home_conceded / league_away
+    return (
+        float(np.clip(home_lambda, 0.20, 4.20)),
+        float(np.clip(away_lambda, 0.20, 4.20)),
+        len(home_rows), len(away_rows),
+    )
+
+
 def _monte_carlo_summary(
-        official_odds: Dict[str, float],
-        official_ttg: Optional[dict],
+        history: Optional[pd.DataFrame],
+        home: str,
+        away: str,
+        match_date: Optional[date],
+        lineup_shift: float,
+        lineup_confirmed: bool,
         handicap_line: Optional[float],
         seed_value: object,
         simulations: int = 10_000,
 ) -> dict:
-    """Independent market Monte Carlo; never consumes trained-model outputs."""
-    market = _market_baseline_probabilities(official_odds, official_ttg)
-    base_home = float(market['home_goals'])
-    base_away = float(market['away_goals'])
-    ttg_values = []
-    for goals in range(8):
-        try:
-            odd = float((official_ttg or {})[f's{goals}'])
-        except (KeyError, TypeError, ValueError):
-            ttg_values = []
-            break
-        if odd <= 1.0:
-            ttg_values = []
-            break
-        ttg_values.append(1.0 / odd)
-    if ttg_values:
-        ttg_probability = np.asarray(ttg_values, dtype=np.float64)
-        ttg_probability /= ttg_probability.sum()
-        market_total = float(np.dot(ttg_probability, np.array([
-            0, 1, 2, 3, 4, 5, 6, 7.5,
-        ], dtype=np.float64)))
-        fitted_total = max(0.20, base_home + base_away)
-        total_scale = float(np.clip(market_total / fitted_total, 0.65, 1.45))
-        base_home *= total_scale
-        base_away *= total_scale
+    """Historical attack/defence Double-Poisson Monte Carlo, independent of odds."""
+    strengths = _historical_goal_strengths(history, home, away, match_date)
+    if strengths is None:
+        return {
+            '模拟次数': 0, '模拟Top3比分': '', '模拟胜负': '', '模拟让球': '',
+            '模拟总进球': '', '模拟半全场': '', '模拟可信度': '',
+            '模拟最高赛果概率': float('nan'),
+            '模拟模型来源': '历史攻防样本不足',
+        }
+    base_home, base_away, home_samples, away_samples = strengths
+    if lineup_confirmed and np.isfinite(lineup_shift) and lineup_shift:
+        # Convert the conservative +/-4pp lineup signal into a bounded goal
+        # intensity shift without using any market/model probabilities.
+        adjustment = float(np.clip(np.exp(3.0 * lineup_shift), 0.88, 1.14))
+        base_home *= adjustment
+        base_away /= adjustment
 
     seed = zlib.crc32(str(seed_value).encode('utf-8'))
     rng = np.random.default_rng(seed)
@@ -1077,7 +1120,10 @@ def _monte_carlo_summary(
         ),
         '模拟可信度': '★' * confidence_score + '☆' * (5 - confidence_score),
         '模拟最高赛果概率': maximum_result,
-        '模拟模型来源': '官方赔率独立市场蒙特卡洛',
+        '模拟模型来源': (
+            f'历史攻防双泊松蒙特卡洛（主场{home_samples}场/客场{away_samples}场'
+            f'{"，含确认首发校正" if lineup_confirmed and lineup_shift else ""}）'
+        ),
     }
 
 
@@ -1161,6 +1207,7 @@ def _predict_supported_match(
     prediction_basis = '历史数据训练模型'
     confidence = '正常'
     estimated_teams = []
+    simulation_history = None
     trained_result_active = False
     dedicated_model_league = ''
     result_model_category = '市场基线'
@@ -1202,6 +1249,7 @@ def _predict_supported_match(
                 confidence = '中'
     else:
         raw_history = LeagueDatabase().load_league(league)
+        simulation_history = raw_history
         # HTR is a half-full target, not a required pre-match feature. Keeping
         # fixtures without HTR gives all prediction models the freshest history.
         required_history = raw_history.drop(columns=['HTR'], errors='ignore').columns
@@ -1406,7 +1454,8 @@ def _predict_supported_match(
         handicap_pick = OUTCOME_LABELS[int(handicap_ranking[0])]
         handicap_second_pick = OUTCOME_LABELS[int(handicap_ranking[1])]
     monte_carlo = _monte_carlo_summary(
-        odds, raw.get('ttg'),
+        simulation_history, home, away, _match_date(raw), lineup_shift,
+        lineup_analysis.get('status') == '已确认',
         handicap_odds['line'] if handicap_odds else None,
         _field(raw, 'matchId', default=f'{home_cn}-{away_cn}'),
     )

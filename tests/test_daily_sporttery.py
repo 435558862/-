@@ -224,15 +224,31 @@ class DailySportteryTests(unittest.TestCase):
         self.assertAlmostEqual(probability, 0.03)
 
     def test_monte_carlo_summary_is_reproducible_and_complete(self):
-        odds = {'H': 1.90, 'D': 3.40, 'A': 4.20}
-        ttg = {f's{i}': 7.0 + i * 0.4 for i in range(8)}
-        first = _monte_carlo_summary(odds, ttg, -1, 123)
-        second = _monte_carlo_summary(odds, ttg, -1, 123)
+        rows = []
+        for index in range(12):
+            rows.extend([
+                {'Date': f'2025-{index + 1:02d}-01', 'Home': 'A', 'Away': 'X',
+                 'HG': 2, 'AG': index % 2},
+                {'Date': f'2025-{index + 1:02d}-02', 'Home': 'Y', 'Away': 'B',
+                 'HG': 1, 'AG': 1 + index % 2},
+            ])
+        history = pd.DataFrame(rows)
+        args = (history, 'A', 'B', date(2026, 1, 1), 0.02, True, -1, 123)
+        first = _monte_carlo_summary(*args)
+        second = _monte_carlo_summary(*args)
         self.assertEqual(first, second)
         self.assertEqual(first['模拟次数'], 10_000)
         self.assertEqual(len(first['模拟Top3比分'].split(' / ')), 3)
         self.assertTrue(first['模拟让球'])
-        self.assertEqual(first['模拟模型来源'], '官方赔率独立市场蒙特卡洛')
+        self.assertTrue(first['模拟模型来源'].startswith('历史攻防双泊松蒙特卡洛'))
+        self.assertIn('含确认首发校正', first['模拟模型来源'])
+
+    def test_monte_carlo_refuses_to_fake_independence_without_history(self):
+        result = _monte_carlo_summary(
+            None, 'A', 'B', date(2026, 1, 1), 0.0, False, -1, 123,
+        )
+        self.assertEqual(result['模拟次数'], 0)
+        self.assertEqual(result['模拟模型来源'], '历史攻防样本不足')
 
     def test_upset_score_skips_already_displayed_picks(self):
         import numpy as np

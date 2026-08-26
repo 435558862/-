@@ -34,7 +34,7 @@ ALL_MODELS = '__all__'
 DEDICATED_MODELS = '__dedicated__'
 GENERIC_MODELS = '__generic__'
 SIMULATION_MODELS = '__simulation__'
-INDEPENDENT_SIMULATION_SOURCE = '官方赔率独立市场蒙特卡洛'
+INDEPENDENT_SIMULATION_SOURCE = '历史攻防双泊松蒙特卡洛'
 DEDICATED_LEAGUE_COLUMN = '专用模型联赛'
 REQUIRED_DEDICATED_MODELS = ('胜平负模型', '大小球模型', '比分模型', '半全场模型')
 
@@ -557,7 +557,7 @@ def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFram
         return df.copy()
     if model_key == SIMULATION_MODELS:
         source = df.get('模拟模型来源', pd.Series('', index=df.index))
-        return df.loc[source.fillna('').astype(str).eq(
+        return df.loc[source.fillna('').astype(str).str.startswith(
             INDEPENDENT_SIMULATION_SOURCE,
         )].copy()
     scopes = _prediction_model_scopes(df)
@@ -877,12 +877,9 @@ class SportteryPredictionsDialog(QDialog):
                 return re.split(r'[\s/｜]', text, maxsplit=1)[0]
 
             def comparison(label: str, primary: str, simulated: str) -> str:
-                if not primary or not simulated:
+                if not primary or not simulated or primary == simulated:
                     return ''
-                mark = '✓' if primary == simulated else '✕'
-                return f'{label} {primary}={simulated}{mark}' if mark == '✓' else (
-                    f'{label} {primary}→{simulated}{mark}'
-                )
+                return f'{label} {primary}→{simulated}✕'
 
             parts = []
             primary_result = first_choice(row.get('胜平负首选'))[:1]
@@ -898,8 +895,19 @@ class SportteryPredictionsDialog(QDialog):
             primary_total = first_choice(row.get('大小球首选'))
             simulated_total = first_choice(row.get('模拟总进球'))
             if primary_total and simulated_total:
-                # 两者输出口径不同：主模型给大小方向，模拟模型给进球区间，直接并排展示。
-                parts.append(f'进球 {primary_total}→{simulated_total}')
+                primary_direction = (
+                    '大' if primary_total.startswith('大') else
+                    '小' if primary_total.startswith('小') else ''
+                )
+                simulated_direction = (
+                    '大' if simulated_total.startswith('4球以上') else
+                    '小' if simulated_total.startswith(('0-1球', '1球以内')) else ''
+                )
+                if (
+                    primary_direction and simulated_direction
+                    and primary_direction != simulated_direction
+                ):
+                    parts.append(f'进球 {primary_total}→{simulated_total}✕')
 
             primary_score = str(row.get('首选比分') or '').strip()
             simulated_match = re.match(
@@ -995,7 +1003,7 @@ class SportteryPredictionsDialog(QDialog):
         )
         simulated = self._predictions.get(
             '模拟模型来源', pd.Series('', index=self._predictions.index),
-        ).fillna('').astype(str).eq(INDEPENDENT_SIMULATION_SOURCE)
+        ).fillna('').astype(str).str.startswith(INDEPENDENT_SIMULATION_SOURCE)
         self._model_selector.addItem(
             f'蒙特卡洛模拟（{int(simulated.sum())}场）', SIMULATION_MODELS,
         )
