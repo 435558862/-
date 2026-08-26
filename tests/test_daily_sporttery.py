@@ -250,6 +250,20 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(result['模拟次数'], 0)
         self.assertEqual(result['模拟模型来源'], '历史攻防样本不足')
 
+    def test_monte_carlo_uses_labelled_low_confidence_fallback(self):
+        result = _monte_carlo_summary(
+            None, 'A', 'B', date(2026, 1, 1), 0.0, False, -1, 123,
+            fallback_goal_rates=(1.55, 1.05),
+        )
+        self.assertEqual(result['模拟次数'], 10_000)
+        self.assertEqual(len(result['模拟Top3比分'].split(' / ')), 3)
+        self.assertTrue(result['模拟胜负'])
+        self.assertTrue(result['模拟让球'])
+        self.assertTrue(result['模拟总进球'])
+        self.assertTrue(result['模拟半全场'])
+        self.assertIn('低置信', result['模拟模型来源'])
+        self.assertLessEqual(result['模拟可信度'].count('★'), 2)
+
     def test_upset_score_skips_already_displayed_picks(self):
         import numpy as np
         # 1-1 is the strongest draw but is already the main pick; the upset row

@@ -1023,19 +1023,36 @@ def _monte_carlo_summary(
         lineup_shift: float,
         lineup_confirmed: bool,
         handicap_line: Optional[float],
-        seed_value: object,
-        simulations: int = 10_000,
+    seed_value: object,
+    simulations: int = 10_000,
+    fallback_goal_rates: Optional[Tuple[float, float]] = None,
 ) -> dict:
-    """Historical attack/defence Double-Poisson Monte Carlo, independent of odds."""
+    """Double-Poisson Monte Carlo with an explicitly labelled low-data fallback.
+
+    Real pre-match team history remains the only independent tier.  When it is
+    unavailable, callers may provide market-derived goal priors so the report is
+    still complete; that tier is labelled low confidence and must not be
+    presented as an independent historical model.
+    """
     strengths = _historical_goal_strengths(history, home, away, match_date)
+    fallback_used = False
     if strengths is None:
-        return {
-            '模拟次数': 0, '模拟Top3比分': '', '模拟胜负': '', '模拟让球': '',
-            '模拟总进球': '', '模拟半全场': '', '模拟可信度': '',
-            '模拟最高赛果概率': float('nan'),
-            '模拟模型来源': '历史攻防样本不足',
-        }
-    base_home, base_away, home_samples, away_samples = strengths
+        rates = fallback_goal_rates or ()
+        if (
+            len(rates) != 2
+            or not all(np.isfinite(value) and value > 0 for value in rates)
+        ):
+            return {
+                '模拟次数': 0, '模拟Top3比分': '', '模拟胜负': '', '模拟让球': '',
+                '模拟总进球': '', '模拟半全场': '', '模拟可信度': '',
+                '模拟最高赛果概率': float('nan'),
+                '模拟模型来源': '历史攻防样本不足',
+            }
+        base_home, base_away = (float(rates[0]), float(rates[1]))
+        home_samples = away_samples = 0
+        fallback_used = True
+    else:
+        base_home, base_away, home_samples, away_samples = strengths
     if lineup_confirmed and np.isfinite(lineup_shift) and lineup_shift:
         # Convert the conservative +/-4pp lineup signal into a bounded goal
         # intensity shift without using any market/model probabilities.
@@ -1101,6 +1118,8 @@ def _monte_carlo_summary(
         5 if maximum_result >= 0.70 else 4 if maximum_result >= 0.60
         else 3 if maximum_result >= 0.52 else 2 if maximum_result >= 0.45 else 1
     )
+    if fallback_used:
+        confidence_score = min(confidence_score, 2)
     return {
         '模拟次数': simulations,
         '模拟Top3比分': ' / '.join(
@@ -1121,8 +1140,11 @@ def _monte_carlo_summary(
         '模拟可信度': '★' * confidence_score + '☆' * (5 - confidence_score),
         '模拟最高赛果概率': maximum_result,
         '模拟模型来源': (
-            f'历史攻防双泊松蒙特卡洛（主场{home_samples}场/客场{away_samples}场'
-            f'{"，含确认首发校正" if lineup_confirmed and lineup_shift else ""}）'
+            '市场约束联赛先验蒙特卡洛（无球队历史，低置信）'
+            if fallback_used else (
+                f'历史攻防双泊松蒙特卡洛（主场{home_samples}场/客场{away_samples}场'
+                f'{"，含确认首发校正" if lineup_confirmed and lineup_shift else ""}）'
+            )
         ),
     }
 
@@ -1453,11 +1475,26 @@ def _predict_supported_match(
         handicap_ranking = np.argsort(handicap_probability)[::-1]
         handicap_pick = OUTCOME_LABELS[int(handicap_ranking[0])]
         handicap_second_pick = OUTCOME_LABELS[int(handicap_ranking[1])]
+    # Always keep the comparison table complete.  Exact-score market priors are
+    # used only when real team attack/defence history is missing, and the
+    # returned source/credibility fields make that weaker evidence explicit.
+    fallback_baseline = _market_baseline_probabilities(
+        odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
+    )
+    fallback_scores = np.asarray(fallback_baseline['score'], dtype=np.float64)
+    fallback_classes = np.asarray(fallback_baseline['score_classes'], dtype=np.int32)
+    fallback_home_rate = float(np.sum(
+        fallback_scores * np.asarray([divmod(int(value), 7)[0] for value in fallback_classes]),
+    ))
+    fallback_away_rate = float(np.sum(
+        fallback_scores * np.asarray([divmod(int(value), 7)[1] for value in fallback_classes]),
+    ))
     monte_carlo = _monte_carlo_summary(
         simulation_history, home, away, _match_date(raw), lineup_shift,
         lineup_analysis.get('status') == '已确认',
         handicap_odds['line'] if handicap_odds else None,
         _field(raw, 'matchId', default=f'{home_cn}-{away_cn}'),
+        fallback_goal_rates=(fallback_home_rate, fallback_away_rate),
     )
     monte_risks = []
     if monte_carlo['模拟最高赛果概率'] < 0.50:
