@@ -10,10 +10,14 @@ __pycache__/
 .DS_Store
 
 # Runtime caches and scratch
+.prophitbet.pid
+prophitbet.log
 storage/matplotlib/
 storage/network/.api_football_key
 work/
 dist/
+vendor/
+storage.before-*/
 windows-update-backups/
 
 # Backups / snapshots

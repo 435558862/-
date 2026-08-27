@@ -89,11 +89,12 @@ def live_snapshot_from_match(raw: dict, captured_at: str) -> Optional[dict]:
 
 def build_trend_rows(match_id, series: Dict[str, List[dict]],
                      hours: Optional[int] = None) -> List[dict]:
-    """Build chronological chart rows, optionally limited from latest capture."""
+    """Build chronological chart rows and always retain the opening baseline."""
     source = sorted(
         list(series.get(str(match_id), []) or []),
         key=lambda row: str(row.get('captured_at') or ''),
     )
+    opening = source[0] if source else None
     if hours and source:
         latest = _timestamp(source[-1].get('captured_at'))
         if latest is not None:
@@ -103,10 +104,11 @@ def build_trend_rows(match_id, series: Dict[str, List[dict]],
                 if (stamp := _timestamp(row.get('captured_at'))) is not None
                 and stamp >= cutoff
             ]
-            if filtered and len(filtered) < 2:
-                first_index = source.index(filtered[0])
-                if first_index > 0:
-                    filtered.insert(0, source[first_index - 1])
+            # The first value recorded from the official feed is our honest
+            # opening baseline. Keep it in every range so a 6/12/24-hour view
+            # cannot accidentally compare two late-market points instead.
+            if filtered and opening not in filtered:
+                filtered.insert(0, opening)
             source = filtered
 
     result = []
@@ -116,12 +118,23 @@ def build_trend_rows(match_id, series: Dict[str, List[dict]],
             continue
         over, under = _ttg_probabilities(snapshot.get('ttg') or {})
         hhad = snapshot.get('hhad') or {}
+        raw_label = str(snapshot.get('market_update')
+                        or snapshot.get('had_update')
+                        or snapshot.get('captured_at') or '')
+        is_opening = snapshot is opening
         result.append({
             'captured_at': str(snapshot.get('captured_at') or ''),
-            'label': str(snapshot.get('had_update') or snapshot.get('captured_at') or ''),
+            'label': f'初盘（首次记录） {raw_label}' if is_opening else raw_label,
+            'is_opening': is_opening,
+            'had_H': _number((snapshot.get('had') or {}).get('H')),
+            'had_D': _number((snapshot.get('had') or {}).get('D')),
+            'had_A': _number((snapshot.get('had') or {}).get('A')),
             'H': probabilities['H'], 'D': probabilities['D'],
             'A': probabilities['A'],
             'hhad_line': _number(hhad.get('line')),
+            'hhad_H': _number(hhad.get('H')),
+            'hhad_D': _number(hhad.get('D')),
+            'hhad_A': _number(hhad.get('A')),
             'over': over, 'under': under,
         })
     return result

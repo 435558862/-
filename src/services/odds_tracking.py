@@ -119,6 +119,102 @@ def _latest_key(observation: dict) -> tuple:
     )
 
 
+def official_history_snapshots(match_id: str, history: dict) -> List[dict]:
+    """Convert official HAD/HHAD/TTG history into complete market snapshots."""
+    events: Dict[str, dict] = {}
+    mappings = (('hadList', 'had'), ('hhadList', 'hhad'), ('ttgList', 'ttg'))
+    for list_name, market in mappings:
+        for raw in history.get(list_name) or []:
+            stamp = f"{raw.get('updateDate', '')} {raw.get('updateTime', '')}".strip()
+            if not stamp:
+                continue
+            events.setdefault(stamp, {})[market] = raw
+    state = {}
+    snapshots = []
+    for stamp in sorted(events):
+        changed = events[stamp]
+        state.update(changed)
+        had = state.get('had') or {}
+        converted_had = {
+            'H': _float(had.get('h')), 'D': _float(had.get('d')),
+            'A': _float(had.get('a')),
+        }
+        if None in converted_had.values():
+            continue
+        try:
+            captured_at = datetime.strptime(stamp, '%Y-%m-%d %H:%M:%S').replace(
+                tzinfo=ZoneInfo('Asia/Shanghai'),
+            ).isoformat()
+        except ValueError:
+            captured_at = stamp
+        snapshot = {
+            'captured_at': captured_at,
+            'market_update': stamp,
+            'match_id': str(match_id),
+            'league': str(history.get('leagueAllName') or history.get('leagueAbbName') or ''),
+            'home': str(history.get('homeTeamAllName') or ''),
+            'away': str(history.get('awayTeamAllName') or ''),
+            'had': converted_had,
+            'had_update': (
+                f"{had.get('updateDate', '')} {had.get('updateTime', '')}".strip()
+            ),
+            'official_history': True,
+        }
+        hhad = state.get('hhad') or {}
+        line = _float(hhad.get('goalLine'))
+        hhad_values = {
+            'line': line, 'H': _float(hhad.get('h')),
+            'D': _float(hhad.get('d')), 'A': _float(hhad.get('a')),
+        }
+        if line is not None and None not in (
+                hhad_values['H'], hhad_values['D'], hhad_values['A']):
+            snapshot['hhad'] = hhad_values
+            snapshot['hhad_update'] = (
+                f"{hhad.get('updateDate', '')} {hhad.get('updateTime', '')}".strip()
+            )
+        ttg = state.get('ttg') or {}
+        ttg_values = {f's{i}': _float(ttg.get(f's{i}')) for i in range(8)}
+        if all(value is not None for value in ttg_values.values()):
+            snapshot['ttg'] = ttg_values
+        snapshots.append(snapshot)
+    return snapshots
+
+
+def record_official_history(match_id: str, history: dict,
+                            path: Path = HISTORY_PATH) -> int:
+    """Append previously unseen official historical snapshots to local storage."""
+    try:
+        snapshots = official_history_snapshots(match_id, history)
+        if not snapshots:
+            return 0
+        known = set()
+        if path.exists():
+            with path.open('r', encoding='utf-8') as handle:
+                for line in handle:
+                    try:
+                        row = json.loads(line)
+                        known.add((str(row.get('match_id', '')),
+                                   str(row.get('captured_at', '')),
+                                   _latest_key(row)))
+                    except (ValueError, KeyError, TypeError):
+                        continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        appended = 0
+        with path.open('a', encoding='utf-8') as handle:
+            for snapshot in snapshots:
+                key = (snapshot['match_id'], snapshot['captured_at'],
+                       _latest_key(snapshot))
+                if key in known:
+                    continue
+                handle.write(json.dumps(snapshot, ensure_ascii=False) + '\n')
+                known.add(key)
+                appended += 1
+        return appended
+    except Exception:
+        logging.exception('官方初盘历史记录失败，忽略。')
+        return 0
+
+
 def record_odds_snapshots(
         matches: List[dict],
         path: Path = HISTORY_PATH,

@@ -23,6 +23,44 @@ def raw_match(match_id, h='1.58', d='3.55', a='4.65', update='20:02:46',
 
 class OddsTrackingTests(unittest.TestCase):
 
+    def test_official_history_records_full_had_and_handicap_opening(self):
+        history = {
+            'leagueAllName': '测试联赛', 'homeTeamAllName': '主队',
+            'awayTeamAllName': '客队',
+            'hadList': [
+                {'updateDate': '2026-08-27', 'updateTime': '09:21:43',
+                 'h': '1.87', 'd': '3.20', 'a': '3.55'},
+                {'updateDate': '2026-08-27', 'updateTime': '11:07:17',
+                 'h': '1.83', 'd': '3.25', 'a': '3.65'},
+            ],
+            'hhadList': [
+                {'updateDate': '2026-08-27', 'updateTime': '09:21:43',
+                 'goalLine': '-1', 'h': '3.85', 'd': '3.43', 'a': '1.73'},
+                {'updateDate': '2026-08-27', 'updateTime': '11:07:59',
+                 'goalLine': '-1', 'h': '3.76', 'd': '3.35', 'a': '1.77'},
+            ],
+        }
+        rows = odds_tracking.official_history_snapshots('2041078', history)
+        self.assertEqual(rows[0]['market_update'], '2026-08-27 09:21:43')
+        self.assertEqual(rows[0]['had'], {'H': 1.87, 'D': 3.2, 'A': 3.55})
+        self.assertEqual(rows[0]['hhad'], {
+            'line': -1.0, 'H': 3.85, 'D': 3.43, 'A': 1.73,
+        })
+        self.assertEqual(
+            odds_tracking.record_official_history(
+                '2041078', history, path=self.path,
+            ),
+            3,
+        )
+        stored = odds_tracking.read_odds_series(self.path)['2041078']
+        self.assertEqual(stored[0]['hhad']['H'], 3.85)
+        self.assertEqual(
+            odds_tracking.record_official_history(
+                '2041078', history, path=self.path,
+            ),
+            0,
+        )
+
     def test_market_flow_gate_agrees_and_conflicts(self):
         series = {'1': [
             {'had': {'H': 2.00, 'D': 3.20, 'A': 3.60}},

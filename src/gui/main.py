@@ -1,5 +1,6 @@
 import pandas as pd
 import qdarktheme
+import sys
 import webbrowser
 from typing import Optional
 from PySide6.QtCore import QThread, QTimer, Qt
@@ -91,7 +92,20 @@ class MainWindow(QMainWindow):
 
     def _exec_owned_dialog(self, dialog: QDialog):
         """Run a modal dialog as an owned WSLg window and bring it forward."""
-        dialog.setParent(self, dialog.windowFlags())
+        flags = dialog.windowFlags()
+        if sys.platform == 'darwin':
+            # A parented WindowModal QDialog is presented like a macOS sheet and
+            # may lose its native traffic-light controls.  Keep it owned by the
+            # main window, but make it a regular top-level window with a native
+            # title bar so users can close, minimize, or zoom it normally.
+            flags |= (
+                Qt.WindowType.Window
+                | Qt.WindowType.WindowTitleHint
+                | Qt.WindowType.WindowMinimizeButtonHint
+                | Qt.WindowType.WindowMaximizeButtonHint
+                | Qt.WindowType.WindowCloseButtonHint
+            )
+        dialog.setParent(self, flags)
         dialog.setWindowModality(Qt.WindowModality.WindowModal)
         QTimer.singleShot(0, dialog.raise_)
         QTimer.singleShot(0, dialog.activateWindow)

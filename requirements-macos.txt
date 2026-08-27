@@ -15,6 +15,8 @@ selenium==4.34.2
 lxml==6.0.0
 rapidfuzz==3.13.0
 xgboost==3.0.2
+llvmlite==0.44.0
+numba==0.61.2
 shap==0.48.0
 optuna==4.4.0
 Boruta==0.4.3

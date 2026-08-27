@@ -74,6 +74,28 @@ class SportteryMobileClient:
                     time.sleep(1.5 * (attempt + 1))
         raise RuntimeError(f'竞彩网移动端接口读取失败：{last_error}')
 
+    def fixed_bonus_history(self, match_id: str) -> dict:
+        """Return official chronological fixed-bonus history for one match."""
+        last_error = None
+        for attempt in range(self.retries):
+            try:
+                response = self.session.get(
+                    BONUS_API.format(match_id=str(match_id)),
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+                if str(data.get('errorCode')) != '0':
+                    raise RuntimeError(
+                        f'{data.get("errorCode")} {data.get("errorMessage", "")}',
+                    )
+                return ((data.get('value') or {}).get('oddsHistory') or {})
+            except (requests.RequestException, ValueError, RuntimeError) as error:
+                last_error = error
+                if attempt + 1 < self.retries:
+                    time.sleep(1.5 * (attempt + 1))
+        raise RuntimeError(f'官方固定奖金历史读取失败：{last_error}')
+
     def snapshot(self, output: Path) -> List[dict]:
         matches = self.selling_matches()
         output.parent.mkdir(parents=True, exist_ok=True)

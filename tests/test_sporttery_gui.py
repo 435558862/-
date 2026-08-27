@@ -50,6 +50,18 @@ def test_handicap_display_hides_full_distribution_and_keeps_ranked_picks():
     assert display.loc[0, '让球首选/次选'] == '让负（66.0%）/让平（21.2%）'
 
 
+def test_dedicated_half_full_predictions_are_visible_in_ticket_table():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周四007', '专用模型联赛': '西甲',
+        '半全场首选': '胜胜', '半全场首选概率': 0.274497,
+        '半全场次选': '平胜', '半全场次选概率': 0.174302,
+    }])
+
+    display = SportteryPredictionsDialog._display_predictions(predictions)
+
+    assert display.loc[0, '半全场首选/次选'] == '胜胜（27.4%）/平胜（17.4%）'
+
+
 def test_single_display_combines_all_scores_without_percentages():
     predictions = pd.DataFrame([{
         '赛事编号': '周二003',

@@ -1,6 +1,8 @@
 import json
+import os
 from queue import Empty, Queue
 import re
+import sys
 from threading import Thread
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -22,6 +24,7 @@ from src.services.daily_sporttery import LEAGUE_ALIASES, _sort_by_match_number, 
 from src.services.market_trends import build_trend_rows, live_snapshot_from_match, summarize_trend
 from src.services.odds_tracking import (
     format_market_flow, read_odds_series, record_odds_snapshots,
+    record_official_history,
 )
 from src.services.yesterday_review import load_yesterday_hit_report
 
@@ -29,7 +32,27 @@ from src.services.yesterday_review import load_yesterday_hit_report
 REPORT_ROOT = Path('storage/jingcai/reports')
 PREDICTION_PATH = REPORT_ROOT / '最新竞彩预测.csv'
 LEARNING_STATUS_PATH = Path('storage/jingcai/learning/status.json')
-WINDOWS_EXPORT_ROOT = Path('/mnt/c/Users/Administrator/Desktop/ProphitBet-竞彩预测')
+
+
+def prediction_export_root() -> Path:
+    """Return a writable, platform-native prediction export directory."""
+    configured = os.environ.get('PROPHITBET_EXPORT_DIR', '').strip()
+    if configured:
+        return Path(configured).expanduser()
+    if sys.platform in {'darwin', 'win32'}:
+        return Path.home() / 'Desktop'
+    wsl_desktop = Path('/mnt/c/Users/Administrator/Desktop')
+    if wsl_desktop.is_dir():
+        return wsl_desktop
+    return Path.home()
+
+
+def display_export_path(path: Path) -> str:
+    """Format a native path for the completion message."""
+    text = str(path)
+    if sys.platform.startswith('linux') and text.startswith('/mnt/c/'):
+        return text.replace('/mnt/c', 'C:', 1).replace('/', '\\')
+    return text
 ALL_MODELS = '__all__'
 DEDICATED_MODELS = '__dedicated__'
 GENERIC_MODELS = '__generic__'
@@ -223,7 +246,11 @@ class _MarketTrendChart(QWidget):
         label_indexes = sorted({0, len(self._rows) // 2, len(self._rows) - 1})
         painter.setPen(QColor('#66717a'))
         for index in label_indexes:
-            label = str(self._rows[index].get('label') or '')[-8:]
+            raw_label = str(self._rows[index].get('label') or '')
+            label = (
+                f'初盘 {raw_label[-5:]}'
+                if self._rows[index].get('is_opening') else raw_label[-8:]
+            )
             x = left + width * index / denominator
             painter.drawText(int(x) - 38, top + height + 8, 76, 18,
                              Qt.AlignmentFlag.AlignCenter, label)
@@ -333,15 +360,22 @@ class MarketTrendDialog(QDialog):
         self._live_status.setText(
             '实时数据源：竞彩网官方移动端｜正在刷新…｜每60秒自动采集'
         )
-        Thread(target=self._fetch_live_market, daemon=True).start()
+        selected_id = str(self._match_selector.currentData() or '')
+        Thread(
+            target=self._fetch_live_market, args=(selected_id,), daemon=True,
+        ).start()
 
-    def _fetch_live_market(self):
+    def _fetch_live_market(self, selected_id=''):
         captured_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
         try:
-            matches = SportteryMobileClient(
+            client = SportteryMobileClient(
                 timeout=8.0, retries=1,
-            ).selling_matches()
-            self._live_queue.put(('ok', captured_at, matches))
+            )
+            matches = client.selling_matches()
+            history = (
+                client.fixed_bonus_history(selected_id) if selected_id else {}
+            )
+            self._live_queue.put(('ok', captured_at, (matches, history, selected_id)))
         except Exception as error:
             self._live_queue.put(('error', captured_at, str(error)))
 
@@ -359,6 +393,18 @@ class MarketTrendDialog(QDialog):
                 f'实时数据暂不可用｜{shown_time}｜{str(payload)[:120]}'
             )
             return
+        matches, official_history, history_match_id = payload
+        persisted = record_odds_snapshots(
+            matches, captured_at=captured_at,
+        )
+        history_added = record_official_history(
+            history_match_id, official_history,
+        ) if official_history and history_match_id else 0
+        # Reload after both writes so the chart starts with the true official
+        # opening row and includes all historical handicap prices immediately.
+        self._series = {
+            key: list(rows) for key, rows in read_odds_series().items()
+        }
         live_ids = set()
         first_live_id = None
         selector_ids = {
@@ -367,7 +413,7 @@ class MarketTrendDialog(QDialog):
         }
         appended = 0
         unchanged = 0
-        for raw in payload:
+        for raw in matches:
             snapshot = live_snapshot_from_match(raw, captured_at)
             if snapshot is None:
                 continue
@@ -407,7 +453,9 @@ class MarketTrendDialog(QDialog):
         )
         self._live_status.setText(
             f'实时数据源：竞彩网官方移动端｜{shown_time}｜'
-            f'新增走势点{appended}场、未变{unchanged}场｜{selected_note}｜每60秒自动采集'
+            f'补录官方初盘/变盘{history_added}点、入库{persisted}场、'
+            f'新增走势点{appended}场、未变{unchanged}场｜'
+            f'{selected_note}｜每60秒自动采集'
         )
         self._render()
 
@@ -436,7 +484,8 @@ class MarketTrendDialog(QDialog):
             f'综合结论：{summary["conclusion"]}　｜　'
             f'{summary["handicap"]}　｜　{summary["total_goals"]}　｜　'
             f'稳定性：{summary["stability"]}　｜　实时曲线点：{summary["observations"]}个\n'
-            f'当前胜平负：{probability_text}'
+            f'当前胜平负：{probability_text}　｜　'
+            f'初盘基准：{rows[0]["label"] if rows else "--"}'
         )
         self._chart.set_rows(rows)
         while self._table_layout.count():
@@ -445,9 +494,15 @@ class MarketTrendDialog(QDialog):
                 item.widget().deleteLater()
         frame = pd.DataFrame([{
             '记录时间': row['label'],
-            '胜': f'{row["H"]:.1%}', '平': f'{row["D"]:.1%}',
-            '负': f'{row["A"]:.1%}',
+            '胜赔': f'{row["had_H"]:.2f}',
+            '平赔': f'{row["had_D"]:.2f}',
+            '负赔': f'{row["had_A"]:.2f}',
+            '胜概率': f'{row["H"]:.1%}', '平概率': f'{row["D"]:.1%}',
+            '负概率': f'{row["A"]:.1%}',
             '让球线': '' if row['hhad_line'] is None else f'{row["hhad_line"]:g}',
+            '让球胜赔': '' if row['hhad_H'] is None else f'{row["hhad_H"]:.2f}',
+            '让球平赔': '' if row['hhad_D'] is None else f'{row["hhad_D"]:.2f}',
+            '让球负赔': '' if row['hhad_A'] is None else f'{row["hhad_A"]:.2f}',
             '大球': '' if row['over'] is None else f'{row["over"]:.1%}',
             '小球': '' if row['under'] is None else f'{row["under"]:.1%}',
         } for row in rows])
@@ -457,7 +512,7 @@ class MarketTrendDialog(QDialog):
         )
         header = self._table.horizontalHeader()
         header.setStretchLastSection(False)
-        widths = (145, 52, 52, 52, 62, 72, 72)
+        widths = (190, 55, 55, 55, 65, 65, 65, 62, 76, 76, 76, 72, 72)
         for column_index, width in enumerate(widths):
             if column_index < self._table.columnCount():
                 self._table.setColumnWidth(column_index, width)
@@ -950,7 +1005,8 @@ class SportteryPredictionsDialog(QDialog):
             '阵容分析',
             '市场概率档参考', '分析依据',
             '官方让球数', '让球首选/次选',
-            '大小球首选', '比分推荐（首/次1/次2/冷/进取）',
+            '大小球首选', '半全场首选/次选',
+            '比分推荐（首/次1/次2/冷/进取）',
             '蒙特风险',
         ]
         shown = display[[column for column in preferred if column in display.columns]].copy()
@@ -1260,10 +1316,9 @@ class SportteryPredictionsDialog(QDialog):
             return
         selected = self._model_selector.currentText().split('（', 1)[0]
         exported_at = datetime.now()
-        export_day = exported_at.date().isoformat()
         timestamp = exported_at.strftime('%Y-%m-%d_%H-%M-%S-%f')[:-3]
         path = (
-            WINDOWS_EXPORT_ROOT / export_day
+            prediction_export_root()
             / f'{timestamp}-{_safe_filename(selected)}.xlsx'
         )
         try:
@@ -1276,7 +1331,6 @@ class SportteryPredictionsDialog(QDialog):
         except Exception as error:
             QMessageBox.critical(self, '导出失败', f'无法生成 Excel：{error}')
             return
-        windows_path = str(path).replace('/mnt/c', 'C:').replace('/', '\\')
         QMessageBox.information(
-            self, '导出完成', f'已生成 Windows Excel 文件：\n{windows_path}',
+            self, '导出完成', f'已生成 Excel 文件：\n{display_export_path(path)}',
         )
