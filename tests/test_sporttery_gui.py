@@ -47,7 +47,7 @@ def test_handicap_display_hides_full_distribution_and_keeps_ranked_picks():
     display = SportteryPredictionsDialog._display_predictions(predictions)
 
     assert '让球胜/平/负' not in display.columns
-    assert display.loc[0, '让球首选/次选'] == '让负（66.0%）/让平（21.2%）'
+    assert display.loc[0, '让球'] == '让负（66.0%）/让平（21.2%）'
 
 
 def test_dedicated_half_full_predictions_are_visible_in_ticket_table():
@@ -59,7 +59,7 @@ def test_dedicated_half_full_predictions_are_visible_in_ticket_table():
 
     display = SportteryPredictionsDialog._display_predictions(predictions)
 
-    assert display.loc[0, '半全场首选/次选'] == '胜胜（27.4%）/平胜（17.4%）'
+    assert display.loc[0, '半全场'] == '胜胜（27.4%）/平胜（17.4%）'
 
 
 def test_single_display_combines_all_scores_without_percentages():
@@ -86,9 +86,9 @@ def test_single_display_combines_all_scores_without_percentages():
 
     display = SportteryPredictionsDialog._display_predictions(predictions)
 
-    assert display.loc[0, '置信度'] == '中'
-    assert display.loc[0, '胜负首选'] == '胜（60.0%）'
-    scores = display.loc[0, '比分情景（Top3/反向/高进球）']
+    assert '置信度' not in display.columns
+    assert display.loc[0, '综合方向'].startswith('胜负 胜（60.0%）')
+    scores = display.loc[0, '比分']
     assert scores == '2-1 / 1-0 / 2-0 / 1-2 / 3-1'
     assert '%' not in scores
 
@@ -99,7 +99,7 @@ def test_all_scores_remain_visible_even_when_confidence_is_low():
         '首选比分': '1-1', '次选比分': '1-0', '第三比分': '2-1',
     }])
     display = SportteryPredictionsDialog._display_predictions(predictions)
-    assert display.loc[0, '比分情景（Top3/反向/高进球）'] == '1-1 / 1-0 / 2-1'
+    assert display.loc[0, '比分'] == '1-1 / 1-0 / 2-1'
 
 
 def test_only_audited_score_recommendations_are_marked():

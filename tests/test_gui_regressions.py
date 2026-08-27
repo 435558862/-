@@ -242,7 +242,7 @@ def test_simulation_filter_includes_low_confidence_prior_rows():
     assert result['赛事编号'].tolist() == ['周六001']
 
 
-def test_sporttery_table_shows_decision_probabilities_and_audit_reference():
+def test_sporttery_table_keeps_only_compact_decision_columns():
     predictions = pd.DataFrame([{
         '赛事编号': '周六009', '联赛': '测试联赛', '主队': '主队', '客队': '客队',
         '胜负模型类别': '市场基线', '建议状态': '精选主推', '置信等级': '高',
@@ -254,8 +254,10 @@ def test_sporttery_table_shows_decision_probabilities_and_audit_reference():
 
     display = sporttery_window.SportteryPredictionsDialog._display_predictions(predictions)
 
-    assert '胜平负概率' not in display.columns
-    assert '官方销售状态' not in display.columns
-    assert display.loc[0, '市场概率档参考'] == '历史同档 76.2%｜覆盖 13.7%｜137场'
-    assert display.loc[0, '分析依据'] == '官方赔率市场基线'
-    assert display.loc[0, '证据状态'] == '证据项已披露'
+    assert display.columns.tolist() == [
+        '赛事编号', '联赛', '对阵', '距参考截止', '综合方向', '盘口流向',
+        '让球', '大小球', '半全场', '比分', '风险提示',
+    ]
+    assert display.loc[0, '对阵'] == '主队 vs 客队'
+    assert display.loc[0, '综合方向'] == '胜负 胜（70.0%）'
+    assert display.loc[0, '风险提示'] == '正常'

@@ -1145,22 +1145,48 @@ class SportteryPredictionsDialog(QDialog):
                 f'约{float(value):.0f}分钟' if value >= 0 else '已过参考线'
             )
         )
+        display['对阵'] = (
+            display.get('主队', pd.Series('', index=display.index)).fillna('').astype(str)
+            + ' vs '
+            + display.get('客队', pd.Series('', index=display.index)).fillna('').astype(str)
+        )
+
+        def compact_direction(row: pd.Series) -> str:
+            parts = []
+            result = str(row.get('胜负首选') or '').strip()
+            handicap = str(row.get('让球首选/次选') or '').strip()
+            total = str(row.get('大小球首选') or '').strip()
+            if result:
+                parts.append(f'胜负 {result}')
+            if handicap and handicap != '/':
+                parts.append(f'让球 {handicap.split("/", 1)[0]}')
+            if total:
+                parts.append(f'进球 {total}')
+            return '｜'.join(parts) or '数据待补'
+
+        def compact_risk(row: pd.Series) -> str:
+            parts = []
+            disagreement = str(row.get('模拟差异') or '').strip()
+            evidence = str(row.get('证据状态') or '').strip()
+            lineup = str(row.get('阵容分析') or '').strip()
+            if disagreement:
+                parts.append(disagreement)
+            if evidence.startswith('需谨慎'):
+                parts.append(evidence.removeprefix('需谨慎：'))
+            if lineup and lineup not in ('首发已确认', '阵容暂无明显影响'):
+                parts.append(lineup)
+            return '｜'.join(dict.fromkeys(parts)) or '正常'
+
+        display['综合方向'] = display.apply(compact_direction, axis=1)
+        display['风险提示'] = display.apply(compact_risk, axis=1)
+        display['让球'] = display['让球首选/次选']
+        display['大小球'] = display['大小球首选']
+        display['半全场'] = display['半全场首选/次选']
+        display['比分'] = display['比分情景（Top3/反向/高进球）']
         preferred = [
-            '赛事编号', '比赛时间', '联赛', '胜负模型', '主队', '客队',
-            '距参考截止',
-            '建议临场同步时段',
-            '建议状态', '置信度', '胜负首选',
-            '胜平负指数（首次采集→当前）',
-            '模拟差异', '模拟可信度', '模拟模型来源',
-            '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场', '模拟Top3比分',
-            '盘口流向',
-            '阵容分析',
-            '证据状态',
-            '市场概率档参考', '分析依据',
-            '官方让球数', '让球首选/次选',
-            '让球指数（首次采集→当前）',
-            '大小球首选', '半全场首选/次选',
-            '比分情景（Top3/反向/高进球）',
+            '赛事编号', '比赛时间', '联赛', '对阵', '距参考截止',
+            '综合方向', '盘口流向', '让球', '大小球', '半全场', '比分',
+            '风险提示',
         ]
         shown = display[[column for column in preferred if column in display.columns]].copy()
         for column in shown.columns:
