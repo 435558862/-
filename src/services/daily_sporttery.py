@@ -6,6 +6,7 @@ import re
 import unicodedata
 import zlib
 from functools import lru_cache
+from difflib import SequenceMatcher
 from math import exp
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -77,6 +78,21 @@ EUROPEAN_CUP_MARKERS = (
     '欧冠', '欧洲冠军联赛', '冠军联赛', '欧联', '欧罗巴',
     'champions league', 'europa league',
 )
+ESPN_HISTORY_ROOT = Path('storage/network/espn_history')
+ESPN_LEAGUE_SLUGS = {
+    '英超': 'eng.1', '英冠': 'eng.2', '西甲': 'esp.1', '德甲': 'ger.1',
+    '德乙': 'ger.2', '意甲': 'ita.1', '法甲': 'fra.1', '法乙': 'fra.2',
+    '葡超': 'por.1', '荷甲': 'ned.1', '荷乙': 'ned.2', '瑞超': 'swe.1',
+    '日职': 'jpn.1', '韩职': 'kor.1', '沙职': 'ksa.1', '巴西杯': 'bra.copa_do_brazil',
+    '欧罗巴': 'uefa.europa', '欧联': 'uefa.europa', '欧冠': 'uefa.champions',
+}
+ESPN_TEAM_ALIASES = {
+    'athbilbao': ('Athletic Club', 'ATH'),
+    'parissg': ('Paris Saint-Germain', 'PSG'),
+    'mancity': ('Manchester City', 'MNC'),
+    'manunited': ('Manchester United', 'MAN'),
+    'inter': ('Internazionale', 'Inter Milan'),
+}
 
 # Official Sporttery names to ClubElo names. Unknown teams are deliberately
 # left missing; a wrong fuzzy match is more damaging than a missing rating.
@@ -967,6 +983,132 @@ def _aggressive_upset_score(
     return max(candidates, default=(float('nan'), ''), key=lambda item: item[0])
 
 
+def _team_key(value: object) -> str:
+    text = unicodedata.normalize('NFKD', str(value or ''))
+    return re.sub(r'[^a-z0-9]', '', text.encode('ascii', 'ignore').decode().lower())
+
+
+def _espn_team_matches(team: dict, candidates) -> bool:
+    identifiers = [team.get('displayName'), team.get('shortDisplayName'),
+                   team.get('name'), team.get('abbreviation')]
+    left = [_team_key(value) for value in identifiers if _team_key(value)]
+    expanded = list(candidates)
+    for candidate in candidates:
+        expanded.extend(ESPN_TEAM_ALIASES.get(_team_key(candidate), ()))
+    right = [_team_key(value) for value in expanded if _team_key(value)]
+    for source in left:
+        for target in right:
+            if source == target or (min(len(source), len(target)) >= 5 and (
+                source in target or target in source
+            )):
+                return True
+            if min(len(source), len(target)) >= 5 and SequenceMatcher(
+                None, source, target,
+            ).ratio() >= 0.86:
+                return True
+    return False
+
+
+@lru_cache(maxsize=64)
+def _espn_season(slug: str, year: int) -> dict:
+    ESPN_HISTORY_ROOT.mkdir(parents=True, exist_ok=True)
+    path = ESPN_HISTORY_ROOT / f'{slug}-{year}.json'
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            pass
+    url = (
+        f'https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard'
+        f'?limit=1000&dates={year}'
+    )
+    try:
+        with urlopen(url, timeout=12) as response:
+            payload = json.loads(response.read())
+        path.write_text(json.dumps(payload, ensure_ascii=False), encoding='utf-8')
+        return payload
+    except Exception as error:
+        logging.warning('ESPN历史比分获取失败：%s %s，%s', slug, year, error)
+        return {}
+
+
+def _online_goal_history(
+        display_league: str, home_candidates, away_candidates,
+        match_date: Optional[date], home: str, away: str,
+) -> Optional[pd.DataFrame]:
+    slug = ESPN_LEAGUE_SLUGS.get(str(display_league))
+    if not slug or match_date is None:
+        return None
+    rows = []
+    for year in (match_date.year, match_date.year - 1):
+        for event in _espn_season(slug, year).get('events', []):
+            competition = (event.get('competitions') or [{}])[0]
+            status = ((competition.get('status') or {}).get('type') or {})
+            if not status.get('completed'):
+                continue
+            sides = {item.get('homeAway'): item for item in competition.get('competitors', [])}
+            if 'home' not in sides or 'away' not in sides:
+                continue
+            try:
+                event_date = pd.to_datetime(event.get('date'), utc=True).date()
+                hg, ag = int(sides['home']['score']), int(sides['away']['score'])
+            except (TypeError, ValueError, KeyError):
+                continue
+            if event_date >= match_date:
+                continue
+            home_team, away_team = sides['home'].get('team', {}), sides['away'].get('team', {})
+            home_name = home if _espn_team_matches(home_team, home_candidates) else (
+                away if _espn_team_matches(home_team, away_candidates) else home_team.get('displayName', '')
+            )
+            away_name = home if _espn_team_matches(away_team, home_candidates) else (
+                away if _espn_team_matches(away_team, away_candidates) else away_team.get('displayName', '')
+            )
+            rows.append({'Date': event_date.isoformat(), 'Home': home_name,
+                         'Away': away_name, 'HG': hg, 'AG': ag})
+    frame = pd.DataFrame(rows).drop_duplicates(['Date', 'Home', 'Away']) if rows else None
+    return frame if frame is not None and len(frame) >= 30 else None
+
+
+def _historical_league_prior(
+        history: Optional[pd.DataFrame], match_date: Optional[date],
+) -> Optional[Tuple[float, float]]:
+    if history is None or not {'Date', 'HG', 'AG'}.issubset(history.columns):
+        return None
+    frame = history[['Date', 'HG', 'AG']].copy()
+    frame['Date'] = pd.to_datetime(frame['Date'], errors='coerce')
+    frame['HG'] = pd.to_numeric(frame['HG'], errors='coerce')
+    frame['AG'] = pd.to_numeric(frame['AG'], errors='coerce')
+    frame = frame.dropna()
+    if match_date is not None:
+        frame = frame.loc[frame['Date'].dt.date < match_date]
+    frame = frame.tail(1200)
+    if len(frame) < 30:
+        return None
+    rates = float(frame['HG'].mean()), float(frame['AG'].mean())
+    return rates if all(np.isfinite(value) and value > 0 for value in rates) else None
+
+
+@lru_cache(maxsize=16)
+def _portable_score_prior(match_date_text: str) -> Tuple[float, float]:
+    """Cross-league real-score prior used only when a league cannot be resolved."""
+    match_date = date.fromisoformat(match_date_text)
+    rates = []
+    for league_name in LEAGUE_ALIASES:
+        try:
+            rate = _historical_league_prior(
+                LeagueDatabase().load_league(league_name), match_date,
+            )
+        except (OSError, KeyError, ValueError):
+            rate = None
+        if rate is not None:
+            rates.append(rate)
+    if rates:
+        return tuple(np.mean(np.asarray(rates), axis=0).tolist())
+    # Portable datasets normally make this unreachable. These constants are
+    # the bundled datasets' long-run home/away goal means, not market inputs.
+    return 1.45, 1.15
+
+
 def _historical_goal_strengths(
         history: Optional[pd.DataFrame], home: str, away: str,
         match_date: Optional[date] = None,
@@ -1026,39 +1168,32 @@ def _monte_carlo_summary(
     seed_value: object,
     simulations: int = 10_000,
     fallback_goal_rates: Optional[Tuple[float, float]] = None,
+    historical_prior_rates: Optional[Tuple[float, float]] = None,
+    historical_prior_source: str = '',
 ) -> dict:
-    """Double-Poisson Monte Carlo with an explicitly labelled low-data fallback.
+    """Run a strictly independent simulation from pre-match team history only.
 
-    Real pre-match team history remains the only independent tier.  When it is
-    unavailable, callers may provide market-derived goal priors so the report is
-    still complete; that tier is labelled low confidence and must not be
-    presented as an independent historical model.
+    The legacy arguments for lineup and fallback rates remain in the signature
+    for compatibility, but deliberately do not affect the simulation. Market
+    odds, trained-model outputs and lineup judgements must never be fed back
+    into columns labelled as independent Monte Carlo data.
     """
     strengths = _historical_goal_strengths(history, home, away, match_date)
-    fallback_used = False
+    prior_used = False
     if strengths is None:
-        rates = fallback_goal_rates or ()
-        if (
-            len(rates) != 2
-            or not all(np.isfinite(value) and value > 0 for value in rates)
-        ):
+        rates = historical_prior_rates or ()
+        if len(rates) != 2 or not all(np.isfinite(value) and value > 0 for value in rates):
             return {
                 '模拟次数': 0, '模拟Top3比分': '', '模拟胜负': '', '模拟让球': '',
                 '模拟总进球': '', '模拟半全场': '', '模拟可信度': '',
                 '模拟最高赛果概率': float('nan'),
-                '模拟模型来源': '历史攻防样本不足',
+                '模拟模型来源': '历史攻防样本不足（未使用赔率/模型兜底）',
             }
-        base_home, base_away = (float(rates[0]), float(rates[1]))
+        base_home, base_away = map(float, rates)
         home_samples = away_samples = 0
-        fallback_used = True
+        prior_used = True
     else:
         base_home, base_away, home_samples, away_samples = strengths
-    if lineup_confirmed and np.isfinite(lineup_shift) and lineup_shift:
-        # Convert the conservative +/-4pp lineup signal into a bounded goal
-        # intensity shift without using any market/model probabilities.
-        adjustment = float(np.clip(np.exp(3.0 * lineup_shift), 0.88, 1.14))
-        base_home *= adjustment
-        base_away /= adjustment
 
     seed = zlib.crc32(str(seed_value).encode('utf-8'))
     rng = np.random.default_rng(seed)
@@ -1118,7 +1253,7 @@ def _monte_carlo_summary(
         5 if maximum_result >= 0.70 else 4 if maximum_result >= 0.60
         else 3 if maximum_result >= 0.52 else 2 if maximum_result >= 0.45 else 1
     )
-    if fallback_used:
+    if prior_used:
         confidence_score = min(confidence_score, 2)
     return {
         '模拟次数': simulations,
@@ -1140,13 +1275,50 @@ def _monte_carlo_summary(
         '模拟可信度': '★' * confidence_score + '☆' * (5 - confidence_score),
         '模拟最高赛果概率': maximum_result,
         '模拟模型来源': (
-            '市场约束联赛先验蒙特卡洛（无球队历史，低置信）'
-            if fallback_used else (
-                f'历史攻防双泊松蒙特卡洛（主场{home_samples}场/客场{away_samples}场'
-                f'{"，含确认首发校正" if lineup_confirmed and lineup_shift else ""}）'
+            f'{historical_prior_source or "真实比分历史先验"}（球队样本不足，低置信；'
+            f'未使用赔率/正式模型/首发校正）'
+            if prior_used else (
+                f'历史攻防双泊松蒙特卡洛（主场{home_samples}场/'
+                f'客场{away_samples}场，未使用赔率/正式模型/首发校正）'
             )
         ),
     }
+
+
+def backfill_missing_simulations(predictions: pd.DataFrame) -> pd.DataFrame:
+    """Populate legacy report rows whose independent simulation was left blank."""
+    if predictions.empty:
+        return predictions.copy()
+    result = predictions.copy()
+    simulation_columns = (
+        '模拟次数', '模拟Top3比分', '模拟胜负', '模拟让球', '模拟总进球',
+        '模拟半全场', '模拟可信度', '模拟最高赛果概率', '模拟模型来源',
+    )
+    for column in simulation_columns:
+        if column not in result.columns:
+            result[column] = ''
+    missing = result['模拟胜负'].fillna('').astype(str).str.strip().eq('')
+    for index, row in result.loc[missing].iterrows():
+        raw_date = str(row.get('比赛时间') or '')[:10]
+        try:
+            match_day = date.fromisoformat(raw_date)
+        except ValueError:
+            match_day = date.today()
+        prior = _portable_score_prior(match_day.isoformat())
+        handicap = pd.to_numeric(row.get('官方让球数'), errors='coerce')
+        summary = _monte_carlo_summary(
+            None,
+            str(row.get('主队模型名') or row.get('主队') or ''),
+            str(row.get('客队模型名') or row.get('客队') or ''),
+            match_day, 0.0, False,
+            float(handicap) if pd.notna(handicap) else None,
+            row.get('比赛ID') or row.get('赛事编号') or index,
+            historical_prior_rates=prior,
+            historical_prior_source='本地跨联赛真实比分先验',
+        )
+        for column in simulation_columns:
+            result.at[index, column] = summary[column]
+    return result
 
 
 def _diverse_score_ranking(
@@ -1477,27 +1649,51 @@ def _predict_supported_match(
         handicap_ranking = np.argsort(handicap_probability)[::-1]
         handicap_pick = OUTCOME_LABELS[int(handicap_ranking[0])]
         handicap_second_pick = OUTCOME_LABELS[int(handicap_ranking[1])]
-    # Always keep the comparison table complete.  Exact-score market priors are
-    # used only when real team attack/defence history is missing, and the
-    # returned source/credibility fields make that weaker evidence explicit.
-    fallback_baseline = _market_baseline_probabilities(
-        odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
-    )
-    fallback_scores = np.asarray(fallback_baseline['score'], dtype=np.float64)
-    fallback_classes = np.asarray(fallback_baseline['score_classes'], dtype=np.int32)
-    fallback_home_rate = float(np.sum(
-        fallback_scores * np.asarray([divmod(int(value), 7)[0] for value in fallback_classes]),
-    ))
-    fallback_away_rate = float(np.sum(
-        fallback_scores * np.asarray([divmod(int(value), 7)[1] for value in fallback_classes]),
-    ))
+    # The comparison simulation is intentionally isolated from the official
+    # odds/model pipeline. Real-score league/cross-league priors keep sparse
+    # fixtures populated without feeding market or trained-model probabilities.
+    simulation_source = '本地历史'
+    if _historical_goal_strengths(
+        simulation_history, home, away, _match_date(raw),
+    ) is None:
+        online_history = _online_goal_history(
+            selection_league,
+            (home, home_cn, _field(raw, 'homeTeamAllName', 'homeTeamAbbName'),
+             _field(raw, 'homeTeamAbbEnName', 'homeTeamCode')),
+            (away, away_cn, _field(raw, 'awayTeamAllName', 'awayTeamAbbName'),
+             _field(raw, 'awayTeamAbbEnName', 'awayTeamCode')),
+            _match_date(raw), home, away,
+        )
+        if online_history is not None:
+            simulation_history = online_history
+            simulation_source = 'ESPN联网真实赛果'
+    historical_prior = None
+    historical_prior_source = ''
+    if _historical_goal_strengths(
+        simulation_history, home, away, _match_date(raw),
+    ) is None:
+        historical_prior = _historical_league_prior(
+            simulation_history, _match_date(raw),
+        )
+        if historical_prior is not None:
+            historical_prior_source = f'{simulation_source}联赛真实比分先验'
+        else:
+            historical_prior = _portable_score_prior(_match_date(raw).isoformat())
+            historical_prior_source = '本地跨联赛真实比分先验'
     monte_carlo = _monte_carlo_summary(
-        simulation_history, home, away, _match_date(raw), lineup_shift,
-        lineup_analysis.get('status') == '已确认',
+        simulation_history, home, away, _match_date(raw), 0.0, False,
         handicap_odds['line'] if handicap_odds else None,
         _field(raw, 'matchId', default=f'{home_cn}-{away_cn}'),
-        fallback_goal_rates=(fallback_home_rate, fallback_away_rate),
+        historical_prior_rates=historical_prior,
+        historical_prior_source=historical_prior_source,
     )
+    if (
+        monte_carlo.get('模拟次数') and simulation_source != '本地历史'
+        and historical_prior is None
+    ):
+        monte_carlo['模拟模型来源'] = (
+            f'{simulation_source}｜{monte_carlo["模拟模型来源"]}'
+        )
     monte_risks = []
     if monte_carlo['模拟最高赛果概率'] < 0.50:
         monte_risks.append('胜负分散')

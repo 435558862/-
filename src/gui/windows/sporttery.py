@@ -20,7 +20,10 @@ from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.tables import ExcelTable
 from src.network.fixtures.sporttery import SportteryMobileClient
 from src.services.daily_learning import review_and_learn
-from src.services.daily_sporttery import LEAGUE_ALIASES, _sort_by_match_number, run_daily_sporttery
+from src.services.daily_sporttery import (
+    LEAGUE_ALIASES, _sort_by_match_number, backfill_missing_simulations,
+    run_daily_sporttery,
+)
 from src.services.market_trends import build_trend_rows, live_snapshot_from_match, summarize_trend
 from src.services.odds_tracking import (
     format_market_flow, read_odds_series, record_odds_snapshots,
@@ -84,6 +87,52 @@ class _ComboPopupDelegate(QStyledItemDelegate):
         size = super().sizeHint(option, index)
         size.setHeight(25)
         return size
+
+
+class _WindowDragBar(QWidget):
+    """In-window drag and close controls for platforms that hide dialog chrome."""
+
+    def __init__(self, title: str, parent=None):
+        super().__init__(parent)
+        self._drag_offset = None
+        self.setObjectName('windowDragBar')
+        self.setFixedHeight(30)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 1, 3, 1)
+        title_label = QLabel(title, self)
+        title_label.setObjectName('windowDragTitle')
+        layout.addWidget(title_label)
+        layout.addStretch(1)
+        close_button = QPushButton('✕', self)
+        close_button.setObjectName('windowCloseButton')
+        close_button.setToolTip('关闭')
+        close_button.setFixedSize(28, 24)
+        close_button.clicked.connect(lambda: self.window().close())
+        layout.addWidget(close_button)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = (
+                event.globalPosition().toPoint()
+                - self.window().frameGeometry().topLeft()
+            )
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if (
+            self._drag_offset is not None
+            and event.buttons() & Qt.MouseButton.LeftButton
+        ):
+            self.window().move(event.globalPosition().toPoint() - self._drag_offset)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_offset = None
+        super().mouseReleaseEvent(event)
 
 
 class YesterdayHitDetailsDialog(QDialog):
@@ -617,10 +666,13 @@ def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFram
     if df.empty or model_key in ('', ALL_MODELS):
         return df.copy()
     if model_key == SIMULATION_MODELS:
-        source = df.get('模拟模型来源', pd.Series('', index=df.index))
-        return df.loc[source.fillna('').astype(str).str.startswith(
-            INDEPENDENT_SIMULATION_SOURCE,
-        )].copy()
+        simulations = pd.to_numeric(
+            df.get('模拟次数', pd.Series(0, index=df.index)), errors='coerce',
+        ).fillna(0)
+        result = df.get(
+            '模拟胜负', pd.Series('', index=df.index),
+        ).fillna('').astype(str).str.strip()
+        return df.loc[simulations.gt(0) | result.ne('')].copy()
     scopes = _prediction_model_scopes(df)
     if model_key == DEDICATED_MODELS:
         mask = scopes.ne('')
@@ -637,6 +689,16 @@ class SportteryPredictionsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('今日竞彩概率分析')
+        # Force a regular native top-level window. On macOS a parented QDialog
+        # can otherwise be presented as a sheet without usable title-bar
+        # controls, leaving no close button or area from which to drag it.
+        self.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
         self.resize(1250, 650)
         self._predictions = pd.DataFrame()
         self._table_container = QWidget()
@@ -699,6 +761,8 @@ class SportteryPredictionsDialog(QDialog):
         root.setContentsMargins(6, 6, 6, 6)
         root.setSpacing(5)
 
+        root.addWidget(_WindowDragBar(self.windowTitle(), self))
+
         action_bar = QHBoxLayout()
         action_bar.setSpacing(5)
         sync_button = QPushButton('同步赔率并更新分析')
@@ -756,6 +820,20 @@ class SportteryPredictionsDialog(QDialog):
         root.addWidget(self._table_container)
 
         self.setStyleSheet('''
+            QWidget#windowDragBar {
+                background: #e8edf1; border: 1px solid #b8c0c7;
+                border-radius: 3px;
+            }
+            QLabel#windowDragTitle {
+                color: #202020; font-size: 13px; font-weight: 600;
+            }
+            QPushButton#windowCloseButton {
+                color: #303030; background: transparent;
+                border: 0; font-size: 16px; font-weight: 600; padding: 0;
+            }
+            QPushButton#windowCloseButton:hover {
+                color: #ffffff; background: #d93025; border-radius: 3px;
+            }
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #ffffff, stop:0.55 #f5f6f7, stop:1 #e2e5e8);
@@ -1082,7 +1160,7 @@ class SportteryPredictionsDialog(QDialog):
             '赛事编号', '比赛时间', '联赛', '胜负模型', '主队', '客队',
             '距参考截止',
             '建议临场同步时段',
-            '胜负首选',
+            '建议状态', '置信度', '胜负首选', '胜平负概率',
             '胜平负指数（首次采集→当前）',
             '模拟差异', '模拟可信度', '模拟模型来源',
             '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场', '模拟Top3比分',
@@ -1094,7 +1172,6 @@ class SportteryPredictionsDialog(QDialog):
             '让球指数（首次采集→当前）',
             '大小球首选', '半全场首选/次选',
             '比分情景（Top3/反向/高进球）',
-            '蒙特风险',
         ]
         shown = display[[column for column in preferred if column in display.columns]].copy()
         for column in shown.columns:
@@ -1116,9 +1193,9 @@ class SportteryPredictionsDialog(QDialog):
             except pd.errors.EmptyDataError:
                 return pd.DataFrame(columns=columns)
 
-        self._predictions = _sort_by_match_number(
+        self._predictions = _sort_by_match_number(backfill_missing_simulations(
             read_report(PREDICTION_PATH, ['赛事编号', '联赛', '主队', '客队']),
-        )
+        ))
         self._refresh_model_selector()
         self._refresh_date_selector()
         self._refresh_advice_selector()
@@ -1144,9 +1221,11 @@ class SportteryPredictionsDialog(QDialog):
         self._model_selector.addItem(
             f'通用/市场模型（{generic_count}场）', GENERIC_MODELS,
         )
-        simulated = self._predictions.get(
-            '模拟模型来源', pd.Series('', index=self._predictions.index),
-        ).fillna('').astype(str).str.startswith(INDEPENDENT_SIMULATION_SOURCE)
+        simulated = pd.to_numeric(
+            self._predictions.get(
+                '模拟次数', pd.Series(0, index=self._predictions.index),
+            ), errors='coerce',
+        ).fillna(0).gt(0)
         self._model_selector.addItem(
             f'蒙特卡洛模拟（{int(simulated.sum())}场）', SIMULATION_MODELS,
         )

@@ -241,28 +241,39 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(len(first['模拟Top3比分'].split(' / ')), 3)
         self.assertTrue(first['模拟让球'])
         self.assertTrue(first['模拟模型来源'].startswith('历史攻防双泊松蒙特卡洛'))
-        self.assertIn('含确认首发校正', first['模拟模型来源'])
+        self.assertIn('未使用赔率/正式模型/首发校正', first['模拟模型来源'])
 
     def test_monte_carlo_refuses_to_fake_independence_without_history(self):
         result = _monte_carlo_summary(
             None, 'A', 'B', date(2026, 1, 1), 0.0, False, -1, 123,
         )
         self.assertEqual(result['模拟次数'], 0)
-        self.assertEqual(result['模拟模型来源'], '历史攻防样本不足')
+        self.assertIn('历史攻防样本不足', result['模拟模型来源'])
+        self.assertIn('未使用赔率/模型兜底', result['模拟模型来源'])
 
-    def test_monte_carlo_uses_labelled_low_confidence_fallback(self):
+    def test_monte_carlo_rejects_market_fallback_rates(self):
         result = _monte_carlo_summary(
             None, 'A', 'B', date(2026, 1, 1), 0.0, False, -1, 123,
             fallback_goal_rates=(1.55, 1.05),
         )
-        self.assertEqual(result['模拟次数'], 10_000)
-        self.assertEqual(len(result['模拟Top3比分'].split(' / ')), 3)
+        self.assertEqual(result['模拟次数'], 0)
+        self.assertFalse(result['模拟胜负'])
+        self.assertIn('未使用赔率/模型兜底', result['模拟模型来源'])
+
+    def test_legacy_blank_simulation_is_backfilled_from_score_prior(self):
+        from src.services.daily_sporttery import backfill_missing_simulations
+
+        predictions = pd.DataFrame([{
+            '赛事编号': '周六001', '比赛ID': 123, '比赛时间': '2026-08-15 18:00',
+            '主队': 'A', '客队': 'B', '官方让球数': -1,
+            '模拟胜负': '', '模拟模型来源': '历史攻防样本不足',
+        }])
+        result = backfill_missing_simulations(predictions).iloc[0]
+
         self.assertTrue(result['模拟胜负'])
         self.assertTrue(result['模拟让球'])
-        self.assertTrue(result['模拟总进球'])
-        self.assertTrue(result['模拟半全场'])
-        self.assertIn('低置信', result['模拟模型来源'])
-        self.assertLessEqual(result['模拟可信度'].count('★'), 2)
+        self.assertTrue(result['模拟Top3比分'])
+        self.assertIn('本地跨联赛真实比分先验', result['模拟模型来源'])
 
     def test_upset_score_skips_already_displayed_picks(self):
         import numpy as np

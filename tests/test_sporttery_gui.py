@@ -86,7 +86,7 @@ def test_single_display_combines_all_scores_without_percentages():
 
     display = SportteryPredictionsDialog._display_predictions(predictions)
 
-    assert '置信度' not in display.columns
+    assert display.loc[0, '置信度'] == '中'
     assert display.loc[0, '胜负首选'] == '胜（60.0%）'
     scores = display.loc[0, '比分情景（Top3/反向/高进球）']
     assert scores == '2-1 / 1-0 / 2-0 / 1-2 / 3-1'

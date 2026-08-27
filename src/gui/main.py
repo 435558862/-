@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
             # may lose its native traffic-light controls.  Keep it owned by the
             # main window, but make it a regular top-level window with a native
             # title bar so users can close, minimize, or zoom it normally.
-            flags |= (
+            flags = (
                 Qt.WindowType.Window
                 | Qt.WindowType.WindowTitleHint
                 | Qt.WindowType.WindowMinimizeButtonHint

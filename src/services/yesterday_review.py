@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from pathlib import Path
+import re
 from typing import Optional
 
 import numpy as np
@@ -14,12 +15,11 @@ REPORT_ROOT = Path('storage/jingcai/reports')
 SETTLED_PATH = Path('storage/jingcai/learning/settled_predictions.csv')
 
 DETAIL_COLUMNS = [
-    '赛事编号', '比赛时间', '联赛', '主队', '客队', '完场比分', '命中项目',
+    '赛事编号', '比赛时间', '联赛', '主队', '客队', '完场比分',
     '胜负', '让球（首/次）', '大小球', '半全场（首/次）',
     '比分（首/次1/次2/冷/进）', '胜负模型',
     '模拟Top3比分', '模拟胜负', '模拟让球', '模拟总进球',
-    '模拟半全场', '模拟可信度', '蒙特风险', '模拟数据状态',
-    '模拟模型来源',
+    '模拟半全场', '模拟可信度', '模拟模型来源',
 ]
 
 METRIC_LABELS = {
@@ -146,8 +146,7 @@ def _recalculate_independent_monte_carlo(
     try:
         from src.database.league import LeagueDatabase
         from src.services.daily_sporttery import (
-            LEAGUE_ALIASES, _market_baseline_probabilities,
-            _monte_carlo_summary,
+            LEAGUE_ALIASES, _monte_carlo_summary,
         )
     except (ImportError, OSError):
         return {}
@@ -166,27 +165,6 @@ def _recalculate_independent_monte_carlo(
         except (OSError, KeyError, ValueError):
             history = None
 
-    odds = {
-        key: _number(_value(settled, prediction, column))
-        for key, column in (
-            ('H', 'odds_home'), ('D', 'odds_draw'), ('A', 'odds_away'),
-        )
-    }
-    # Settlement uses English names while reports use the original Chinese
-    # columns, so fill odds directly from those report fields when needed.
-    odds['H'] = odds['H'] or _number(prediction.get('官方胜奖金'))
-    odds['D'] = odds['D'] or _number(prediction.get('官方平奖金'))
-    odds['A'] = odds['A'] or _number(prediction.get('官方负奖金'))
-    fallback_rates = None
-    if all(value is not None and value > 1 for value in odds.values()):
-        baseline = _market_baseline_probabilities(odds)
-        probabilities = np.asarray(baseline['score'], dtype=np.float64)
-        classes = np.asarray(baseline['score_classes'], dtype=np.int32)
-        fallback_rates = (
-            float(np.sum(probabilities * np.asarray([divmod(int(v), 7)[0] for v in classes]))),
-            float(np.sum(probabilities * np.asarray([divmod(int(v), 7)[1] for v in classes]))),
-        )
-
     match_day = pd.to_datetime(
         _value(settled, prediction, 'match_date', '比赛时间'), errors='coerce',
     )
@@ -195,7 +173,6 @@ def _recalculate_independent_monte_carlo(
         history, home, away, match_date, 0.0, False,
         _number(_value(settled, prediction, 'handicap_line', '官方让球数')),
         _text(_value(settled, prediction, 'match_id', '比赛ID')),
-        fallback_goal_rates=fallback_rates,
     )
     if not result.get('模拟半全场'):
         return {}
@@ -370,25 +347,35 @@ def _build_detail(settled: pd.Series, prediction: dict) -> tuple[dict, dict]:
             return ''
         return f'{value}（{"命中" if hit else "未中"}）'
 
+    def choices(value: str) -> list[str]:
+        """Return the exact pick at the start of each probability segment."""
+        return [
+            part.strip().split(maxsplit=1)[0]
+            for part in re.split(r'[/｜]', value)
+            if part.strip()
+        ]
+
     actual_goals = home_goals + away_goals
-    monte_score_hit = bool(monte_top3 and actual_score_text in monte_top3)
-    monte_result_hit = bool(
-        monte_result and monte_result.lstrip().startswith(actual_result),
-    )
-    monte_handicap_hit = bool(
-        monte_handicap and actual_handicap
-        and monte_handicap.lstrip().startswith(actual_handicap),
-    )
-    monte_total_hit = bool(
-        monte_total and (
-            actual_ou in monte_total
-            or f'{actual_goals}球' in monte_total
-            or (actual_goals >= 4 and '4球以上' in monte_total)
-            or (actual_goals <= 1 and '1球以内' in monte_total)
-        )
-    )
-    monte_half_full_hit = bool(
-        monte_half_full and actual_half_full and actual_half_full in monte_half_full,
+    monte_score_hit = actual_score_text in {
+        match.group(1)
+        for match in re.finditer(r'(?<!\d)(\d+\+?-\d+\+?)(?!\d)', monte_top3)
+    }
+    monte_result_hit = actual_result in choices(monte_result)
+    monte_handicap_hit = bool(actual_handicap) and actual_handicap in {
+        pick.removeprefix('让') for pick in choices(monte_handicap)
+    }
+    monte_total_picks = set(choices(monte_total))
+    monte_total_hit = any((
+        actual_ou in monte_total_picks,
+        actual_goals <= 1 and bool(
+            monte_total_picks & {'0-1球', '1球以内'},
+        ),
+        actual_goals in (2, 3) and '2-3球' in monte_total_picks,
+        actual_goals >= 4 and '4球以上' in monte_total_picks,
+        f'{actual_goals}球' in monte_total_picks,
+    ))
+    monte_half_full_hit = bool(actual_half_full) and actual_half_full in choices(
+        monte_half_full,
     )
 
     match_time = _text(_value(

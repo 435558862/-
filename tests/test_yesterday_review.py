@@ -157,5 +157,28 @@ def test_professional_half_full_never_backfills_missing_monte_carlo(tmp_path):
 
     assert details.loc[0, '半全场（首/次）'].startswith('首平胜/次胜胜')
     assert details.loc[0, '模拟半全场'] == ''
-    assert details.loc[0, '模拟数据状态'] == '历史数据不足'
     assert details.loc[0, '模拟模型来源'] == '历史数据不足，无法独立重算'
+
+
+def test_monte_carlo_hits_use_exact_market_rules(tmp_path):
+    settled_path = tmp_path / 'settled.csv'
+    pd.DataFrame([{
+        'match_id': 1, 'match_date': '2026-08-24',
+        'home_goals': 2, 'away_goals': 1, 'official_half_score': '0:0',
+        'handicap_line': -1,
+        'monte_carlo_top3_score': '2-1 12.0% / 1-1 10.0% / 2-0 9.0%',
+        'monte_carlo_result': '胜 55.0%',
+        'monte_carlo_handicap': '让平 40.0%',
+        'monte_carlo_total': '2-3球 48.0%',
+        'monte_carlo_half_full': '平胜 35.0% / 胜胜 25.0%',
+    }]).to_csv(settled_path, index=False)
+
+    details, _ = load_yesterday_hit_report(
+        today=date(2026, 8, 25), settled_path=settled_path,
+        report_root=tmp_path / 'reports',
+    )
+
+    for column in ('模拟Top3比分', '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场'):
+        assert details.loc[0, column].endswith('（命中）')
+    for removed in ('命中项目', '蒙特风险', '模拟数据状态'):
+        assert removed not in details.columns

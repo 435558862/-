@@ -7,7 +7,7 @@ from src.gui.windows.models import fixtures
 from src.gui.windows.models.predictor import PredictorDialog
 from src.gui.windows import sporttery as sporttery_window
 from src.gui.windows.sporttery import (
-    DEDICATED_MODELS, GENERIC_MODELS, filter_predictions_by_model,
+    DEDICATED_MODELS, GENERIC_MODELS, SIMULATION_MODELS, filter_predictions_by_model,
     write_predictions_xlsx,
 )
 from src.network.fixtures.utils import match_fixture_teams
@@ -227,6 +227,19 @@ def test_sporttery_excel_export_is_a_real_formatted_workbook(tmp_path):
     assert sheet.auto_filter.ref == 'A1:C2'
     assert sheet['A1'].value == '赛事编号'
     assert sheet['A2'].value == '周六001'
+
+
+def test_simulation_filter_includes_low_confidence_prior_rows():
+    predictions = pd.DataFrame([
+        {'赛事编号': '周六001', '模拟次数': 10_000, '模拟胜负': '胜 45.0%',
+         '模拟模型来源': '本地跨联赛真实比分先验（低置信）'},
+        {'赛事编号': '周六002', '模拟次数': 0, '模拟胜负': '',
+         '模拟模型来源': '历史攻防样本不足'},
+    ])
+
+    result = filter_predictions_by_model(predictions, SIMULATION_MODELS)
+
+    assert result['赛事编号'].tolist() == ['周六001']
 
 
 def test_sporttery_table_shows_decision_probabilities_and_audit_reference():
