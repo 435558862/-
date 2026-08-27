@@ -886,6 +886,48 @@ class SportteryPredictionsDialog(QDialog):
                     parts.append(f'{label} {float(probability):.1%}')
             return '｜'.join(parts)
 
+        def odds_pair(row: pd.Series, opening: str, current: str) -> str:
+            def fmt(value):
+                try:
+                    return f'{float(value):.2f}' if pd.notna(value) else ''
+                except (TypeError, ValueError):
+                    return ''
+            first, latest = fmt(row.get(opening)), fmt(row.get(current))
+            if not first and not latest:
+                return ''
+            if not first:
+                return f'现 {latest}'
+            if not latest:
+                return f'初 {first}'
+            return f'初 {first} → 现 {latest}'
+
+        def had_opening_current(row: pd.Series) -> str:
+            pairs = [
+                odds_pair(row, '首次采集胜奖金', '官方胜奖金'),
+                odds_pair(row, '首次采集平奖金', '官方平奖金'),
+                odds_pair(row, '首次采集负奖金', '官方负奖金'),
+            ]
+            return '｜'.join(pairs) if any(pairs) else '暂无指数'
+
+        def hhad_opening_current(row: pd.Series) -> str:
+            line_first = row.get('首次采集让球数')
+            line_latest = row.get('官方让球数')
+            def line(value):
+                try:
+                    return f'{float(value):g}' if pd.notna(value) else ''
+                except (TypeError, ValueError):
+                    return ''
+            first, latest = line(line_first), line(line_latest)
+            values = [
+                odds_pair(row, '首次采集让胜奖金', '官方让胜奖金'),
+                odds_pair(row, '首次采集让平奖金', '官方让平奖金'),
+                odds_pair(row, '首次采集让负奖金', '官方让负奖金'),
+            ]
+            if not any(values) and not first and not latest:
+                return '暂无指数'
+            handicap_line = f'线 初 {first} → 现 {latest}' if first and latest else ''
+            return '｜'.join(part for part in (handicap_line, *values) if part)
+
         def market_reference(row: pd.Series) -> str:
             accuracy = row.get('同阈值历史命中率')
             samples = row.get('筛选回测样本数')
@@ -948,6 +990,8 @@ class SportteryPredictionsDialog(QDialog):
             '置信等级', pd.Series('', index=display.index),
         ).fillna('').astype(str)
         display['胜平负概率'] = display.apply(result_probabilities, axis=1)
+        display['胜平负指数（首次采集→当前）'] = display.apply(had_opening_current, axis=1)
+        display['让球指数（首次采集→当前）'] = display.apply(hhad_opening_current, axis=1)
         display['市场概率档参考'] = display.apply(market_reference, axis=1)
         display['分析依据'] = display.get(
             '预测依据', pd.Series('', index=display.index),
@@ -1039,6 +1083,7 @@ class SportteryPredictionsDialog(QDialog):
             '距参考截止',
             '建议临场同步时段',
             '胜负首选',
+            '胜平负指数（首次采集→当前）',
             '模拟差异', '模拟可信度', '模拟模型来源',
             '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场', '模拟Top3比分',
             '盘口流向',
@@ -1046,6 +1091,7 @@ class SportteryPredictionsDialog(QDialog):
             '证据状态',
             '市场概率档参考', '分析依据',
             '官方让球数', '让球首选/次选',
+            '让球指数（首次采集→当前）',
             '大小球首选', '半全场首选/次选',
             '比分情景（Top3/反向/高进球）',
             '蒙特风险',

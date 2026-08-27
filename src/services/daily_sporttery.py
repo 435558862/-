@@ -1221,6 +1221,8 @@ def _predict_supported_match(
     market_quality = market_quality_metrics(
         _field(raw, 'matchId'), series=odds_series,
     )
+    match_series = (odds_series or {}).get(str(_field(raw, 'matchId')), [])
+    opening_snapshot = match_series[0] if match_series else {}
     selection_league = display_league or league or ''
     market_selection = _market_selection(float(market_prob.max()), selection_league)
     model_db = None
@@ -1522,6 +1524,12 @@ def _predict_supported_match(
         '官方胜奖金': odds['H'] if regular_market_offered else np.nan,
         '官方平奖金': odds['D'] if regular_market_offered else np.nan,
         '官方负奖金': odds['A'] if regular_market_offered else np.nan,
+        # The official selling feed exposes current values only.  These are
+        # explicitly named "首次采集" rather than being presented as a
+        # guaranteed bookmaker opening line.
+        '首次采集胜奖金': (opening_snapshot.get('had') or {}).get('H', np.nan),
+        '首次采集平奖金': (opening_snapshot.get('had') or {}).get('D', np.nan),
+        '首次采集负奖金': (opening_snapshot.get('had') or {}).get('A', np.nan),
         '模型主胜概率': result_prob[0],
         '模型平局概率': result_prob[1],
         '模型客胜概率': result_prob[2],
@@ -1582,6 +1590,10 @@ def _predict_supported_match(
         '官方让胜奖金': handicap_odds['H'] if handicap_odds else np.nan,
         '官方让平奖金': handicap_odds['D'] if handicap_odds else np.nan,
         '官方让负奖金': handicap_odds['A'] if handicap_odds else np.nan,
+        '首次采集让球数': (opening_snapshot.get('hhad') or {}).get('line', np.nan),
+        '首次采集让胜奖金': (opening_snapshot.get('hhad') or {}).get('H', np.nan),
+        '首次采集让平奖金': (opening_snapshot.get('hhad') or {}).get('D', np.nan),
+        '首次采集让负奖金': (opening_snapshot.get('hhad') or {}).get('A', np.nan),
         '模型让胜概率': handicap_probability[0],
         '模型让平概率': handicap_probability[1],
         '模型让负概率': handicap_probability[2],
