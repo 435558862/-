@@ -261,3 +261,39 @@ def test_sporttery_table_keeps_only_compact_decision_columns():
     assert display.loc[0, '对阵'] == '主队 vs 客队'
     assert display.loc[0, '综合方向'] == '胜负 胜（70.0%）'
     assert display.loc[0, '风险提示'] == '正常'
+
+
+def test_daily_priority_selects_strongest_row_per_market_and_day():
+    predictions = pd.DataFrame([
+        {
+            '赛事编号': '周六001', '比赛时间': '2026-08-29 18:00',
+            '建议状态': '高置信主推', '胜平负首选概率': 0.66,
+            '让球首选概率': 0.64, '让球最大概率优势': 0.05,
+            '大小球首选概率': 0.61, '半全场首选概率': 0.36,
+            '比分推荐状态': '推荐', '原始最高概率比分概率': 0.13,
+        },
+        {
+            '赛事编号': '周六002', '比赛时间': '2026-08-29 20:00',
+            '建议状态': '精选主推', '胜平负首选概率': 0.72,
+            '让球首选概率': 0.68, '让球最大概率优势': 0.06,
+            '大小球首选概率': 0.63, '半全场首选概率': 0.38,
+            '比分推荐状态': '推荐', '原始最高概率比分概率': 0.14,
+        },
+    ])
+
+    priorities = sporttery_window._daily_priority_aspects(predictions)
+
+    assert priorities.iloc[0] == []
+    assert priorities.iloc[1] == ['胜负', '让球', '大小球', '半全场', '比分']
+
+
+def test_daily_priority_rejects_unstable_market_signals():
+    predictions = pd.DataFrame([{
+        '比赛时间': '2026-08-29 20:00', '建议状态': '精选主推',
+        '胜平负首选概率': 0.80, '让球首选概率': 0.75,
+        '让球最大概率优势': 0.10, '大小球首选概率': 0.70,
+        '半全场首选概率': 0.45, '比分推荐状态': '推荐',
+        '原始最高概率比分概率': 0.16, '盘口门控': '盘口震荡不稳定',
+    }])
+
+    assert sporttery_window._daily_priority_aspects(predictions).iloc[0] == []

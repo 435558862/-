@@ -661,6 +661,64 @@ def _score_recommendation_mask(predictions: pd.DataFrame) -> pd.Series:
     return status.eq('推荐') | (status.eq('') & probability.ge(0.12))
 
 
+def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
+    """Pick at most one strongest row per day and market for red emphasis."""
+    aspects = pd.Series([[] for _ in range(len(predictions))], index=predictions.index)
+    if predictions.empty:
+        return aspects
+    days = predictions.get(
+        '比赛时间', pd.Series('', index=predictions.index),
+    ).fillna('').astype(str).str.slice(0, 10)
+    days = days.where(days.str.fullmatch(r'\d{4}-\d{2}-\d{2}'), '全部')
+    gate = predictions.get(
+        '盘口门控', pd.Series('', index=predictions.index),
+    ).fillna('').astype(str)
+    stable = ~gate.str.contains('冲突|震荡|不稳定', regex=True)
+
+    def numbers(column: str) -> pd.Series:
+        return pd.to_numeric(
+            predictions.get(column, pd.Series(float('nan'), index=predictions.index)),
+            errors='coerce',
+        )
+
+    advice = predictions.get(
+        '建议状态', pd.Series('', index=predictions.index),
+    ).fillna('').astype(str)
+    candidates = {
+        '胜负': (
+            advice.isin(('精选主推', '高置信主推'))
+            & numbers('胜平负首选概率').ge(0.625) & stable,
+            numbers('胜平负首选概率'),
+        ),
+        '让球': (
+            numbers('让球首选概率').ge(0.60)
+            & numbers('让球最大概率优势').fillna(0).ge(0.03) & stable,
+            numbers('让球首选概率'),
+        ),
+        '大小球': (
+            numbers('大小球首选概率').ge(0.60) & stable,
+            numbers('大小球首选概率'),
+        ),
+        '半全场': (
+            numbers('半全场首选概率').ge(0.35) & stable,
+            numbers('半全场首选概率'),
+        ),
+        '比分': (
+            _score_recommendation_mask(predictions) & stable,
+            numbers('原始最高概率比分概率'),
+        ),
+    }
+    for _, group_indices in days.groupby(days, sort=False).groups.items():
+        group_indices = list(group_indices)
+        for label, (eligible, strength) in candidates.items():
+            available = [index for index in group_indices if bool(eligible.loc[index])]
+            if not available:
+                continue
+            best = strength.loc[available].idxmax()
+            aspects.at[best] = [*aspects.at[best], label]
+    return aspects
+
+
 def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFrame:
     """Strictly isolate one dedicated league or the generic/market rows."""
     if df.empty or model_key in ('', ALL_MODELS):
@@ -1321,25 +1379,32 @@ class SportteryPredictionsDialog(QDialog):
             if item.widget() is not None:
                 item.widget().deleteLater()
         display_frame = self._display_predictions(visible)
+        priorities = _daily_priority_aspects(visible).reset_index(drop=True)
+        if '综合方向' in display_frame.columns:
+            for row_index, labels in priorities.items():
+                if labels:
+                    display_frame.at[row_index, '综合方向'] = (
+                        f'★重点：{"/".join(labels)}｜'
+                        f'{display_frame.at[row_index, "综合方向"]}'
+                    )
         table = ExcelTable(
             parent=self,
             df=display_frame,
             readonly=True,
             supports_sorting=True,
         )
-        score_column = '比分情景（Top3/反向/高进球）'
-        if score_column in display_frame.columns:
-            column_index = display_frame.columns.get_loc(score_column)
-            recommended = _score_recommendation_mask(visible).reset_index(drop=True)
-            for row_index, is_recommended in enumerate(recommended):
-                if not is_recommended:
-                    continue
+        for row_index, labels in priorities.items():
+            if not labels:
+                continue
+            for column_index in range(table.columnCount()):
                 item = table.item(row_index, column_index)
-                if item is not None:
-                    item.setForeground(QBrush(QColor('#d60000')))
-                    font = QFont(item.font())
-                    font.setBold(True)
-                    item.setFont(font)
+                if item is None:
+                    continue
+                item.setForeground(QBrush(QColor('#c62828')))
+                item.setBackground(QBrush(QColor('#fff1f1')))
+                font = QFont(item.font())
+                font.setBold(True)
+                item.setFont(font)
         difference_column = '模拟差异'
         if difference_column in display_frame.columns:
             column_index = display_frame.columns.get_loc(difference_column)
