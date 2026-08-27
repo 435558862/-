@@ -146,7 +146,7 @@ def _recalculate_independent_monte_carlo(
     try:
         from src.database.league import LeagueDatabase
         from src.services.daily_sporttery import (
-            LEAGUE_ALIASES, _monte_carlo_summary,
+            LEAGUE_ALIASES, _monte_carlo_summary, _portable_score_prior,
         )
     except (ImportError, OSError):
         return {}
@@ -174,6 +174,17 @@ def _recalculate_independent_monte_carlo(
         _number(_value(settled, prediction, 'handicap_line', '官方让球数')),
         _text(_value(settled, prediction, 'match_id', '比赛ID')),
     )
+    if not result.get('模拟半全场'):
+        prior = _portable_score_prior(
+            match_date.isoformat() if match_date is not None else '',
+        )
+        result = _monte_carlo_summary(
+            None, home, away, match_date, 0.0, False,
+            _number(_value(settled, prediction, 'handicap_line', '官方让球数')),
+            _text(_value(settled, prediction, 'match_id', '比赛ID')),
+            historical_prior_rates=prior,
+            historical_prior_source='本地跨联赛真实比分先验',
+        )
     if not result.get('模拟半全场'):
         return {}
     result['模拟模型来源'] = '历史独立重算｜' + _text(result.get('模拟模型来源'))
@@ -399,10 +410,10 @@ def _build_detail(settled: pd.Series, prediction: dict) -> tuple[dict, dict]:
         )),
         '模拟Top3比分': marked(monte_top3, monte_score_hit),
         '模拟胜负': marked(monte_result, monte_result_hit),
-        '模拟让球': marked(monte_handicap, monte_handicap_hit),
+        '模拟让球': marked(monte_handicap, monte_handicap_hit) or '未开盘',
         '模拟总进球': marked(monte_total, monte_total_hit),
         '模拟半全场': marked(monte_half_full, monte_half_full_hit),
-        '模拟可信度': monte_confidence,
+        '模拟可信度': monte_confidence or '历史数据不足',
         '蒙特风险': monte_risk,
         '模拟数据状态': monte_state,
         '模拟模型来源': monte_source or '历史数据不足，无法独立重算',

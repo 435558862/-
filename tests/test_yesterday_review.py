@@ -141,7 +141,7 @@ def test_empty_yesterday_is_explicit_not_blank(tmp_path):
     assert '显示最近已结算日' in summary['headline']
 
 
-def test_professional_half_full_never_backfills_missing_monte_carlo(tmp_path):
+def test_missing_monte_carlo_uses_historical_prior_not_professional_pick(tmp_path):
     settled_path = tmp_path / 'settled.csv'
     pd.DataFrame([{
         'match_id': 1, 'match_date': '2026-08-24',
@@ -156,8 +156,9 @@ def test_professional_half_full_never_backfills_missing_monte_carlo(tmp_path):
     )
 
     assert details.loc[0, '半全场（首/次）'].startswith('首平胜/次胜胜')
-    assert details.loc[0, '模拟半全场'] == ''
-    assert details.loc[0, '模拟模型来源'] == '历史数据不足，无法独立重算'
+    assert details.loc[0, '模拟半全场']
+    assert '本地跨联赛真实比分先验' in details.loc[0, '模拟模型来源']
+    assert '低置信' in details.loc[0, '模拟模型来源']
 
 
 def test_monte_carlo_hits_use_exact_market_rules(tmp_path):
