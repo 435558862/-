@@ -56,6 +56,8 @@ def test_daily_review_settles_once_and_builds_truth_dataset(tmp_path, monkeypatc
         '让球次选': '平',
         '半全场首选': '平胜',
         '半全场次选': '胜胜',
+        '模拟半全场': '负负 31.0% / 平负 22.0%',
+        '模拟模型来源': '独立历史攻防蒙特卡洛',
     }]).to_csv(reports / '2026-08-09-竞彩预测.csv', index=False)
 
     monkeypatch.setattr(daily_learning, 'REPORT_ROOT', reports)
@@ -98,6 +100,8 @@ def test_daily_review_settles_once_and_builds_truth_dataset(tmp_path, monkeypatc
     assert settled.loc[0, 'actual_half_full'] == '胜胜'
     assert settled.loc[0, 'half_full_hit'] == 0
     assert settled.loc[0, 'half_full_second_hit'] == 1
+    assert settled.loc[0, 'monte_carlo_half_full'].startswith('负负')
+    assert settled.loc[0, 'monte_carlo_source'] == '独立历史攻防蒙特卡洛'
     assert settled.loc[0, 'score_hit_any'] == 1
     assert settled.loc[0, 'score_hit_source'] == '首'
 

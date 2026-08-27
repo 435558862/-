@@ -12,6 +12,7 @@ prediction pipeline.
 
 import json
 import logging
+from collections import deque
 from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
@@ -264,13 +265,20 @@ def record_odds_snapshots(
         return 0
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=2)
 def _read_odds_series_cached(
         path_text: str, modified_ns: int, file_size: int,
+        max_rows_per_match: Optional[int], keep_opening: bool,
 ) -> Dict[str, List[dict]]:
-    """Parse one immutable file revision; the signature invalidates itself."""
+    """Parse one immutable file revision, optionally as a bounded chart view.
+
+    The JSONL file remains the lossless research archive.  A bounded read keeps
+    long-running chart windows from loading that entire archive into memory.
+    """
     path = Path(path_text)
-    series: Dict[str, List[dict]] = {}
+    bounded = max_rows_per_match is not None and max_rows_per_match > 0
+    series = {}
+    openings: Dict[str, dict] = {}
     with path.open('r', encoding='utf-8') as handle:
         for line in handle:
             line = line.strip()
@@ -280,14 +288,36 @@ def _read_odds_series_cached(
                 stored = json.loads(line)
             except ValueError:
                 continue
-            series.setdefault(str(stored.get('match_id', '')), []).append(stored)
-    for rows in series.values():
+            match_id = str(stored.get('match_id', ''))
+            if bounded:
+                if keep_opening:
+                    openings.setdefault(match_id, stored)
+                    tail_size = max(0, int(max_rows_per_match) - 1)
+                else:
+                    tail_size = int(max_rows_per_match)
+                if tail_size:
+                    series.setdefault(match_id, deque(maxlen=tail_size)).append(stored)
+                else:
+                    series.setdefault(match_id, deque(maxlen=1))
+            else:
+                series.setdefault(match_id, []).append(stored)
+    result: Dict[str, List[dict]] = {}
+    for match_id in set(series) | set(openings):
+        rows = list(series.get(match_id, []))
+        if keep_opening and match_id in openings:
+            opening = openings[match_id]
+            rows = [opening, *(row for row in rows if row is not opening)]
         rows.sort(key=lambda row: str(row.get('captured_at', '')))
-    return series
+        result[match_id] = rows
+    return result
 
 
-def read_odds_series(path: Path = HISTORY_PATH) -> Dict[str, List[dict]]:
-    """Return grouped odds without reparsing an unchanged growing JSONL file."""
+def read_odds_series(
+        path: Path = HISTORY_PATH,
+        max_rows_per_match: Optional[int] = None,
+        keep_opening: bool = False,
+) -> Dict[str, List[dict]]:
+    """Return grouped odds, with an optional per-match memory ceiling."""
     path = Path(path)
     try:
         stat = path.stat()
@@ -295,6 +325,7 @@ def read_odds_series(path: Path = HISTORY_PATH) -> Dict[str, List[dict]]:
         return {}
     return _read_odds_series_cached(
         str(path.resolve()), stat.st_mtime_ns, stat.st_size,
+        max_rows_per_match, keep_opening,
     )
 
 

@@ -139,6 +139,70 @@ def _metric(hit: bool, valid: bool) -> dict:
     return {'hit': int(bool(hit)) if valid else 0, 'valid': int(bool(valid))}
 
 
+def _recalculate_independent_monte_carlo(
+        settled: pd.Series, prediction: dict,
+) -> dict:
+    """Rebuild a missing legacy simulation without using professional picks."""
+    try:
+        from src.database.league import LeagueDatabase
+        from src.services.daily_sporttery import (
+            LEAGUE_ALIASES, _market_baseline_probabilities,
+            _monte_carlo_summary,
+        )
+    except (ImportError, OSError):
+        return {}
+
+    display_league = _text(_value(settled, prediction, 'league', '联赛'))
+    league = next((
+        key for key, aliases in LEAGUE_ALIASES.items()
+        if display_league == key or display_league in aliases
+    ), None)
+    home = _text(prediction.get('主队模型名'))
+    away = _text(prediction.get('客队模型名'))
+    history = None
+    if league and home and away:
+        try:
+            history = LeagueDatabase().load_league(league)
+        except (OSError, KeyError, ValueError):
+            history = None
+
+    odds = {
+        key: _number(_value(settled, prediction, column))
+        for key, column in (
+            ('H', 'odds_home'), ('D', 'odds_draw'), ('A', 'odds_away'),
+        )
+    }
+    # Settlement uses English names while reports use the original Chinese
+    # columns, so fill odds directly from those report fields when needed.
+    odds['H'] = odds['H'] or _number(prediction.get('官方胜奖金'))
+    odds['D'] = odds['D'] or _number(prediction.get('官方平奖金'))
+    odds['A'] = odds['A'] or _number(prediction.get('官方负奖金'))
+    fallback_rates = None
+    if all(value is not None and value > 1 for value in odds.values()):
+        baseline = _market_baseline_probabilities(odds)
+        probabilities = np.asarray(baseline['score'], dtype=np.float64)
+        classes = np.asarray(baseline['score_classes'], dtype=np.int32)
+        fallback_rates = (
+            float(np.sum(probabilities * np.asarray([divmod(int(v), 7)[0] for v in classes]))),
+            float(np.sum(probabilities * np.asarray([divmod(int(v), 7)[1] for v in classes]))),
+        )
+
+    match_day = pd.to_datetime(
+        _value(settled, prediction, 'match_date', '比赛时间'), errors='coerce',
+    )
+    match_date = match_day.date() if pd.notna(match_day) else None
+    result = _monte_carlo_summary(
+        history, home, away, match_date, 0.0, False,
+        _number(_value(settled, prediction, 'handicap_line', '官方让球数')),
+        _text(_value(settled, prediction, 'match_id', '比赛ID')),
+        fallback_goal_rates=fallback_rates,
+    )
+    if not result.get('模拟半全场'):
+        return {}
+    result['模拟模型来源'] = '历史独立重算｜' + _text(result.get('模拟模型来源'))
+    return result
+
+
 def _build_detail(settled: pd.Series, prediction: dict) -> tuple[dict, dict]:
     home_goals = _number(settled.get('home_goals'))
     away_goals = _number(settled.get('away_goals'))
@@ -266,42 +330,40 @@ def _build_detail(settled: pd.Series, prediction: dict) -> tuple[dict, dict]:
     score_status = f'{score_hit_source}中' if score_hit else '未中'
     score_display = f'{score_picks} → {actual_score_text}（{score_status}）'
 
-    monte_top3 = _text(_value(settled, prediction, '模拟Top3比分'))
-    monte_result = _text(_value(settled, prediction, '模拟胜负'))
-    monte_handicap = _text(_value(settled, prediction, '模拟让球'))
-    monte_total = _text(_value(settled, prediction, '模拟总进球'))
-    monte_half_full = _text(_value(settled, prediction, '模拟半全场'))
-    monte_confidence = _text(_value(settled, prediction, '模拟可信度'))
-    monte_risk = _text(_value(settled, prediction, '蒙特风险'))
+    monte_top3 = _text(_value(settled, prediction, 'monte_carlo_top3_score', '模拟Top3比分'))
+    monte_result = _text(_value(settled, prediction, 'monte_carlo_result', '模拟胜负'))
+    monte_handicap = _text(_value(settled, prediction, 'monte_carlo_handicap', '模拟让球'))
+    monte_total = _text(_value(settled, prediction, 'monte_carlo_total', '模拟总进球'))
+    monte_half_full = _text(_value(settled, prediction, 'monte_carlo_half_full', '模拟半全场'))
+    monte_confidence = _text(_value(settled, prediction, 'monte_carlo_confidence', '模拟可信度'))
+    monte_risk = _text(_value(settled, prediction, 'monte_carlo_risk', '蒙特风险'))
     has_raw_monte = any((
         monte_top3, monte_result, monte_handicap, monte_total,
         monte_half_full, monte_confidence, monte_risk,
     ))
+    monte_source = _text(_value(
+        settled, prediction, 'monte_carlo_source', '模拟模型来源',
+    ))
+    recalculated = False
     if not has_raw_monte:
-        monte_top3 = _text(_value(settled, prediction, '最可能比分Top3'))
-        result_probability = _number(_value(
-            settled, prediction, '胜平负首选概率',
-        ))
-        monte_result = predicted_result
-        if result_probability is not None:
-            monte_result = f'{monte_result} {result_probability:.1%}'
-        handicap_probability = _number(_value(
-            settled, prediction, '让球首选概率',
-        ))
-        monte_handicap = handicap_first
-        if handicap_probability is not None:
-            monte_handicap = f'{monte_handicap} {handicap_probability:.1%}'
-        monte_total = predicted_ou
-        monte_half_full = _text(_value(
-            settled, prediction, '半全场Top3', '半全场首选',
-        ))
-        monte_confidence = _text(_value(settled, prediction, '置信等级'))
-        monte_risk = '历史文件未保存蒙特风险'
+        rebuilt = _recalculate_independent_monte_carlo(settled, prediction)
+        monte_top3 = _text(rebuilt.get('模拟Top3比分'))
+        monte_result = _text(rebuilt.get('模拟胜负'))
+        monte_handicap = _text(rebuilt.get('模拟让球'))
+        monte_total = _text(rebuilt.get('模拟总进球'))
+        monte_half_full = _text(rebuilt.get('模拟半全场'))
+        monte_confidence = _text(rebuilt.get('模拟可信度'))
+        monte_source = _text(rebuilt.get('模拟模型来源'))
+        recalculated = bool(monte_half_full)
     if monte_half_full:
         monte_half_full = ' / '.join(
             part.strip() for part in monte_half_full.split('/')[:2] if part.strip()
         )
-    monte_state = '原始蒙特记录' if has_raw_monte else '历史预测字段回填'
+    monte_state = (
+        '独立蒙特卡洛记录' if has_raw_monte
+        else '历史独立重算' if recalculated
+        else '历史数据不足'
+    )
 
     def marked(value: str, hit: bool) -> str:
         if not value:
@@ -356,9 +418,7 @@ def _build_detail(settled: pd.Series, prediction: dict) -> tuple[dict, dict]:
         '模拟可信度': monte_confidence,
         '蒙特风险': monte_risk,
         '模拟数据状态': monte_state,
-        '模拟模型来源': _text(_value(
-            settled, prediction, '模拟模型来源',
-        )) or ('历史原模型字段回填' if not has_raw_monte else '旧版同分布模拟'),
+        '模拟模型来源': monte_source or '历史数据不足，无法独立重算',
     }
     internal = {
         '_result_pick': predicted_result,

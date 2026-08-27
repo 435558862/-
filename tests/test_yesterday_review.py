@@ -139,3 +139,23 @@ def test_empty_yesterday_is_explicit_not_blank(tmp_path):
     assert summary['is_fallback'] is True
     assert '赛果尚未补齐' in summary['headline']
     assert '显示最近已结算日' in summary['headline']
+
+
+def test_professional_half_full_never_backfills_missing_monte_carlo(tmp_path):
+    settled_path = tmp_path / 'settled.csv'
+    pd.DataFrame([{
+        'match_id': 1, 'match_date': '2026-08-24',
+        'home_goals': 2, 'away_goals': 1, 'official_half_score': '0:0',
+        'predicted_half_full': '平胜',
+        'predicted_half_full_second': '胜胜',
+    }]).to_csv(settled_path, index=False)
+
+    details, _ = load_yesterday_hit_report(
+        today=date(2026, 8, 25), settled_path=settled_path,
+        report_root=tmp_path / 'reports',
+    )
+
+    assert details.loc[0, '半全场（首/次）'].startswith('首平胜/次胜胜')
+    assert details.loc[0, '模拟半全场'] == ''
+    assert details.loc[0, '模拟数据状态'] == '历史数据不足'
+    assert details.loc[0, '模拟模型来源'] == '历史数据不足，无法独立重算'

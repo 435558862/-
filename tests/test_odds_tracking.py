@@ -153,6 +153,18 @@ class OddsTrackingTests(unittest.TestCase):
         self.assertIsNot(first, second)
         self.assertEqual(len(second['1']), 2)
 
+    def test_bounded_chart_read_keeps_opening_and_latest_rows(self):
+        for index in range(6):
+            odds_tracking.record_odds_snapshots(
+                [raw_match(1, h=str(1.80 - index / 100))],
+                path=self.path, captured_at=f't{index}',
+            )
+        rows = odds_tracking.read_odds_series(
+            self.path, max_rows_per_match=3, keep_opening=True,
+        )['1']
+        self.assertEqual([row['captured_at'] for row in rows], ['t0', 't4', 't5'])
+        self.assertEqual(len(odds_tracking.read_odds_series(self.path)['1']), 6)
+
     def test_skips_identical_latest_snapshot(self):
         odds_tracking.record_odds_snapshots(
             [raw_match(1)], path=self.path, captured_at='t1',

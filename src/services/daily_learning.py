@@ -345,6 +345,19 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
         actual_half_full = labels[half_result] + labels[actual_result]
     predicted_half_full = _first_text(prediction.get('半全场首选'))
     predicted_half_full_second = _first_text(prediction.get('半全场次选'))
+    # Freeze the independent Monte Carlo output alongside the professional
+    # model picks. Review must never reconstruct one side from the other.
+    monte_carlo_fields = {
+        'monte_carlo_count': prediction.get('模拟次数'),
+        'monte_carlo_top3_score': _first_text(prediction.get('模拟Top3比分')),
+        'monte_carlo_result': _first_text(prediction.get('模拟胜负')),
+        'monte_carlo_handicap': _first_text(prediction.get('模拟让球')),
+        'monte_carlo_total': _first_text(prediction.get('模拟总进球')),
+        'monte_carlo_half_full': _first_text(prediction.get('模拟半全场')),
+        'monte_carlo_confidence': _first_text(prediction.get('模拟可信度')),
+        'monte_carlo_risk': _first_text(prediction.get('蒙特风险')),
+        'monte_carlo_source': _first_text(prediction.get('模拟模型来源')),
+    }
     return {
         'prediction_date': prediction['_prediction_date'],
         'match_id': prediction['_match_id'],
@@ -383,6 +396,7 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
         'predicted_handicap_second': predicted_handicap_second,
         'predicted_half_full': predicted_half_full,
         'predicted_half_full_second': predicted_half_full_second,
+        **monte_carlo_fields,
         'home_goals': home_goals,
         'away_goals': away_goals,
         'actual_score': actual_score,
