@@ -954,16 +954,6 @@ class SportteryPredictionsDialog(QDialog):
             probability = row.get(column)
             return label if pd.isna(probability) else f'{label}（{float(probability):.1%}）'
 
-        def result_probabilities(row: pd.Series) -> str:
-            parts = []
-            for label, column in (
-                ('胜', '模型主胜概率'), ('平', '模型平局概率'), ('负', '模型客胜概率'),
-            ):
-                probability = row.get(column)
-                if pd.notna(probability):
-                    parts.append(f'{label} {float(probability):.1%}')
-            return '｜'.join(parts)
-
         def odds_pair(row: pd.Series, opening: str, current: str) -> str:
             def fmt(value):
                 try:
@@ -1067,7 +1057,6 @@ class SportteryPredictionsDialog(QDialog):
         display['置信度'] = display.get(
             '置信等级', pd.Series('', index=display.index),
         ).fillna('').astype(str)
-        display['胜平负概率'] = display.apply(result_probabilities, axis=1)
         display['胜平负指数（首次采集→当前）'] = display.apply(had_opening_current, axis=1)
         display['让球指数（首次采集→当前）'] = display.apply(hhad_opening_current, axis=1)
         display['市场概率档参考'] = display.apply(market_reference, axis=1)
@@ -1160,7 +1149,7 @@ class SportteryPredictionsDialog(QDialog):
             '赛事编号', '比赛时间', '联赛', '胜负模型', '主队', '客队',
             '距参考截止',
             '建议临场同步时段',
-            '建议状态', '置信度', '胜负首选', '胜平负概率',
+            '建议状态', '置信度', '胜负首选',
             '胜平负指数（首次采集→当前）',
             '模拟差异', '模拟可信度', '模拟模型来源',
             '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场', '模拟Top3比分',
