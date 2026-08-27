@@ -264,7 +264,11 @@ class MarketTrendDialog(QDialog):
         self.setWindowTitle('实时市场走势图')
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.resize(1080, 640)
-        self._series = {key: list(rows) for key, rows in read_odds_series().items()}
+        self._series = {
+            key: list(rows) for key, rows in read_odds_series(
+                max_rows_per_match=300, keep_opening=True,
+            ).items()
+        }
         self._live_queue = Queue()
         self._live_running = False
         self._did_select_live = False
@@ -403,7 +407,9 @@ class MarketTrendDialog(QDialog):
         # Reload after both writes so the chart starts with the true official
         # opening row and includes all historical handicap prices immediately.
         self._series = {
-            key: list(rows) for key, rows in read_odds_series().items()
+            key: list(rows) for key, rows in read_odds_series(
+                max_rows_per_match=300, keep_opening=True,
+            ).items()
         }
         live_ids = set()
         first_live_id = None
@@ -630,7 +636,7 @@ class SportteryPredictionsDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('今日竞彩预测')
+        self.setWindowTitle('今日竞彩概率分析')
         self.resize(1250, 650)
         self._predictions = pd.DataFrame()
         self._table_container = QWidget()
@@ -695,7 +701,7 @@ class SportteryPredictionsDialog(QDialog):
 
         action_bar = QHBoxLayout()
         action_bar.setSpacing(5)
-        sync_button = QPushButton('同步最新赔率并预测')
+        sync_button = QPushButton('同步赔率并更新分析')
         sync_button.setToolTip('重新获取官方最新赔率；建议在安全截止前20～60分钟执行')
         sync_button.clicked.connect(self._sync)
         review_button = QPushButton('补赛果并复盘')
@@ -739,6 +745,14 @@ class SportteryPredictionsDialog(QDialog):
         filters.addWidget(self._date_selector)
         filters.addStretch(1)
         root.addWidget(filter_panel)
+        risk_notice = QLabel(
+            '概率不是赛果保证；优先查看样本量、覆盖率、阵容状态与模型分歧。'
+        )
+        risk_notice.setObjectName('riskNotice')
+        risk_notice.setToolTip(
+            '比分和半全场属于高方差市场；历史命中率只描述指定样本与时间窗口。'
+        )
+        root.addWidget(risk_notice)
         root.addWidget(self._table_container)
 
         self.setStyleSheet('''
@@ -782,6 +796,11 @@ class SportteryPredictionsDialog(QDialog):
             }
             QLabel#summaryLabel {
                 color: #404040; padding: 3px 5px; font-size: 12px;
+            }
+            QLabel#riskNotice {
+                color: #7a4b00; background: #fff8e6;
+                border: 1px solid #ead7a5; border-radius: 3px;
+                padding: 4px 7px; font-size: 12px;
             }
             QTableWidget {
                 color: #202020; background: #ffffff;
@@ -871,14 +890,34 @@ class SportteryPredictionsDialog(QDialog):
             accuracy = row.get('同阈值历史命中率')
             samples = row.get('筛选回测样本数')
             coverage = row.get('同阈值历史覆盖率')
+            period = str(row.get('筛选回测期间') or '').strip()
             if pd.isna(accuracy):
-                return ''
-            result = f'同档命中 {float(accuracy):.1%}'
+                return '未提供可比回测'
+            result = f'历史同档 {float(accuracy):.1%}'
             if pd.notna(coverage):
                 result += f'｜覆盖 {float(coverage):.1%}'
             if pd.notna(samples):
                 result += f'｜{int(samples)}场'
+            if period and period.lower() != 'nan':
+                result += f'｜{period}'
             return result
+
+        def evidence_status(row: pd.Series) -> str:
+            samples = pd.to_numeric(row.get('筛选回测样本数'), errors='coerce')
+            concerns = []
+            if pd.isna(samples):
+                concerns.append('回测未披露')
+            elif samples < 30:
+                concerns.append('小样本')
+            lineup = str(row.get('首发状态') or '')
+            if lineup and lineup != '已确认':
+                concerns.append('首发未确认')
+            if str(row.get('模拟差异') or '').strip():
+                concerns.append('模型分歧')
+            gate = str(row.get('盘口门控') or '')
+            if any(word in gate for word in ('冲突', '震荡', '不稳定')):
+                concerns.append('市场信号不稳')
+            return '需谨慎：' + '、'.join(concerns) if concerns else '证据项已披露'
 
         display['胜负首选'] = score_with_probability('胜平负首选', '胜平负首选概率')
         handicap_labels = {'胜': '让胜', '平': '让平', '负': '让负'}
@@ -902,7 +941,7 @@ class SportteryPredictionsDialog(QDialog):
                     values.append(str(value).strip())
             return ' / '.join(values)
 
-        display['比分推荐（首/次1/次2/冷/进取）'] = display.apply(
+        display['比分情景（Top3/反向/高进球）'] = display.apply(
             combined_scores, axis=1,
         )
         display['置信度'] = display.get(
@@ -977,6 +1016,7 @@ class SportteryPredictionsDialog(QDialog):
             return '｜'.join(part for part in parts if part)
 
         display['模拟差异'] = display.apply(simulation_difference, axis=1)
+        display['证据状态'] = display.apply(evidence_status, axis=1)
         odds_series = read_odds_series()
         match_ids = display.get('比赛ID', pd.Series('', index=display.index))
         calculated_flow = [format_market_flow(mid, series=odds_series) for mid in match_ids]
@@ -1003,10 +1043,11 @@ class SportteryPredictionsDialog(QDialog):
             '模拟胜负', '模拟让球', '模拟总进球', '模拟半全场', '模拟Top3比分',
             '盘口流向',
             '阵容分析',
+            '证据状态',
             '市场概率档参考', '分析依据',
             '官方让球数', '让球首选/次选',
             '大小球首选', '半全场首选/次选',
-            '比分推荐（首/次1/次2/冷/进取）',
+            '比分情景（Top3/反向/高进球）',
             '蒙特风险',
         ]
         shown = display[[column for column in preferred if column in display.columns]].copy()
@@ -1100,9 +1141,9 @@ class SportteryPredictionsDialog(QDialog):
         high = int(advice.eq('高置信主推').sum())
         self._advice_selector.blockSignals(True)
         self._advice_selector.clear()
-        self._advice_selector.addItem(f'正式推荐（{selected + high}场）', '正式推荐')
-        self._advice_selector.addItem(f'精选主推（{selected}场）', '精选主推')
-        self._advice_selector.addItem(f'高置信主推（{high}场）', '高置信主推')
+        self._advice_selector.addItem(f'达到筛选阈值（{selected + high}场）', '正式推荐')
+        self._advice_selector.addItem(f'A档概率样本（{selected}场）', '精选主推')
+        self._advice_selector.addItem(f'B档概率样本（{high}场）', '高置信主推')
         self._advice_selector.addItem(f'全部场次（{len(self._predictions)}场）', '')
         if current is None or (current == '正式推荐' and selected + high == 0):
             # Never open on an empty recommendation view when the report itself
@@ -1124,7 +1165,7 @@ class SportteryPredictionsDialog(QDialog):
         self._date_selector.blockSignals(True)
         self._date_selector.clear()
         upcoming_count = len(_upcoming_predictions(self._predictions))
-        self._date_selector.addItem(f'当前可投注（{upcoming_count}场）', '')
+        self._date_selector.addItem(f'尚未开赛（{upcoming_count}场）', '')
         for value in dates:
             count = int(upcoming['比赛时间'].astype(str).str.startswith(value).sum())
             weekday = '一二三四五六日'[date.fromisoformat(value).weekday()]
@@ -1146,7 +1187,7 @@ class SportteryPredictionsDialog(QDialog):
             readonly=True,
             supports_sorting=True,
         )
-        score_column = '比分推荐（首/次1/次2/冷/进取）'
+        score_column = '比分情景（Top3/反向/高进球）'
         if score_column in display_frame.columns:
             column_index = display_frame.columns.get_loc(score_column)
             recommended = _score_recommendation_mask(visible).reset_index(drop=True)
@@ -1244,12 +1285,12 @@ class SportteryPredictionsDialog(QDialog):
             f'本次补结算 {int(result.get("newly_settled") or 0)} 场，'
             f'累计复盘 {int(result.get("settled_samples") or 0)} 场，'
             f'等待官方赛果 {int(result.get("pending_samples") or 0)} 场，'
-            f'胜平负命中率 {accuracy_text}。\n'
+            f'胜平负历史命中率 {accuracy_text}（累计已结算样本）。\n'
             f'本次补入官方市场样本 {int(result.get("new_official_history") or 0)} 场，'
             f'通用训练样本累计 {int(result.get("total_training_samples") or 0)} 场。\n'
             f'模型状态：{result.get("model_status", "积累样本中")}。\n'
-            f'自主进化：已审计 {int(result.get("evolution_attempts") or 0)} 次，'
-            f'当前冠军第 {int(result.get("champion_generation") or 0)} 代。'
+            f'模型迭代：已审计 {int(result.get("evolution_attempts") or 0)} 次，'
+            f'当前采用第 {int(result.get("champion_generation") or 0)} 代。'
         )
         selection_rows = (result.get('selection_profile') or {}).get('rows') or []
         recommended = [
@@ -1257,9 +1298,10 @@ class SportteryPredictionsDialog(QDialog):
             if row.get('grade') in ('精选主推', '高置信主推')
         ]
         if recommended:
-            message += '\n自主学习门槛：' + '；'.join(
-                f'{row["grade"]}≥{float(row["threshold"]):.1%}'
-                f'（回测{float(row["accuracy"]):.1%}）'
+            message += '\n历史筛选阈值：' + '；'.join(
+                f'{"A档" if row["grade"] == "精选主推" else "B档"}'
+                f'≥{float(row["threshold"]):.1%}'
+                f'（历史同档{float(row["accuracy"]):.1%}）'
                 for row in recommended
             )
         model_lines = []

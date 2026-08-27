@@ -243,5 +243,6 @@ def test_sporttery_table_shows_decision_probabilities_and_audit_reference():
 
     assert '胜平负概率' not in display.columns
     assert '官方销售状态' not in display.columns
-    assert display.loc[0, '市场概率档参考'] == '同档命中 76.2%｜覆盖 13.7%｜137场'
+    assert display.loc[0, '市场概率档参考'] == '历史同档 76.2%｜覆盖 13.7%｜137场'
     assert display.loc[0, '分析依据'] == '官方赔率市场基线'
+    assert display.loc[0, '证据状态'] == '证据项已披露'

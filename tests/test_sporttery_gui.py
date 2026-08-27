@@ -88,7 +88,7 @@ def test_single_display_combines_all_scores_without_percentages():
 
     assert '置信度' not in display.columns
     assert display.loc[0, '胜负首选'] == '胜（60.0%）'
-    scores = display.loc[0, '比分推荐（首/次1/次2/冷/进取）']
+    scores = display.loc[0, '比分情景（Top3/反向/高进球）']
     assert scores == '2-1 / 1-0 / 2-0 / 1-2 / 3-1'
     assert '%' not in scores
 
@@ -99,7 +99,7 @@ def test_all_scores_remain_visible_even_when_confidence_is_low():
         '首选比分': '1-1', '次选比分': '1-0', '第三比分': '2-1',
     }])
     display = SportteryPredictionsDialog._display_predictions(predictions)
-    assert display.loc[0, '比分推荐（首/次1/次2/冷/进取）'] == '1-1 / 1-0 / 2-1'
+    assert display.loc[0, '比分情景（Top3/反向/高进球）'] == '1-1 / 1-0 / 2-1'
 
 
 def test_only_audited_score_recommendations_are_marked():

@@ -538,8 +538,8 @@ class MainWindow(QMainWindow):
         action_fixtures.setStatusTip('Download and predict an entire fixture')
         action_fixtures.triggered.connect(self._open_fixture_predictions)
 
-        action_sporttery = QAction('今日竞彩预测', self)
-        action_sporttery.setStatusTip('同步官方竞彩场次并查看胜平负、让球、比分和爆冷比分')
+        action_sporttery = QAction('今日竞彩概率分析', self)
+        action_sporttery.setStatusTip('同步官方场次，查看胜平负、让球、进球数与比分情景的概率分布')
         action_sporttery.triggered.connect(self._open_sporttery_predictions)
 
         menu_predictions.addAction(action_offline)
