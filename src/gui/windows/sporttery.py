@@ -783,6 +783,17 @@ def _mark_priority_cells(
     return marked
 
 
+def _priority_summary(predictions: pd.DataFrame) -> str:
+    """Return compact counts for recommendations that actually pass gates."""
+    counts: dict[str, int] = {}
+    for labels in _daily_priority_aspects(predictions):
+        for label in labels:
+            counts[label] = counts.get(label, 0) + 1
+    ordered = ('胜负', '平局', '让球', '大小球', '半全场', '比分')
+    selected = [f'{label}{counts[label]}' for label in ordered if counts.get(label)]
+    return '今日重点 ' + ('·'.join(selected) if selected else '暂无达标项')
+
+
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
@@ -1688,13 +1699,14 @@ class SportteryPredictionsDialog(QDialog):
         table.verticalHeader().setDefaultSectionSize(25)
         table.verticalHeader().setMinimumSectionSize(23)
         self._table_layout.addWidget(table)
+        priority_text = _priority_summary(_upcoming_predictions(self._predictions))
         if visible.empty and not self._predictions.empty:
             self._summary.setText(
-                f'当前显示 0 场  ·  未开赛共 {active_count} 场'
+                f'当前显示 0 场  ·  未开赛 {active_count} 场  ·  {priority_text}'
             )
         else:
             self._summary.setText(
-                f'当前显示 {len(visible)} 场  ·  未开赛共 {active_count} 场'
+                f'当前显示 {len(visible)} 场  ·  未开赛 {active_count} 场  ·  {priority_text}'
             )
 
     def _sync(self):

@@ -2,6 +2,7 @@ import unittest
 import json
 import numpy as np
 import pandas as pd
+import src.network.fixtures.sporttery as sporttery_module
 from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -36,6 +37,12 @@ from src.services.team_names import resolve_model_team
 
 class DailySportteryTests(unittest.TestCase):
 
+    def setUp(self):
+        sporttery_module._selling_api_suspended_until = 0.0
+
+    def tearDown(self):
+        sporttery_module._selling_api_suspended_until = 0.0
+
     def test_official_feeds_are_unioned_instead_of_using_calculator_subset(self):
         client = SportteryMobileClient(retries=1)
         full = [
@@ -48,6 +55,20 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual({row['matchId'] for row in matches}, {1, 2})
         first = next(row for row in matches if row['matchId'] == 1)
         self.assertEqual(first['had']['h'], '1.8')
+
+    def test_denied_full_feed_is_temporarily_skipped_but_calculator_stays_live(self):
+        client = SportteryMobileClient(retries=1)
+        calculator = [{'matchId': 7, 'had': {'h': '1.9'}}]
+        sporttery_module._selling_api_suspended_until = 0.0
+        with patch.object(
+                client, '_matches_from',
+                side_effect=[RuntimeError('403 Forbidden'), calculator, calculator],
+        ) as fetch:
+            first = client.selling_matches()
+            second = client.selling_matches()
+        self.assertEqual(first, calculator)
+        self.assertEqual(second, calculator)
+        self.assertEqual(fetch.call_count, 3)
 
     def test_smaller_refresh_does_not_erase_matches_seen_earlier_today(self):
         client = SportteryMobileClient(retries=1)

@@ -437,3 +437,15 @@ def test_daily_priority_rejects_unstable_market_signals():
     }])
 
     assert sporttery_window._daily_priority_aspects(predictions).iloc[0] == []
+
+
+def test_priority_summary_only_lists_markets_that_pass_the_gate(monkeypatch):
+    predictions = pd.DataFrame({'赛事编号': ['001', '002']})
+    monkeypatch.setattr(
+        sporttery_window,
+        '_daily_priority_aspects',
+        lambda frame: pd.Series([['胜负', '比分'], ['大小球']]),
+    )
+    assert sporttery_window._priority_summary(predictions) == (
+        '今日重点 胜负1·大小球1·比分1'
+    )

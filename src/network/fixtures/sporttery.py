@@ -34,6 +34,11 @@ RESULT_API = (
     'getUniformMatchResultV1.qry'
 )
 
+# Avoid retrying a known-denied legacy endpoint on every background pulse.
+# The calculator feed remains active and this endpoint is retried after an hour.
+_selling_api_suspended_until = 0.0
+_SELLING_API_COOLDOWN_SECONDS = 60 * 60
+
 
 class SportteryMobileClient:
     """Fast official mobile-calculator client (one request for all HAD matches)."""
@@ -95,14 +100,21 @@ class SportteryMobileClient:
         The calculator endpoint can contain only the subset offered in one or
         more pools.  It must therefore never be treated as the complete card.
         """
+        global _selling_api_suspended_until
         feeds, errors = [], []
-        for url, value_key, label in (
-                (SELLING_API, None, '全量在售'),
-                (CALCULATOR_API, 'matchInfoList', '计算器赔率')):
+        sources = []
+        if time.monotonic() >= _selling_api_suspended_until:
+            sources.append((SELLING_API, None, '全量在售'))
+        sources.append((CALCULATOR_API, 'matchInfoList', '计算器赔率'))
+        for url, value_key, label in sources:
             try:
                 feeds.append(self._matches_from(url, value_key))
             except RuntimeError as error:
                 errors.append(f'{label}={error}')
+                if url == SELLING_API and '403' in str(error):
+                    _selling_api_suspended_until = (
+                        time.monotonic() + _SELLING_API_COOLDOWN_SECONDS
+                    )
         if not feeds:
             raise RuntimeError(f'竞彩网官方接口读取失败：{"; ".join(errors)}')
         if errors:
