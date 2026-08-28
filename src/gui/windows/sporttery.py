@@ -19,7 +19,7 @@ from src.database.model import ModelDatabase
 from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.tables import ExcelTable
 from src.network.fixtures.sporttery import SportteryMobileClient
-from src.services.daily_learning import review_and_learn
+from src.services.daily_learning import load_over_under_profile, review_and_learn
 from src.services.daily_sporttery import (
     LEAGUE_ALIASES, _sort_by_match_number, backfill_missing_simulations,
     run_daily_sporttery,
@@ -687,6 +687,24 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
     advice = predictions.get(
         '建议状态', pd.Series('', index=predictions.index),
     ).fillna('').astype(str)
+    ou_profile = load_over_under_profile() or {
+        'directions': [
+            {'pick': '大于2.5球', 'enabled': True, 'threshold': 0.60},
+            {'pick': '小于2.5球', 'enabled': False, 'threshold': 0.75},
+        ],
+    }
+    ou_rules = {
+        str(row.get('pick')): row for row in ou_profile.get('directions', [])
+    }
+    ou_pick = predictions.get(
+        '大小球首选', pd.Series('', index=predictions.index),
+    ).fillna('').astype(str)
+    ou_threshold = ou_pick.map(
+        lambda pick: float((ou_rules.get(pick) or {}).get('threshold', 1.0)),
+    )
+    ou_enabled = ou_pick.map(
+        lambda pick: bool((ou_rules.get(pick) or {}).get('enabled', False)),
+    )
     candidates = {
         '胜负': (
             advice.isin(('精选主推', '高置信主推'))
@@ -714,7 +732,7 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
             numbers('让球首选概率'),
         ),
         '大小球': (
-            numbers('大小球首选概率').ge(0.60) & stable,
+            ou_enabled & numbers('大小球首选概率').ge(ou_threshold) & stable,
             numbers('大小球首选概率'),
         ),
         '半全场': (
@@ -1751,6 +1769,16 @@ class SportteryPredictionsDialog(QDialog):
                 f'≥{float(row["threshold"]):.1%}'
                 f'（历史同档{float(row["accuracy"]):.1%}）'
                 for row in recommended
+            )
+        over_under_rows = (result.get('over_under_profile') or {}).get('directions') or []
+        if over_under_rows:
+            message += '\n大小球滚动门控：' + '；'.join(
+                f'{row.get("label", row.get("pick", ""))}'
+                f'{"启用" if row.get("enabled") else "暂停"}'
+                f'（门槛≥{float(row.get("threshold") or 0):.0%}，'
+                f'留出{int(row.get("audit_samples") or 0)}场/'
+                f'{float(row.get("audit_accuracy") or 0):.1%}）'
+                for row in over_under_rows
             )
         model_lines = []
         for name, audit in result.get('accuracy_by_model', {}).items():

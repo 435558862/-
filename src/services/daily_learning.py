@@ -33,6 +33,7 @@ GENERIC_MODEL_PATH = Path('storage/models/market/daily_generic_1x2.joblib')
 AUDIT_ROOT = Path('storage/models/market/audits/daily_learning')
 CHAMPION_ROOT = Path('storage/models/market/champions/daily_learning')
 SELECTION_PROFILE_PATH = LEARNING_ROOT / 'selection_profile.json'
+OVER_UNDER_PROFILE_PATH = LEARNING_ROOT / 'over_under_selection_profile.json'
 REPORT_PATTERN = re.compile(r'^(\d{4}-\d{2}-\d{2})-竞彩预测\.csv$')
 MIN_TRAIN_ROWS = 300
 VALIDATION_ROWS = 60
@@ -398,6 +399,7 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
         'predicted_score_upset': predicted_score_upset,
         'predicted_score_aggressive': predicted_score_aggressive,
         'predicted_over_under': predicted_ou,
+        'over_under_probability': _float(prediction, '大小球首选概率'),
         'handicap_line': handicap_line,
         'predicted_handicap': predicted_handicap,
         'predicted_handicap_second': predicted_handicap_second,
@@ -741,6 +743,99 @@ def load_selection_profile() -> Optional[dict]:
         return profile if isinstance(rows, list) and rows else None
     except (OSError, ValueError, TypeError):
         logging.exception('自主学习筛选阈值加载失败，使用内置安全阈值。')
+        return None
+
+
+def _learn_over_under_profile(settled: pd.DataFrame, today: date) -> Optional[dict]:
+    """Learn direction-specific O/U gates with a chronological audit block."""
+    if settled.empty or not {'match_id', 'match_date', 'predicted_over_under', 'over_under_hit'}.issubset(settled):
+        return load_over_under_profile()
+    data = settled.copy()
+    if 'over_under_probability' not in data:
+        data['over_under_probability'] = np.nan
+    probability = pd.to_numeric(data['over_under_probability'], errors='coerce')
+    if probability.isna().any():
+        reports = _prediction_reports(today)
+        if not reports.empty and '大小球首选概率' in reports:
+            lookup = reports.set_index('_match_id')['大小球首选概率']
+            missing = probability.isna()
+            data.loc[missing, 'over_under_probability'] = data.loc[
+                missing, 'match_id'
+            ].map(lookup)
+    data['over_under_probability'] = pd.to_numeric(
+        data['over_under_probability'], errors='coerce',
+    )
+    data['over_under_hit'] = pd.to_numeric(data['over_under_hit'], errors='coerce')
+    data = data.dropna(subset=[
+        'match_date', 'predicted_over_under',
+        'over_under_probability', 'over_under_hit',
+    ]).sort_values('match_date', kind='stable').reset_index(drop=True)
+    if len(data) < 80:
+        return load_over_under_profile()
+    audit_rows = max(20, min(80, int(len(data) * 0.20)))
+    calibration, audit = data.iloc[:-audit_rows], data.iloc[-audit_rows:]
+    directions = []
+    for pick, label in (('大于2.5球', '大球'), ('小于2.5球', '小球')):
+        chosen = None
+        for threshold in np.arange(0.60, 0.751, 0.01):
+            calibration_rows = calibration[
+                calibration['predicted_over_under'].eq(pick)
+                & calibration['over_under_probability'].ge(threshold)
+            ]
+            audit_rows_frame = audit[
+                audit['predicted_over_under'].eq(pick)
+                & audit['over_under_probability'].ge(threshold)
+            ]
+            if (
+                len(calibration_rows) >= 30 and len(audit_rows_frame) >= 10
+                and calibration_rows['over_under_hit'].mean() >= 0.70
+                and audit_rows_frame['over_under_hit'].mean() >= 0.70
+            ):
+                chosen = {
+                    'pick': pick, 'label': label, 'enabled': True,
+                    'threshold': round(float(threshold), 2),
+                    'calibration_samples': len(calibration_rows),
+                    'calibration_accuracy': float(calibration_rows['over_under_hit'].mean()),
+                    'audit_samples': len(audit_rows_frame),
+                    'audit_accuracy': float(audit_rows_frame['over_under_hit'].mean()),
+                }
+                break
+        if chosen is None:
+            base_calibration = calibration[calibration['predicted_over_under'].eq(pick)]
+            base_audit = audit[audit['predicted_over_under'].eq(pick)]
+            chosen = {
+                'pick': pick, 'label': label, 'enabled': False,
+                'threshold': 0.75,
+                'calibration_samples': len(base_calibration),
+                'calibration_accuracy': (
+                    float(base_calibration['over_under_hit'].mean())
+                    if len(base_calibration) else 0.0
+                ),
+                'audit_samples': len(base_audit),
+                'audit_accuracy': (
+                    float(base_audit['over_under_hit'].mean()) if len(base_audit) else 0.0
+                ),
+            }
+        directions.append(chosen)
+    profile = {
+        'learned_at': datetime.now().isoformat(timespec='seconds'),
+        'as_of': today.isoformat(), 'total_samples': len(data),
+        'calibration_samples': len(calibration), 'audit_samples': len(audit),
+        'directions': directions,
+    }
+    _write_json(OVER_UNDER_PROFILE_PATH, profile)
+    return profile
+
+
+def load_over_under_profile() -> Optional[dict]:
+    if not OVER_UNDER_PROFILE_PATH.exists():
+        return None
+    try:
+        profile = json.loads(OVER_UNDER_PROFILE_PATH.read_text(encoding='utf-8'))
+        directions = profile.get('directions')
+        return profile if isinstance(directions, list) and directions else None
+    except (OSError, ValueError, TypeError):
+        logging.exception('大小球滚动门槛加载失败，使用保守内置门槛。')
         return None
 
 
@@ -1190,6 +1285,7 @@ def review_and_learn(
             logging.exception('平局校准候选训练失败，继续保留旧校准。')
             draw_audit = {'status': '训练异常，保留旧校准', 'deployable': False}
     selection_profile = _learn_selection_profile(training_data, today)
+    over_under_profile = _learn_over_under_profile(settled, today)
     selected = settled[
         settled.get('advice', pd.Series(dtype=str)).fillna('').astype(str).str.contains('主推')
     ] if not settled.empty else settled
@@ -1215,6 +1311,7 @@ def review_and_learn(
         ),
         'accuracy_by_model': _accuracy_by_model(settled),
         'selection_profile': selection_profile,
+        'over_under_profile': over_under_profile,
         'draw_calibration': draw_audit,
         'review_error': '；'.join(errors),
         **training,

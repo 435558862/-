@@ -198,6 +198,32 @@ def test_selection_thresholds_are_relearned_from_recent_results(tmp_path, monkey
     assert daily_learning.load_selection_profile()['total_samples'] == 1000
 
 
+def test_over_under_profile_enables_only_direction_passing_time_audit(tmp_path, monkeypatch):
+    rows = []
+    for index in range(200):
+        is_over = index % 2 == 0
+        rows.append({
+            'match_id': str(index), 'match_date': f'2026-08-{1 + index // 8:02d}',
+            'predicted_over_under': '大于2.5球' if is_over else '小于2.5球',
+            'over_under_probability': 0.62,
+            'over_under_hit': (
+                int(index % 8 != 0) if is_over else int(index % 6 == 1)
+            ),
+        })
+    path = tmp_path / 'over-under.json'
+    monkeypatch.setattr(daily_learning, 'OVER_UNDER_PROFILE_PATH', path)
+
+    profile = daily_learning._learn_over_under_profile(
+        pd.DataFrame(rows), date(2026, 8, 27),
+    )
+
+    directions = {row['pick']: row for row in profile['directions']}
+    assert directions['大于2.5球']['enabled'] is True
+    assert directions['大于2.5球']['threshold'] == 0.60
+    assert directions['小于2.5球']['enabled'] is False
+    assert daily_learning.load_over_under_profile()['total_samples'] == 200
+
+
 def test_waiting_for_more_samples_keeps_last_audit_metrics():
     rows = pd.DataFrame([{
         'match_date': f'2026-07-{index + 1:02d}',
