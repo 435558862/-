@@ -571,8 +571,34 @@ class MainWindow(QMainWindow):
         self._fixtures_dialog.activateWindow()
 
     def _open_sporttery_predictions(self):
-        self._sporttery_dialog = SportteryPredictionsDialog(self)
-        self._exec_owned_dialog(self._sporttery_dialog)
+        """Open the core prediction workspace without surfacing two windows.
+
+        Making this a modal child caused WSLg to raise its owner whenever focus
+        changed inside a secondary report.  Keep one independent prediction
+        window alive, hide the legacy main page while it is in use, and restore
+        the main page only after the prediction window is explicitly closed.
+        """
+        if self._sporttery_dialog is not None and self._sporttery_dialog.isVisible():
+            self._sporttery_dialog.raise_()
+            self._sporttery_dialog.activateWindow()
+            return
+        self._sporttery_dialog = SportteryPredictionsDialog()
+        self._sporttery_dialog.setAttribute(
+            Qt.WidgetAttribute.WA_DeleteOnClose, True,
+        )
+        self._sporttery_dialog.finished.connect(
+            self._restore_main_after_sporttery,
+        )
+        self.hide()
+        self._sporttery_dialog.show()
+        self._sporttery_dialog.raise_()
+        self._sporttery_dialog.activateWindow()
+
+    def _restore_main_after_sporttery(self):
+        self._sporttery_dialog = None
+        self.show()
+        self.raise_()
+        self.activateWindow()
 
     def _add_help_menus(self, menu_help: QMenu):
         """ Adds help/tutorial and donation menus. """

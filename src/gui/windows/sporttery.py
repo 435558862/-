@@ -1817,9 +1817,10 @@ class SportteryPredictionsDialog(QDialog):
         # Reading the local settlement cache is intentionally instant and never
         # starts a network request. Use the existing review button when official
         # results still need to be synchronized.
-        if self._yesterday_dialog is not None:
-            self._yesterday_dialog.close()
-            self._yesterday_dialog.deleteLater()
+        if self._yesterday_dialog is not None and self._yesterday_dialog.isVisible():
+            self._yesterday_dialog.raise_()
+            self._yesterday_dialog.activateWindow()
+            return
         self._yesterday_dialog = YesterdayHitDetailsDialog(self)
         self._yesterday_dialog.show()
         self._yesterday_dialog.raise_()
@@ -1831,9 +1832,10 @@ class SportteryPredictionsDialog(QDialog):
             QMessageBox.information(self, '没有数据', '请先同步竞猜数据。')
             return
         source = visible if not visible.empty else self._predictions
-        if self._market_dialog is not None:
-            self._market_dialog.close()
-            self._market_dialog.deleteLater()
+        if self._market_dialog is not None and self._market_dialog.isVisible():
+            self._market_dialog.raise_()
+            self._market_dialog.activateWindow()
+            return
         self._market_dialog = MarketTrendDialog(source, self)
         self._market_dialog.show()
         self._market_dialog.raise_()
@@ -1843,9 +1845,13 @@ class SportteryPredictionsDialog(QDialog):
         if self._predictions.empty:
             QMessageBox.information(self, '没有数据', '请先同步竞猜数据。')
             return
-        if self._daily_recommendations_dialog is not None:
-            self._daily_recommendations_dialog.close()
-            self._daily_recommendations_dialog.deleteLater()
+        if (
+                self._daily_recommendations_dialog is not None
+                and self._daily_recommendations_dialog.isVisible()
+        ):
+            self._daily_recommendations_dialog.raise_()
+            self._daily_recommendations_dialog.activateWindow()
+            return
         self._daily_recommendations_dialog = DailyRecommendationsDialog(
             self._predictions, self,
         )

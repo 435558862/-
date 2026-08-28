@@ -2,6 +2,7 @@ import pandas as pd
 from PySide6.QtWidgets import QApplication, QDialog
 
 from src.gui.i18n import translate_widget
+from src.gui import main as main_window
 from src.gui.widgets.tables import DataFrameTable, DataFrameTableModel, ExcelTable
 from src.gui.windows.models import fixtures
 from src.gui.windows.models.predictor import PredictorDialog
@@ -21,6 +22,57 @@ def _app():
     global _APP
     _APP = QApplication.instance() or QApplication([])
     return _APP
+
+
+def test_core_prediction_window_is_reused_without_resurfacing_main(monkeypatch):
+    class Signal:
+        def connect(self, callback):
+            self.callback = callback
+
+    class FakeDialog:
+        def __init__(self):
+            self.finished = Signal()
+            self.visible = False
+            self.raised = self.activated = 0
+
+        def setAttribute(self, *args):
+            pass
+
+        def isVisible(self):
+            return self.visible
+
+        def show(self):
+            self.visible = True
+
+        def raise_(self):
+            self.raised += 1
+
+        def activateWindow(self):
+            self.activated += 1
+
+    created = []
+    monkeypatch.setattr(
+        main_window, 'SportteryPredictionsDialog',
+        lambda: created.append(FakeDialog()) or created[-1],
+    )
+
+    class Owner:
+        _sporttery_dialog = None
+        hidden = 0
+
+        def hide(self):
+            self.hidden += 1
+
+        def _restore_main_after_sporttery(self):
+            pass
+
+    owner = Owner()
+    main_window.MainWindow._open_sporttery_predictions(owner)
+    main_window.MainWindow._open_sporttery_predictions(owner)
+
+    assert len(created) == 1
+    assert owner.hidden == 1
+    assert created[0].raised == 2
 
 
 def test_large_readonly_table_uses_lazy_dataframe_model():
