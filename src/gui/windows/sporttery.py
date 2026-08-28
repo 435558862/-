@@ -721,11 +721,12 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
             numbers('半全场首选概率').ge(0.35) & stable,
             numbers('半全场首选概率'),
         ),
-        # Exact score remains available, but its gate is stricter than the
-        # general 12% display threshold after the weak settled priority audit.
+        # Keep exact score selective but visible: choose only the strongest
+        # audited score per day. Requiring 15% suppressed every current match,
+        # while the score model's established display gate is 12%.
         '比分': (
             _score_recommendation_mask(predictions)
-            & numbers('原始最高概率比分概率').ge(0.15) & stable,
+            & numbers('原始最高概率比分概率').ge(0.12) & stable,
             numbers('原始最高概率比分概率'),
         ),
     }

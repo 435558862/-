@@ -421,7 +421,7 @@ def test_daily_priority_selects_strongest_row_per_market_and_day():
     priorities = sporttery_window._daily_priority_aspects(predictions)
 
     assert priorities.iloc[0] == []
-    assert priorities.iloc[1] == ['胜负', '大小球', '半全场']
+    assert priorities.iloc[1] == ['胜负', '大小球', '半全场', '比分']
 
 
 def test_daily_priority_rejects_unstable_market_signals():
