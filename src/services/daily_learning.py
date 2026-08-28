@@ -304,6 +304,13 @@ def _result_rows_for_dates(
     return rows
 
 
+def _match_dates(values: pd.Series) -> pd.Series:
+    """Parse mixed date and datetime values without pandas format inference."""
+    return values.map(
+        lambda value: pd.to_datetime(value, errors='coerce'),
+    ).map(lambda value: value.date() if pd.notna(value) else None)
+
+
 def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
     score = _parse_score(result.get('sectionsNo999'))
     if score is None or str(result.get('matchResultStatus')) != '2':
@@ -1124,7 +1131,7 @@ def review_and_learn(
         ~predictions.get('_match_id', pd.Series(dtype=str)).isin(settled_ids)
     ].copy() if not predictions.empty else pd.DataFrame()
     if not pending.empty:
-        match_dates = pd.to_datetime(pending.get('比赛时间'), errors='coerce').dt.date
+        match_dates = _match_dates(pending.get('比赛时间'))
         pending['_actual_match_date'] = match_dates
         pending = pending[
             pending['_actual_match_date'].notna()

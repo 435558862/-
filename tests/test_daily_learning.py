@@ -117,6 +117,16 @@ def test_suspended_result_is_not_used_as_training_truth():
     assert daily_learning._settled_record(prediction, result) is None
 
 
+def test_match_dates_accept_mixed_date_and_datetime_values():
+    parsed = daily_learning._match_dates(pd.Series([
+        '2026-08-27', '2026-08-28 01:00', '2026-08-28T02:30:00', '',
+    ]))
+
+    assert parsed.tolist() == [
+        date(2026, 8, 27), date(2026, 8, 28), date(2026, 8, 28), None,
+    ]
+
+
 def test_generic_challenger_uses_chronological_three_way_audit(tmp_path, monkeypatch):
     rows = []
     templates = [

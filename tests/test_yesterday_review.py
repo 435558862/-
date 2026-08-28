@@ -100,6 +100,30 @@ def test_yesterday_uses_actual_match_date_and_handles_year_boundary(tmp_path):
     assert summary['date'] == '2025-12-31'
 
 
+def test_yesterday_includes_after_midnight_fixtures_from_daily_card(tmp_path):
+    reports = tmp_path / 'reports'
+    reports.mkdir()
+    settled_path = tmp_path / 'settled.csv'
+    pd.DataFrame([{
+        'match_id': 101, 'match_date': '2026-08-28 01:00',
+        'match_number': '周四001', 'home_goals': 2, 'away_goals': 0,
+        'predicted_result': '胜', 'predicted_score': '2-0',
+    }]).to_csv(settled_path, index=False)
+    pd.DataFrame([{
+        '比赛ID': 101, '比赛时间': '2026-08-28 01:00',
+        '赛事编号': '周四001',
+    }]).to_csv(reports / '2026-08-27-竞彩预测.csv', index=False)
+
+    details, summary = load_yesterday_hit_report(
+        today=date(2026, 8, 28), settled_path=settled_path,
+        report_root=reports,
+    )
+
+    assert details['赛事编号'].tolist() == ['周四001']
+    assert summary['date'] == '2026-08-27'
+    assert summary['is_fallback'] is False
+
+
 def test_missing_markets_do_not_count_as_losses(tmp_path):
     settled_path = tmp_path / 'settled.csv'
     pd.DataFrame([{

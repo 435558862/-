@@ -122,6 +122,17 @@ def _prediction_rows(settled: pd.DataFrame, report_root: Path) -> dict[str, dict
     return result
 
 
+def _report_match_ids(report_root: Path, prediction_day: date) -> set[str]:
+    """Return fixtures offered in a daily card, including after-midnight games."""
+    report = _safe_read_csv(report_root / f'{prediction_day.isoformat()}-竞彩预测.csv')
+    if report.empty or '比赛ID' not in report.columns:
+        return set()
+    return {
+        match_id for match_id in report['比赛ID'].map(_normalize_match_id)
+        if match_id
+    }
+
+
 def _value(settled: pd.Series, prediction: dict, *columns):
     for column in columns:
         if column in settled:
@@ -531,7 +542,16 @@ def load_yesterday_hit_report(
     ).map(lambda value: value.date() if pd.notna(value) else None)
     display_day = target_day
     is_fallback = False
-    selected = settled.loc[match_dates.eq(target_day)].copy()
+    # A Sporttery daily card often contains fixtures kicking off after midnight.
+    # Include those fixtures in the card day's review instead of making them
+    # disappear merely because their real kickoff date is the following day.
+    target_report_ids = _report_match_ids(report_root, target_day)
+    settled_ids = settled.get('match_id', pd.Series('', index=settled.index)).map(
+        _normalize_match_id,
+    )
+    selected = settled.loc[
+        match_dates.eq(target_day) | settled_ids.isin(target_report_ids)
+    ].copy()
     if selected.empty:
         available = sorted({
             value for value in match_dates
