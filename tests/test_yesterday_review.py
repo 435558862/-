@@ -2,7 +2,22 @@ from datetime import date
 
 import pandas as pd
 
-from src.services.yesterday_review import load_yesterday_hit_report
+from src.services.yesterday_review import _metric_summary, _patterns, load_yesterday_hit_report
+
+
+def test_pattern_names_result_direction_unambiguously():
+    metric = lambda hit=0, valid=0: {'hit': hit, 'valid': valid}
+    rows = [{
+        '_result_pick': '胜', '_result_hit': hit,
+        '_score_hit_source': '',
+        '_metrics': {
+            'result': metric(hit, 1), 'handicap': metric(),
+            'over_under': metric(), 'half_full': metric(), 'score': metric(),
+        },
+    } for hit in (1, 1, 0)]
+    text = _patterns(rows, _metric_summary(rows))
+    assert '胜平负预测为主胜：2/3（66.7%）' in text
+    assert '胜方向较好' not in text
 
 
 def test_yesterday_details_backfill_old_settlement_from_source_report(tmp_path):
@@ -74,6 +89,8 @@ def test_yesterday_details_backfill_old_settlement_from_source_report(tmp_path):
     assert summary['metrics']['half_full']['hits'] == 1
     assert summary['metrics']['score']['hits'] == 2
     assert '胜负 2/2 100.0%' in summary['headline']
+    assert '其他首选：让球首选 1/2 50.0%；半全场首选 1/2 50.0%' in summary['patterns']
+    assert '胜方向较好' not in summary['patterns']
 
 
 def test_yesterday_uses_actual_match_date_and_handles_year_boundary(tmp_path):

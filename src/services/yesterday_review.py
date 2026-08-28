@@ -489,6 +489,17 @@ def _patterns(rows: list[dict], metrics: dict) -> str:
             f'{best["hits"]}/{best["valid"]}（{best["accuracy"]:.1%}）'
         )
 
+    # Put the two structurally different markets next to the result summary.
+    # Their denominators include only rows with an offered handicap / a valid
+    # half-time score, so unavailable markets are not silently counted as losses.
+    parts.append(
+        '其他首选：'
+        + '；'.join(
+            _format_metric(metrics[key])
+            for key in ('handicap', 'half_full')
+        )
+    )
+
     direction_rows = [row for row in rows if row['_result_pick']]
     direction_stats = []
     for direction in ('胜', '平', '负'):
@@ -498,7 +509,11 @@ def _patterns(rows: list[dict], metrics: dict) -> str:
             direction_stats.append((hits / len(group), len(group), hits, direction))
     if direction_stats:
         accuracy, samples, hits, direction = max(direction_stats)
-        parts.append(f'{direction}方向较好 {hits}/{samples}（{accuracy:.1%}）')
+        direction_name = {'胜': '主胜', '平': '平局', '负': '客胜'}[direction]
+        parts.append(
+            f'胜平负预测为{direction_name}：'
+            f'{hits}/{samples}（{accuracy:.1%}）'
+        )
 
     score_sources = [row['_score_hit_source'] for row in rows if row['_score_hit_source']]
     if score_sources:
