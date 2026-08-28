@@ -1,10 +1,15 @@
 import unittest
+import json
 import numpy as np
 import pandas as pd
 from datetime import date
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from src.network.fixtures.sporttery import latest_had_odds, latest_hhad_odds
+from src.network.fixtures.sporttery import (
+    SportteryMobileClient, latest_had_odds, latest_hhad_odds,
+)
 from src.services.daily_sporttery import (
     _cached_league_model,
     _calibrate_draw_probability,
@@ -30,6 +35,34 @@ from src.services.team_names import resolve_model_team
 
 
 class DailySportteryTests(unittest.TestCase):
+
+    def test_official_feeds_are_unioned_instead_of_using_calculator_subset(self):
+        client = SportteryMobileClient(retries=1)
+        full = [
+            {'matchId': 1, 'homeTeamName': 'A'},
+            {'matchId': 2, 'homeTeamName': 'B'},
+        ]
+        calculator = [{'matchId': 1, 'had': {'h': '1.8'}}]
+        with patch.object(client, '_matches_from', side_effect=[full, calculator]):
+            matches = client.selling_matches()
+        self.assertEqual({row['matchId'] for row in matches}, {1, 2})
+        first = next(row for row in matches if row['matchId'] == 1)
+        self.assertEqual(first['had']['h'], '1.8')
+
+    def test_smaller_refresh_does_not_erase_matches_seen_earlier_today(self):
+        client = SportteryMobileClient(retries=1)
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / 'today.json'
+            output.write_text(json.dumps({
+                'matches': [{'matchId': 1}, {'matchId': 2}],
+            }), encoding='utf-8')
+            with patch.object(client, 'selling_matches', return_value=[
+                    {'matchId': 2, 'had': {'h': '2.0'}},
+            ]):
+                matches = client.snapshot(output)
+        self.assertEqual({row['matchId'] for row in matches}, {1, 2})
+        second = next(row for row in matches if row['matchId'] == 2)
+        self.assertEqual(second['had']['h'], '2.0')
 
     def test_draw_calibration_uses_league_prior_without_breaking_sum(self):
         history = pd.DataFrame({'Result': ['D'] * 30 + ['H'] * 40 + ['A'] * 30})
@@ -94,6 +127,29 @@ class DailySportteryTests(unittest.TestCase):
         ])
         self.assertEqual(_sort_by_match_number(frame)['赛事编号'].tolist(), [
             '周六003', '周日002', '周一001',
+        ])
+
+    def test_after_midnight_kickoffs_stay_with_their_ticket_day(self):
+        frame = pd.DataFrame([
+            {'赛事编号': '周六002', '比赛时间': '2026-08-29 17:30'},
+            {'赛事编号': '周五002', '比赛时间': '2026-08-29 00:30'},
+            {'赛事编号': '周日001', '比赛时间': '2026-08-30 18:15'},
+            {'赛事编号': '周五001', '比赛时间': '2026-08-29 00:30'},
+            {'赛事编号': '周一001', '比赛时间': '2026-08-31 18:00'},
+            {'赛事编号': '周六001', '比赛时间': '2026-08-29 17:00'},
+        ])
+        self.assertEqual(_sort_by_match_number(frame)['赛事编号'].tolist(), [
+            '周五001', '周五002', '周六001', '周六002', '周日001', '周一001',
+        ])
+
+    def test_sunday_after_midnight_rows_precede_monday_card(self):
+        frame = pd.DataFrame([
+            {'赛事编号': '周一001', '比赛时间': '2026-08-31 18:00'},
+            {'赛事编号': '周日017', '比赛时间': '2026-08-31 01:30'},
+            {'赛事编号': '周日016', '比赛时间': '2026-08-31 00:30'},
+        ])
+        self.assertEqual(_sort_by_match_number(frame)['赛事编号'].tolist(), [
+            '周日016', '周日017', '周一001',
         ])
 
     def test_ticket_sort_without_dates_keeps_weekdays_separate(self):

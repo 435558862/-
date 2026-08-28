@@ -216,12 +216,22 @@ class DataFrameTableModel(QAbstractTableModel):
         if column < 0 or column >= len(self.columns):
             return
         self.layoutAboutToBeChanged.emit()
-        self._df = self._df.sort_values(
-            by=self.columns[column],
-            ascending=order == Qt.SortOrder.AscendingOrder,
-            kind='mergesort',
-            na_position='last',
-        ).reset_index(drop=True)
+        selected_column = self.columns[column]
+        if selected_column == '赛事编号':
+            # Preserve the official ticket-day semantics when the user clicks
+            # this header. Plain string sorting interleaves 周五001/周六001 and
+            # places 010 before 002 in some exports/views.
+            from src.services.daily_sporttery import _sort_by_match_number
+            self._df = _sort_by_match_number(self._df)
+            if order == Qt.SortOrder.DescendingOrder:
+                self._df = self._df.iloc[::-1].reset_index(drop=True)
+        else:
+            self._df = self._df.sort_values(
+                by=selected_column,
+                ascending=order == Qt.SortOrder.AscendingOrder,
+                kind='mergesort',
+                na_position='last',
+            ).reset_index(drop=True)
         self.layoutChanged.emit()
 
 
@@ -365,6 +375,19 @@ class DataFrameTable(QTableView):
             self.setRowHidden(row, True)
 
 
+class _TicketSortItem(QTableWidgetItem):
+    """Table item whose display text and chronological sort key differ."""
+
+    def __init__(self, text: str, sort_rank: int):
+        super().__init__(text)
+        self._sort_rank = sort_rank
+
+    def __lt__(self, other):
+        if isinstance(other, _TicketSortItem):
+            return self._sort_rank < other._sort_rank
+        return super().__lt__(other)
+
+
 class ExcelTable(QTableWidget):
     """ Excel-style tables. Supports operations such as sorting, find, copy & paste. """
 
@@ -399,12 +422,25 @@ class ExcelTable(QTableWidget):
     def _initialize_table(self, df: pd.DataFrame, readonly: bool):
         """ Initializes and customizes table widget. """
 
+        ticket_ranks = {}
+        if '赛事编号' in df.columns:
+            from src.services.daily_sporttery import _sort_by_match_number
+            ranked = df.reset_index(drop=True).assign(_原始行=range(len(df)))
+            ranked = _sort_by_match_number(ranked)
+            ticket_ranks = {
+                int(original): rank
+                for rank, original in enumerate(ranked['_原始行'].tolist())
+            }
+
         def add_data_to_table():
             for r in range(df.shape[0]):
                 for c in range(df.shape[1]):
                     val = df.iat[r, c]
                     displayed = '' if pd.isna(val) else cell_zh(self.columns[c], str(val))
-                    item = QTableWidgetItem(displayed)
+                    if self.columns[c] == '赛事编号':
+                        item = _TicketSortItem(displayed, ticket_ranks.get(r, r))
+                    else:
+                        item = QTableWidgetItem(displayed)
 
                     # Center to column.
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)

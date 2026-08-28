@@ -1298,7 +1298,8 @@ class SportteryPredictionsDialog(QDialog):
     def _refresh_model_selector(self):
         had_selection = self._model_selector.count() > 0
         current = self._model_selector.currentData() if had_selection else None
-        scopes = _prediction_model_scopes(self._predictions)
+        active = _upcoming_predictions(self._predictions)
+        scopes = _prediction_model_scopes(active)
         reported_leagues = [scope for scope in scopes.unique() if scope]
         leagues = list(dict.fromkeys(self._trained_leagues + sorted(reported_leagues)))
         dedicated_count = int(scopes.ne('').sum())
@@ -1307,7 +1308,7 @@ class SportteryPredictionsDialog(QDialog):
         self._model_selector.blockSignals(True)
         self._model_selector.clear()
         self._model_selector.addItem(
-            f'全部模型结果（{len(self._predictions)}场，含不同模型）', ALL_MODELS,
+            f'全部模型结果（{len(active)}场，含不同模型）', ALL_MODELS,
         )
         self._model_selector.addItem(
             f'全部专用模型（{dedicated_count}场）', DEDICATED_MODELS,
@@ -1316,8 +1317,8 @@ class SportteryPredictionsDialog(QDialog):
             f'通用/市场模型（{generic_count}场）', GENERIC_MODELS,
         )
         simulated = pd.to_numeric(
-            self._predictions.get(
-                '模拟次数', pd.Series(0, index=self._predictions.index),
+            active.get(
+                '模拟次数', pd.Series(0, index=active.index),
             ), errors='coerce',
         ).fillna(0).gt(0)
         self._model_selector.addItem(
@@ -1340,10 +1341,6 @@ class SportteryPredictionsDialog(QDialog):
             self._predictions,
             self._model_selector.currentData() or ALL_MODELS,
         )
-        # This is a betting/prediction view, never a history viewer. Ticket
-        # labels such as 周六 may kick off after midnight on Sunday; filtering
-        # by the real kickoff timestamp prevents those settled rows reappearing
-        # when a date is selected.
         visible = _upcoming_predictions(visible)
         selected_date = self._date_selector.currentData()
         if selected_date and '比赛时间' in visible.columns:
@@ -1353,8 +1350,9 @@ class SportteryPredictionsDialog(QDialog):
 
     def _refresh_advice_selector(self):
         current = self._advice_selector.currentData()
-        advice = self._predictions.get(
-            '建议状态', pd.Series('', index=self._predictions.index),
+        active = _upcoming_predictions(self._predictions)
+        advice = active.get(
+            '建议状态', pd.Series('', index=active.index),
         ).fillna('').astype(str)
         selected = int(advice.eq('精选主推').sum())
         high = int(advice.eq('高置信主推').sum())
@@ -1363,7 +1361,7 @@ class SportteryPredictionsDialog(QDialog):
         self._advice_selector.addItem(f'达到筛选阈值（{selected + high}场）', '正式推荐')
         self._advice_selector.addItem(f'A档概率样本（{selected}场）', '精选主推')
         self._advice_selector.addItem(f'B档概率样本（{high}场）', '高置信主推')
-        self._advice_selector.addItem(f'全部场次（{len(self._predictions)}场）', '')
+        self._advice_selector.addItem(f'全部场次（{len(active)}场）', '')
         if current is None or (current == '正式推荐' and selected + high == 0):
             # Never open on an empty recommendation view when the report itself
             # contains fixtures.  Users can still select each recommendation
@@ -1395,6 +1393,7 @@ class SportteryPredictionsDialog(QDialog):
 
     def _render(self):
         visible = self._visible_predictions()
+        active_count = len(_upcoming_predictions(self._predictions))
         while self._table_layout.count():
             item = self._table_layout.takeAt(0)
             if item.widget() is not None:
@@ -1450,11 +1449,11 @@ class SportteryPredictionsDialog(QDialog):
         self._table_layout.addWidget(table)
         if visible.empty and not self._predictions.empty:
             self._summary.setText(
-                f'当前显示 0 场  ·  全部 {len(self._predictions)} 场'
+                f'当前显示 0 场  ·  未开赛共 {active_count} 场'
             )
         else:
             self._summary.setText(
-                f'当前显示 {len(visible)} 场  ·  全部 {len(self._predictions)} 场'
+                f'当前显示 {len(visible)} 场  ·  未开赛共 {active_count} 场'
             )
 
     def _sync(self):
@@ -1489,7 +1488,7 @@ class SportteryPredictionsDialog(QDialog):
                 pass
         QMessageBox.information(
             self, '同步完成',
-            f'已生成 {len(self._predictions)} 场预测。'
+            f'已生成 {len(_upcoming_predictions(self._predictions))} 场未开赛预测。'
             f'{learning_message}',
         )
 

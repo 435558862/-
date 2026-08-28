@@ -1,6 +1,7 @@
 """Official China Sports Lottery football fixture and fixed-bonus reader."""
 
 import json
+import logging
 import shutil
 import time
 from datetime import datetime, timezone
@@ -51,28 +52,62 @@ class SportteryMobileClient:
             'Accept': 'application/json, text/plain, */*',
         })
 
-    def selling_matches(self) -> List[dict]:
+    def _matches_from(self, url: str, value_key: Optional[str] = None) -> List[dict]:
         last_error = None
         for attempt in range(self.retries):
             try:
-                response = self.session.get(CALCULATOR_API, timeout=self.timeout)
+                response = self.session.get(url, timeout=self.timeout)
                 response.raise_for_status()
                 data = response.json()
                 if str(data.get('errorCode')) != '0':
                     raise RuntimeError(
                         f'{data.get("errorCode")} {data.get("errorMessage", "")}',
                     )
-                groups = (data.get('value') or {}).get('matchInfoList') or []
-                return [
-                    dict(match)
-                    for group in groups
-                    for match in (group.get('subMatchList') or [])
-                ]
+                value = data.get('value') or []
+                if value_key is None:
+                    return [dict(match) for match in value]
+                groups = value.get(value_key) or []
+                return [dict(match) for group in groups
+                        for match in (group.get('subMatchList') or [])]
             except (requests.RequestException, ValueError, RuntimeError) as error:
                 last_error = error
                 if attempt + 1 < self.retries:
                     time.sleep(1.5 * (attempt + 1))
-        raise RuntimeError(f'竞彩网移动端接口读取失败：{last_error}')
+        raise RuntimeError(str(last_error))
+
+    @staticmethod
+    def _merge_match_feeds(*feeds: List[dict]) -> List[dict]:
+        """Union official feeds while retaining calculator odds when present."""
+        merged = {}
+        anonymous = []
+        for feed in feeds:
+            for match in feed:
+                match_id = str(match.get('matchId') or '')
+                if not match_id:
+                    anonymous.append(dict(match))
+                    continue
+                merged[match_id] = {**merged.get(match_id, {}), **dict(match)}
+        return list(merged.values()) + anonymous
+
+    def selling_matches(self) -> List[dict]:
+        """Return the union of the full selling list and calculator markets.
+
+        The calculator endpoint can contain only the subset offered in one or
+        more pools.  It must therefore never be treated as the complete card.
+        """
+        feeds, errors = [], []
+        for url, value_key, label in (
+                (SELLING_API, None, '全量在售'),
+                (CALCULATOR_API, 'matchInfoList', '计算器赔率')):
+            try:
+                feeds.append(self._matches_from(url, value_key))
+            except RuntimeError as error:
+                errors.append(f'{label}={error}')
+        if not feeds:
+            raise RuntimeError(f'竞彩网官方接口读取失败：{"; ".join(errors)}')
+        if errors:
+            logging.warning('竞彩官方数据源部分失败：%s', '；'.join(errors))
+        return self._merge_match_feeds(*feeds)
 
     def fixed_bonus_history(self, match_id: str) -> dict:
         """Return official chronological fixed-bonus history for one match."""
@@ -99,6 +134,16 @@ class SportteryMobileClient:
     def snapshot(self, output: Path) -> List[dict]:
         matches = self.selling_matches()
         output.parent.mkdir(parents=True, exist_ok=True)
+        # A feed may shrink after a sales cutoff or during an upstream partial
+        # response.  Preserve every match already observed on today's card.
+        if output.exists():
+            try:
+                cached = json.loads(output.read_text(encoding='utf-8'))
+                matches = self._merge_match_feeds(
+                    list(cached.get('matches') or []), matches,
+                )
+            except (OSError, ValueError, TypeError):
+                logging.warning('无法合并今日竞彩原始快照：%s', output)
         output.write_text(json.dumps({
             'fetchedAt': datetime.now(timezone.utc).isoformat(),
             'source': SPORTTERY_MOBILE_PAGE,
@@ -170,10 +215,13 @@ class SportteryScraper:
     """
 
     def __init__(self, headless: bool = True, timeout: float = 25.0):
-        browser_path = shutil.which('google-chrome') or shutil.which('google-chrome-stable')
+        mac_chrome = Path('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+        browser_path = (shutil.which('google-chrome')
+                        or shutil.which('google-chrome-stable')
+                        or (str(mac_chrome) if mac_chrome.exists() else None))
         driver_path = shutil.which('chromedriver')
-        if browser_path is None or driver_path is None:
-            raise RuntimeError('WSL 中缺少 Chrome 或 Chromedriver，无法启用竞彩备用抓取。')
+        if browser_path is None:
+            raise RuntimeError('未找到 Chrome，无法启用竞彩浏览器备用抓取。')
         options = ChromeOptions()
         if headless:
             options.add_argument('--headless=new')
@@ -183,7 +231,10 @@ class SportteryScraper:
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--no-sandbox')
         options.binary_location = browser_path
-        self._driver = Chrome(service=ChromeService(driver_path), options=options)
+        # With no explicit driver Selenium Manager resolves a compatible
+        # driver.  This is the normal macOS installation path.
+        service = ChromeService(driver_path) if driver_path else ChromeService()
+        self._driver = Chrome(service=service, options=options)
         self._driver.set_page_load_timeout(timeout)
         self._driver.set_script_timeout(timeout)
         self._timeout = timeout

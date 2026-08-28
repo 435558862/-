@@ -142,7 +142,13 @@ CLUBELO_TEAM_ALIASES = {
 
 
 def _sort_by_match_number(frame: pd.DataFrame) -> pd.DataFrame:
-    """Sort by real match date, then the sequence printed on that ticket."""
+    """Sort by ticket date, then the sequence printed on that ticket.
+
+    Chinese lottery tickets are grouped by their sale-day label.  A ``周五``
+    fixture kicking off at 00:30 on Saturday still belongs before every
+    ``周六`` fixture.  The kickoff date alone therefore is not a valid card
+    sorting key.
+    """
     if frame.empty or '赛事编号' not in frame.columns:
         return frame.reset_index(drop=True)
 
@@ -166,19 +172,35 @@ def _sort_by_match_number(frame: pd.DataFrame) -> pd.DataFrame:
         )
     else:
         match_dates = pd.Series(pd.NaT, index=frame.index, dtype='datetime64[ns]')
-    # Dated rows are authoritative across week boundaries. Old rows without a
-    # date retain the weekday fallback and are placed after dated fixtures.
+    def ticket_date(match_date, ticket_weekday):
+        if pd.isna(match_date) or ticket_weekday == 99:
+            return pd.NaT
+        # pandas Monday=0; the ticket parser uses Monday=1. Walking backwards
+        # resolves the common after-midnight case and also remains correct at
+        # Sunday/Monday and year boundaries.
+        kickoff_weekday = match_date.weekday() + 1
+        days_after_ticket = (kickoff_weekday - ticket_weekday) % 7
+        return match_date - pd.Timedelta(days=days_after_ticket)
+
+    ticket_dates = pd.Series(
+        [ticket_date(match_date, key[0])
+         for match_date, key in zip(match_dates, keys)],
+        index=frame.index,
+        dtype='datetime64[ns]',
+    )
+    # Rows with a usable date are authoritative across week/year boundaries.
+    # Legacy rows without dates retain weekday order and follow dated rows.
     missing_date = match_dates.isna()
     return frame.assign(
         _缺少日期排序=missing_date.astype(int),
-        _比赛日期排序=match_dates,
+        _票面日期排序=ticket_dates.fillna(match_dates),
         _星期排序=[key[0] if missing else 0 for key, missing in zip(keys, missing_date)],
         _赛事编号排序=keys.map(lambda key: key[1]),
     ).sort_values(
-        ['_缺少日期排序', '_比赛日期排序', '_星期排序', '_赛事编号排序'],
+        ['_缺少日期排序', '_票面日期排序', '_星期排序', '_赛事编号排序'],
         kind='stable', na_position='last',
     ).drop(columns=[
-        '_缺少日期排序', '_比赛日期排序', '_星期排序', '_赛事编号排序',
+        '_缺少日期排序', '_票面日期排序', '_星期排序', '_赛事编号排序',
     ]).reset_index(drop=True)
 
 

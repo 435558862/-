@@ -2,7 +2,7 @@ import pandas as pd
 from PySide6.QtWidgets import QApplication, QDialog
 
 from src.gui.i18n import translate_widget
-from src.gui.widgets.tables import DataFrameTable, DataFrameTableModel
+from src.gui.widgets.tables import DataFrameTable, DataFrameTableModel, ExcelTable
 from src.gui.windows.models import fixtures
 from src.gui.windows.models.predictor import PredictorDialog
 from src.gui.windows import sporttery as sporttery_window
@@ -38,6 +38,24 @@ def test_large_readonly_table_uses_lazy_dataframe_model():
     assert len(hits) == 1
     assert hits[0].column() == 0
     assert hits[0].data() == 'Home 7999'
+
+
+def test_ticket_header_sort_uses_card_date_and_natural_sequence():
+    _app()
+    frame = pd.DataFrame([
+        {'赛事编号': '周六001', '比赛时间': '2026-08-29 17:00'},
+        {'赛事编号': '周五010', '比赛时间': '2026-08-29 03:00'},
+        {'赛事编号': '周五002', '比赛时间': '2026-08-29 00:30'},
+    ])
+    model = DataFrameTableModel(frame)
+    model.sort(0)
+    assert model._df['赛事编号'].tolist() == ['周五002', '周五010', '周六001']
+
+    widget = ExcelTable(None, frame, supports_query_search=False)
+    widget.sortItems(0)
+    assert [widget.item(row, 0).text() for row in range(widget.rowCount())] == [
+        '周五002', '周五010', '周六001',
+    ]
 
 
 def test_fixture_worker_maps_official_sporttery_rows(monkeypatch):
