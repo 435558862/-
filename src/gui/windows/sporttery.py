@@ -600,12 +600,9 @@ def write_predictions_xlsx(frame: pd.DataFrame, path: Path):
                 36, max(10, max(map(len, values)) + 2),
             )
         for row in sheet.iter_rows(min_row=2):
-            is_priority = any(
-                str(cell.value or '').startswith('★重点：') for cell in row
-            )
             for cell in row:
                 cell.alignment = Alignment(vertical='center')
-                if is_priority:
+                if str(cell.value or '').startswith('★'):
                     cell.font = Font(color='C62828', bold=True)
                     cell.fill = PatternFill('solid', fgColor='FFF1F1')
 
@@ -725,6 +722,208 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
     return aspects
 
 
+def _mark_priority_cells(
+        display: pd.DataFrame, priorities: pd.Series,
+) -> dict[int, list[str]]:
+    """Mark only the exact market cells selected for daily emphasis."""
+    columns = {
+        '胜负': '综合方向',
+        '让球': '让球',
+        '大小球': '大小球',
+        '半全场': '半全场',
+        '比分': '比分',
+    }
+    marked: dict[int, list[str]] = {}
+    for row_index, labels in priorities.items():
+        for label in labels:
+            column = columns.get(label)
+            if column not in display.columns:
+                continue
+            value = str(display.at[row_index, column] or '')
+            display.at[row_index, column] = f'★{label}重点｜{value}'
+            marked.setdefault(row_index, []).append(column)
+    return marked
+
+
+def build_daily_recommendations(
+        predictions: pd.DataFrame, future_only: bool = True,
+) -> pd.DataFrame:
+    """Build one explicit recommendation row per selected match and market."""
+    columns = ['比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项', '模型概率', '入选理由']
+    if predictions.empty:
+        return pd.DataFrame(columns=columns)
+    source = _upcoming_predictions(predictions) if future_only else predictions.copy()
+    active = _sort_by_match_number(source).reset_index(drop=True)
+    priorities = _daily_priority_aspects(active)
+    specs = {
+        '胜负': ('胜平负首选', '胜平负首选概率'),
+        '让球': ('让球首选', '让球首选概率'),
+        '大小球': ('大小球首选', '大小球首选概率'),
+        '比分': ('首选比分', '原始最高概率比分概率'),
+        '半全场': ('半全场首选', '半全场首选概率'),
+    }
+    rows = []
+    for index, labels in priorities.items():
+        row = active.loc[index]
+        for market in labels:
+            choice_column, probability_column = specs[market]
+            choice = str(row.get(choice_column) or '').strip()
+            if market == '让球':
+                line = pd.to_numeric(row.get('官方让球数'), errors='coerce')
+                line_text = '' if pd.isna(line) else f'{float(line):+g}'
+                choice = f'{line_text}球 {choice}'.strip()
+            probability = pd.to_numeric(row.get(probability_column), errors='coerce')
+            rows.append({
+                '比赛日期': str(row.get('比赛时间') or '')[:10],
+                '赛事编号': row.get('赛事编号', ''),
+                '联赛': row.get('联赛', ''),
+                '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
+                '推荐玩法': market,
+                '重点选项': f'★ {choice}',
+                '模型概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
+                '入选理由': f'当日{market}通过门槛且概率最高',
+            })
+    return pd.DataFrame(rows, columns=columns)
+
+
+def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
+    """Rebuild yesterday's selected options and attach their settled outcome."""
+    columns = [
+        '赛事编号', '联赛', '对阵', '推荐玩法', '昨日推荐',
+        '模型概率', '完场比分', '复盘结果', '命中状态',
+    ]
+    details, summary = load_yesterday_hit_report()
+    review_date = str(summary.get('date') or '')
+    if not review_date or details.empty:
+        return pd.DataFrame(columns=columns), review_date
+    # A 周三 ticket may kick off after midnight on Thursday, so the report
+    # filename is not necessarily the settlement date. Search saved daily
+    # cards and collect rows by their real kickoff date.
+    prediction_parts = []
+    for report_path in sorted(REPORT_ROOT.glob('*-竞彩预测.csv'), reverse=True):
+        try:
+            candidate = pd.read_csv(report_path)
+        except (OSError, pd.errors.EmptyDataError):
+            continue
+        dates = candidate.get(
+            '比赛时间', pd.Series('', index=candidate.index),
+        ).fillna('').astype(str).str[:10]
+        matching = candidate.loc[dates.eq(review_date)].copy()
+        if not matching.empty:
+            prediction_parts.append(matching)
+    if not prediction_parts:
+        return pd.DataFrame(columns=columns), review_date
+    predictions = pd.concat(prediction_parts, ignore_index=True)
+    identity = '比赛ID' if '比赛ID' in predictions.columns else '赛事编号'
+    predictions = predictions.drop_duplicates(identity, keep='first')
+    recommendations = build_daily_recommendations(
+        predictions, future_only=False,
+    )
+    detail_by_number = details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
+    result_columns = {
+        '胜负': '胜负', '让球': '让球（首/次）', '大小球': '大小球',
+        '半全场': '半全场（首/次）', '比分': '比分（首/次1/次2/冷/进）',
+    }
+    rows = []
+    for _, recommendation in recommendations.iterrows():
+        number = recommendation['赛事编号']
+        if number not in detail_by_number.index:
+            continue
+        detail = detail_by_number.loc[number]
+        market = recommendation['推荐玩法']
+        result = str(detail.get(result_columns[market]) or '')
+        if market in ('让球', '半全场', '比分'):
+            hit = '首中' in result
+        else:
+            hit = '（命中）' in result
+        rows.append({
+            '赛事编号': number,
+            '联赛': recommendation['联赛'],
+            '对阵': recommendation['对阵'],
+            '推荐玩法': market,
+            '昨日推荐': recommendation['重点选项'],
+            '模型概率': recommendation['模型概率'],
+            '完场比分': detail.get('完场比分', ''),
+            '复盘结果': result,
+            '命中状态': '✓ 命中' if hit else '✕ 未中',
+        })
+    return pd.DataFrame(rows, columns=columns), review_date
+
+
+class YesterdayRecommendationReviewDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        frame, review_date = build_yesterday_recommendation_review()
+        self.setWindowTitle(f'{review_date or "昨日"} 每日推荐复盘')
+        self.resize(1180, 560)
+        root = QVBoxLayout(self)
+        if frame.empty:
+            root.addWidget(QLabel('昨日推荐或官方赛果尚未补齐。'))
+            return
+        hits = int(frame['命中状态'].eq('✓ 命中').sum())
+        root.addWidget(QLabel(
+            f'{review_date} 每日推荐：{hits}/{len(frame)} 命中（按具体重点选项结算）'
+        ))
+        table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
+        status_column = frame.columns.get_loc('命中状态')
+        for row in range(table.rowCount()):
+            item = table.item(row, status_column)
+            hit = item.text().startswith('✓')
+            item.setForeground(QBrush(QColor('#137333' if hit else '#c62828')))
+            item.setBackground(QBrush(QColor('#eef8f0' if hit else '#fff1f1')))
+            font = QFont(item.font())
+            font.setBold(True)
+            item.setFont(font)
+        root.addWidget(table)
+
+
+class DailyRecommendationsDialog(QDialog):
+    """Focused list of the strongest daily options across all markets."""
+
+    def __init__(self, predictions: pd.DataFrame, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('每日重点推荐')
+        self.setWindowFlags(
+            Qt.WindowType.Window | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint | Qt.WindowType.WindowCloseButtonHint
+        )
+        self.resize(1120, 560)
+        root = QVBoxLayout(self)
+        header = QHBoxLayout()
+        notice = QLabel('仅显示未开赛赛事；每个比赛日、每种玩法最多选择一项最强推荐。')
+        notice.setWordWrap(True)
+        header.addWidget(notice, 1)
+        review_button = QPushButton('昨日推荐复盘')
+        review_button.clicked.connect(self._open_yesterday_review)
+        header.addWidget(review_button)
+        root.addLayout(header)
+        self._review_dialog = None
+        frame = build_daily_recommendations(predictions)
+        if frame.empty:
+            root.addWidget(QLabel('当前没有达到推荐门槛的选项。'))
+            return
+        table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
+        if '重点选项' in frame.columns:
+            column = frame.columns.get_loc('重点选项')
+            for row in range(table.rowCount()):
+                item = table.item(row, column)
+                item.setForeground(QBrush(QColor('#c62828')))
+                item.setBackground(QBrush(QColor('#fff1f1')))
+                font = QFont(item.font())
+                font.setBold(True)
+                item.setFont(font)
+        root.addWidget(table)
+
+    def _open_yesterday_review(self):
+        if self._review_dialog is not None:
+            self._review_dialog.close()
+            self._review_dialog.deleteLater()
+        self._review_dialog = YesterdayRecommendationReviewDialog(self)
+        self._review_dialog.show()
+        self._review_dialog.raise_()
+        self._review_dialog.activateWindow()
+
+
 def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFrame:
     """Strictly isolate one dedicated league or the generic/market rows."""
     if df.empty or model_key in ('', ALL_MODELS):
@@ -774,6 +973,7 @@ class SportteryPredictionsDialog(QDialog):
         self._advice_selector = QComboBox()
         self._yesterday_dialog = None
         self._market_dialog = None
+        self._daily_recommendations_dialog = None
         self._odds_pulse_running = False
         self._odds_pulse_queue = Queue()
         self._trained_leagues = trained_dedicated_leagues()
@@ -841,11 +1041,14 @@ class SportteryPredictionsDialog(QDialog):
         market_button.setObjectName('marketTrendButton')
         market_button.setToolTip('查看欧赔概率、让球和大小球的初盘到临盘走势')
         market_button.clicked.connect(self._show_market_trends)
+        daily_button = QPushButton('每日推荐')
+        daily_button.setToolTip('集中查看胜负、让球、大小球、比分和半全场重点选项')
+        daily_button.clicked.connect(self._show_daily_recommendations)
         export_button = QPushButton('导出 Excel')
         export_button.clicked.connect(self._export)
         for button, width in (
                 (sync_button, 136), (review_button, 102),
-                (yesterday_button, 100), (market_button, 80),
+                (yesterday_button, 100), (market_button, 80), (daily_button, 80),
                 (export_button, 78)):
             button.setFixedSize(width, 25)
             action_bar.addWidget(button)
@@ -1400,23 +1603,16 @@ class SportteryPredictionsDialog(QDialog):
                 item.widget().deleteLater()
         display_frame = self._display_predictions(visible)
         priorities = _daily_priority_aspects(visible).reset_index(drop=True)
-        if '综合方向' in display_frame.columns:
-            for row_index, labels in priorities.items():
-                if labels:
-                    display_frame.at[row_index, '综合方向'] = (
-                        f'★重点：{"/".join(labels)}｜'
-                        f'{display_frame.at[row_index, "综合方向"]}'
-                    )
+        marked_cells = _mark_priority_cells(display_frame, priorities)
         table = ExcelTable(
             parent=self,
             df=display_frame,
             readonly=True,
             supports_sorting=True,
         )
-        for row_index, labels in priorities.items():
-            if not labels:
-                continue
-            for column_index in range(table.columnCount()):
+        for row_index, columns in marked_cells.items():
+            for column in columns:
+                column_index = display_frame.columns.get_loc(column)
                 item = table.item(row_index, column_index)
                 if item is None:
                     continue
@@ -1576,6 +1772,20 @@ class SportteryPredictionsDialog(QDialog):
         self._market_dialog.raise_()
         self._market_dialog.activateWindow()
 
+    def _show_daily_recommendations(self):
+        if self._predictions.empty:
+            QMessageBox.information(self, '没有数据', '请先同步竞猜数据。')
+            return
+        if self._daily_recommendations_dialog is not None:
+            self._daily_recommendations_dialog.close()
+            self._daily_recommendations_dialog.deleteLater()
+        self._daily_recommendations_dialog = DailyRecommendationsDialog(
+            self._predictions, self,
+        )
+        self._daily_recommendations_dialog.show()
+        self._daily_recommendations_dialog.raise_()
+        self._daily_recommendations_dialog.activateWindow()
+
     def _export(self):
         visible = self._visible_predictions()
         if visible.empty:
@@ -1593,13 +1803,7 @@ class SportteryPredictionsDialog(QDialog):
                 visible, include_market_details=True,
             ).reset_index(drop=True)
             priorities = _daily_priority_aspects(visible).reset_index(drop=True)
-            if '综合方向' in exported.columns:
-                for row_index, labels in priorities.items():
-                    if labels:
-                        exported.at[row_index, '综合方向'] = (
-                            f'★重点：{"/".join(labels)}｜'
-                            f'{exported.at[row_index, "综合方向"]}'
-                        )
+            _mark_priority_cells(exported, priorities)
             write_predictions_xlsx(exported, path)
         except PermissionError:
             QMessageBox.critical(

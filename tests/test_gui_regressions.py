@@ -247,18 +247,95 @@ def test_sporttery_excel_export_is_a_real_formatted_workbook(tmp_path):
     assert sheet['A2'].value == '周六001'
 
 
-def test_sporttery_excel_export_highlights_priority_rows(tmp_path):
+def test_sporttery_excel_export_highlights_only_priority_cells(tmp_path):
     from openpyxl import load_workbook
 
     path = tmp_path / 'priority.xlsx'
     write_predictions_xlsx(pd.DataFrame([{
-        '赛事编号': '周六001', '综合方向': '★重点：胜负｜胜负 胜（66.0%）',
+        '赛事编号': '周六001', '综合方向': '★胜负重点｜胜负 胜（66.0%）',
     }]), path)
 
     sheet = load_workbook(path)['竞彩预测']
-    assert sheet['A2'].font.color.rgb == '00C62828'
-    assert sheet['A2'].fill.fgColor.rgb == '00FFF1F1'
+    assert sheet['A2'].fill.fill_type is None
+    assert sheet['B2'].font.color.rgb == '00C62828'
+    assert sheet['B2'].fill.fgColor.rgb == '00FFF1F1'
     assert sheet['B2'].font.bold is True
+
+
+def test_priority_marker_is_added_only_to_the_selected_market_cells():
+    display = pd.DataFrame([{
+        '综合方向': '胜负 胜（66.0%）', '让球': '让胜（62.0%）',
+        '大小球': '大于2.5球（61.0%）', '半全场': '胜胜（36.0%）',
+        '比分': '2-1 / 1-0 / 2-0',
+    }])
+    marked = sporttery_window._mark_priority_cells(
+        display, pd.Series([['让球', '比分']]),
+    )
+    assert marked == {0: ['让球', '比分']}
+    assert display.loc[0, '让球'].startswith('★让球重点｜')
+    assert display.loc[0, '比分'].startswith('★比分重点｜')
+    assert not display.loc[0, '综合方向'].startswith('★')
+    assert not display.loc[0, '大小球'].startswith('★')
+
+
+def test_daily_recommendations_list_explicit_options_for_all_markets(monkeypatch):
+    predictions = pd.DataFrame([{
+        '赛事编号': '周六001', '比赛时间': '2099-08-29 18:00',
+        '联赛': '英超', '主队': '阿森纳', '客队': '切尔西',
+        '建议状态': '精选主推', '盘口门控': '稳定',
+        '胜平负首选': '胜', '胜平负首选概率': 0.66,
+        '官方让球数': -1, '让球首选': '负', '让球首选概率': 0.64,
+        '让球最大概率优势': 0.05,
+        '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
+        '半全场首选': '胜胜', '半全场首选概率': 0.36,
+        '比分推荐状态': '推荐', '首选比分': '2-1',
+        '原始最高概率比分概率': 0.13,
+    }])
+    result = sporttery_window.build_daily_recommendations(predictions)
+    assert result['推荐玩法'].tolist() == ['胜负', '让球', '大小球', '半全场', '比分']
+    options = dict(zip(result['推荐玩法'], result['重点选项']))
+    assert options['胜负'] == '★ 胜'
+    assert options['让球'] == '★ -1球 负'
+    assert options['大小球'] == '★ 大于2.5球'
+    assert options['半全场'] == '★ 胜胜'
+    assert options['比分'] == '★ 2-1'
+
+
+def test_yesterday_recommendation_review_scores_only_the_primary_option(
+        monkeypatch, tmp_path):
+    report = pd.DataFrame([{
+        '赛事编号': '周四001', '比赛时间': '2026-08-27 20:00',
+        '联赛': '英超', '主队': '阿森纳', '客队': '切尔西',
+        '建议状态': '精选主推', '盘口门控': '稳定',
+        '胜平负首选': '胜', '胜平负首选概率': 0.66,
+        '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
+        '让球最大概率优势': 0.05,
+        '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
+        '半全场首选': '胜胜', '半全场首选概率': 0.36,
+        '比分推荐状态': '推荐', '首选比分': '2-1',
+        '原始最高概率比分概率': 0.13,
+    }])
+    report.to_csv(tmp_path / '2026-08-27-竞彩预测.csv', index=False)
+    details = pd.DataFrame([{
+        '赛事编号': '周四001', '完场比分': '2-1',
+        '胜负': '胜 → 胜（命中）',
+        '让球（首/次）': '首胜/次负 → 让负（次中）',
+        '大小球': '大 → 大（命中）',
+        '半全场（首/次）': '首胜胜/次平胜 → 胜胜（首中）',
+        '比分（首/次1/次2/冷/进）': '2-1/1-0/2-0 → 2-1（首中）',
+    }])
+    monkeypatch.setattr(sporttery_window, 'REPORT_ROOT', tmp_path)
+    monkeypatch.setattr(
+        sporttery_window, 'load_yesterday_hit_report',
+        lambda: (details, {'date': '2026-08-27'}),
+    )
+    result, review_date = sporttery_window.build_yesterday_recommendation_review()
+    assert review_date == '2026-08-27'
+    statuses = dict(zip(result['推荐玩法'], result['命中状态']))
+    assert statuses == {
+        '胜负': '✓ 命中', '让球': '✕ 未中', '大小球': '✓ 命中',
+        '半全场': '✓ 命中', '比分': '✓ 命中',
+    }
 
 
 def test_export_view_includes_opening_market_information():
