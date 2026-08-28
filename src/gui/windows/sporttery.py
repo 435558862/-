@@ -600,8 +600,14 @@ def write_predictions_xlsx(frame: pd.DataFrame, path: Path):
                 36, max(10, max(map(len, values)) + 2),
             )
         for row in sheet.iter_rows(min_row=2):
+            is_priority = any(
+                str(cell.value or '').startswith('★重点：') for cell in row
+            )
             for cell in row:
                 cell.alignment = Alignment(vertical='center')
+                if is_priority:
+                    cell.font = Font(color='C62828', bold=True)
+                    cell.fill = PatternFill('solid', fgColor='FFF1F1')
 
 
 def trained_dedicated_leagues() -> list[str]:
@@ -977,7 +983,9 @@ class SportteryPredictionsDialog(QDialog):
             ''')
 
     @staticmethod
-    def _display_predictions(df: pd.DataFrame) -> pd.DataFrame:
+    def _display_predictions(
+            df: pd.DataFrame, include_market_details: bool = False,
+    ) -> pd.DataFrame:
         # Keep the user-facing ticket view compact. Detailed model/market
         # probabilities remain in the internal report but are not repeated here.
         display = df.copy()
@@ -1246,6 +1254,19 @@ class SportteryPredictionsDialog(QDialog):
             '综合方向', '盘口流向', '让球', '大小球', '半全场', '比分',
             '风险提示',
         ]
+        if include_market_details:
+            # The on-screen ticket stays compact, while the exported workbook
+            # retains the recorded opening baseline and its movement to now.
+            preferred[7:7] = [
+                '胜平负指数（初盘/首次采集→当前）',
+                '让球指数（初盘/首次采集→当前）',
+            ]
+            display['胜平负指数（初盘/首次采集→当前）'] = display[
+                '胜平负指数（首次采集→当前）'
+            ]
+            display['让球指数（初盘/首次采集→当前）'] = display[
+                '让球指数（首次采集→当前）'
+            ]
         shown = display[[column for column in preferred if column in display.columns]].copy()
         for column in shown.columns:
             if (
@@ -1569,7 +1590,18 @@ class SportteryPredictionsDialog(QDialog):
             / f'{timestamp}-{_safe_filename(selected)}.xlsx'
         )
         try:
-            write_predictions_xlsx(self._display_predictions(visible), path)
+            exported = self._display_predictions(
+                visible, include_market_details=True,
+            ).reset_index(drop=True)
+            priorities = _daily_priority_aspects(visible).reset_index(drop=True)
+            if '综合方向' in exported.columns:
+                for row_index, labels in priorities.items():
+                    if labels:
+                        exported.at[row_index, '综合方向'] = (
+                            f'★重点：{"/".join(labels)}｜'
+                            f'{exported.at[row_index, "综合方向"]}'
+                        )
+            write_predictions_xlsx(exported, path)
         except PermissionError:
             QMessageBox.critical(
                 self, '导出失败', 'Excel 文件正在被占用，请关闭对应文件后重试。',

@@ -229,6 +229,42 @@ def test_sporttery_excel_export_is_a_real_formatted_workbook(tmp_path):
     assert sheet['A2'].value == '周六001'
 
 
+def test_sporttery_excel_export_highlights_priority_rows(tmp_path):
+    from openpyxl import load_workbook
+
+    path = tmp_path / 'priority.xlsx'
+    write_predictions_xlsx(pd.DataFrame([{
+        '赛事编号': '周六001', '综合方向': '★重点：胜负｜胜负 胜（66.0%）',
+    }]), path)
+
+    sheet = load_workbook(path)['竞彩预测']
+    assert sheet['A2'].font.color.rgb == '00C62828'
+    assert sheet['A2'].fill.fgColor.rgb == '00FFF1F1'
+    assert sheet['B2'].font.bold is True
+
+
+def test_export_view_includes_opening_market_information():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周六001', '主队': '主队', '客队': '客队',
+        '首次采集胜奖金': 2.10, '首次采集平奖金': 3.20, '首次采集负奖金': 3.40,
+        '官方胜奖金': 2.00, '官方平奖金': 3.25, '官方负奖金': 3.55,
+        '首次采集让球数': -1, '官方让球数': -1,
+        '首次采集让胜奖金': 4.20, '官方让胜奖金': 4.00,
+    }])
+
+    display = sporttery_window.SportteryPredictionsDialog._display_predictions(
+        predictions, include_market_details=True,
+    )
+
+    assert '胜平负指数（初盘/首次采集→当前）' in display.columns
+    assert display.loc[0, '胜平负指数（初盘/首次采集→当前）'] == (
+        '初 2.10 → 现 2.00｜初 3.20 → 现 3.25｜初 3.40 → 现 3.55'
+    )
+    assert '线 初 -1 → 现 -1' in display.loc[
+        0, '让球指数（初盘/首次采集→当前）'
+    ]
+
+
 def test_simulation_filter_includes_low_confidence_prior_rows():
     predictions = pd.DataFrame([
         {'赛事编号': '周六001', '模拟次数': 10_000, '模拟胜负': '胜 45.0%',
