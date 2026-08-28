@@ -693,9 +693,24 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
             & numbers('胜平负首选概率').ge(0.625) & stable,
             numbers('胜平负首选概率'),
         ),
+        # Draws need their own calibrated gate: a universal 62.5% result gate
+        # structurally excludes them.  On sealed local settlements, >=32%
+        # produced 4/7 hits; looser 28-30% gates fell below 38%.
+        '平局': (
+            numbers('模型平局概率').ge(0.32) & stable,
+            numbers('模型平局概率'),
+        ),
+        # Settled directional audit: -1/让胜 is 10/14 (71.4%) and
+        # +1/让负 is 4/6 (66.7%). The former probability/edge-only selector
+        # picked the wrong structures and went 0/7 as a daily priority.
         '让球': (
-            numbers('让球首选概率').ge(0.60)
-            & numbers('让球最大概率优势').fillna(0).ge(0.03) & stable,
+            (
+                (numbers('官方让球数').eq(-1)
+                 & predictions.get('让球首选', pd.Series('', index=predictions.index)).eq('胜'))
+                | (numbers('官方让球数').eq(1)
+                   & predictions.get('让球首选', pd.Series('', index=predictions.index)).eq('负'))
+            )
+            & numbers('让球首选概率').ge(0.38) & stable,
             numbers('让球首选概率'),
         ),
         '大小球': (
@@ -706,8 +721,11 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
             numbers('半全场首选概率').ge(0.35) & stable,
             numbers('半全场首选概率'),
         ),
+        # Exact score remains available, but its gate is stricter than the
+        # general 12% display threshold after the weak settled priority audit.
         '比分': (
-            _score_recommendation_mask(predictions) & stable,
+            _score_recommendation_mask(predictions)
+            & numbers('原始最高概率比分概率').ge(0.15) & stable,
             numbers('原始最高概率比分概率'),
         ),
     }
@@ -728,6 +746,7 @@ def _mark_priority_cells(
     """Mark only the exact market cells selected for daily emphasis."""
     columns = {
         '胜负': '综合方向',
+        '平局': '综合方向',
         '让球': '让球',
         '大小球': '大小球',
         '半全场': '半全场',
@@ -757,6 +776,7 @@ def build_daily_recommendations(
     priorities = _daily_priority_aspects(active)
     specs = {
         '胜负': ('胜平负首选', '胜平负首选概率'),
+        '平局': ('__draw__', '模型平局概率'),
         '让球': ('让球首选', '让球首选概率'),
         '大小球': ('大小球首选', '大小球首选概率'),
         '比分': ('首选比分', '原始最高概率比分概率'),
@@ -767,7 +787,7 @@ def build_daily_recommendations(
         row = active.loc[index]
         for market in labels:
             choice_column, probability_column = specs[market]
-            choice = str(row.get(choice_column) or '').strip()
+            choice = '平' if choice_column == '__draw__' else str(row.get(choice_column) or '').strip()
             if market == '让球':
                 line = pd.to_numeric(row.get('官方让球数'), errors='coerce')
                 line_text = '' if pd.isna(line) else f'{float(line):+g}'
@@ -778,10 +798,13 @@ def build_daily_recommendations(
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
-                '推荐玩法': market,
+                '推荐玩法': '胜平负·平局' if market == '平局' else market,
                 '重点选项': f'★ {choice}',
                 '模型概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
-                '入选理由': f'当日{market}通过门槛且概率最高',
+                '入选理由': (
+                    '平局概率≥32%且盘口稳定'
+                    if market == '平局' else f'当日{market}通过门槛且概率最高'
+                ),
             })
     return pd.DataFrame(rows, columns=columns)
 
@@ -821,7 +844,8 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     )
     detail_by_number = details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
     result_columns = {
-        '胜负': '胜负', '让球': '让球（首/次）', '大小球': '大小球',
+        '胜负': '胜负', '胜平负·平局': '胜负',
+        '让球': '让球（首/次）', '大小球': '大小球',
         '半全场': '半全场（首/次）', '比分': '比分（首/次1/次2/冷/进）',
     }
     rows = []
@@ -832,7 +856,9 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
         detail = detail_by_number.loc[number]
         market = recommendation['推荐玩法']
         result = str(detail.get(result_columns[market]) or '')
-        if market in ('让球', '半全场', '比分'):
+        if market == '胜平负·平局':
+            hit = '→ 平（命中）' in result
+        elif market in ('让球', '半全场', '比分'):
             hit = '首中' in result
         else:
             hit = '（命中）' in result

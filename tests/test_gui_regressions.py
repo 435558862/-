@@ -278,26 +278,30 @@ def test_priority_marker_is_added_only_to_the_selected_market_cells():
     assert not display.loc[0, '大小球'].startswith('★')
 
 
-def test_daily_recommendations_list_explicit_options_for_all_markets(monkeypatch):
+def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(monkeypatch):
     predictions = pd.DataFrame([{
         '赛事编号': '周六001', '比赛时间': '2099-08-29 18:00',
         '联赛': '英超', '主队': '阿森纳', '客队': '切尔西',
         '建议状态': '精选主推', '盘口门控': '稳定',
         '胜平负首选': '胜', '胜平负首选概率': 0.66,
-        '官方让球数': -1, '让球首选': '负', '让球首选概率': 0.64,
+        '模型平局概率': 0.33,
+        '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
         '让球最大概率优势': 0.05,
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '半全场首选': '胜胜', '半全场首选概率': 0.36,
         '比分推荐状态': '推荐', '首选比分': '2-1',
-        '原始最高概率比分概率': 0.13,
+        '原始最高概率比分概率': 0.16,
     }])
     result = sporttery_window.build_daily_recommendations(predictions)
-    assert result['推荐玩法'].tolist() == ['胜负', '让球', '大小球', '半全场', '比分']
+    assert result['推荐玩法'].tolist() == [
+        '胜负', '胜平负·平局', '让球', '大小球', '半全场', '比分',
+    ]
     options = dict(zip(result['推荐玩法'], result['重点选项']))
     assert options['胜负'] == '★ 胜'
-    assert options['让球'] == '★ -1球 负'
+    assert options['胜平负·平局'] == '★ 平'
     assert options['大小球'] == '★ 大于2.5球'
     assert options['半全场'] == '★ 胜胜'
+    assert options['让球'] == '★ -1球 胜'
     assert options['比分'] == '★ 2-1'
 
 
@@ -308,12 +312,13 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
         '联赛': '英超', '主队': '阿森纳', '客队': '切尔西',
         '建议状态': '精选主推', '盘口门控': '稳定',
         '胜平负首选': '胜', '胜平负首选概率': 0.66,
+        '模型平局概率': 0.33,
         '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
         '让球最大概率优势': 0.05,
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '半全场首选': '胜胜', '半全场首选概率': 0.36,
         '比分推荐状态': '推荐', '首选比分': '2-1',
-        '原始最高概率比分概率': 0.13,
+        '原始最高概率比分概率': 0.16,
     }])
     report.to_csv(tmp_path / '2026-08-27-竞彩预测.csv', index=False)
     details = pd.DataFrame([{
@@ -333,7 +338,8 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
     assert review_date == '2026-08-27'
     statuses = dict(zip(result['推荐玩法'], result['命中状态']))
     assert statuses == {
-        '胜负': '✓ 命中', '让球': '✕ 未中', '大小球': '✓ 命中',
+        '胜负': '✓ 命中', '胜平负·平局': '✕ 未中',
+        '让球': '✕ 未中', '大小球': '✓ 命中',
         '半全场': '✓ 命中', '比分': '✓ 命中',
     }
 
@@ -415,7 +421,7 @@ def test_daily_priority_selects_strongest_row_per_market_and_day():
     priorities = sporttery_window._daily_priority_aspects(predictions)
 
     assert priorities.iloc[0] == []
-    assert priorities.iloc[1] == ['胜负', '让球', '大小球', '半全场', '比分']
+    assert priorities.iloc[1] == ['胜负', '大小球', '半全场']
 
 
 def test_daily_priority_rejects_unstable_market_signals():
