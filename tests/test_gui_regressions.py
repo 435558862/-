@@ -396,6 +396,38 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
     }
 
 
+def test_yesterday_recommendation_review_uses_lottery_card_date(
+        monkeypatch, tmp_path):
+    report = pd.DataFrame([{
+        '赛事编号': '周五001', '比赛时间': '2026-08-29 01:30',
+        '联赛': '英超', '主队': '主队', '客队': '客队',
+    }])
+    report.to_csv(tmp_path / '2026-08-28-竞彩预测.csv', index=False)
+    details = pd.DataFrame([{
+        '赛事编号': '周五001', '完场比分': '1-0',
+        '胜负': '胜 → 胜（命中）',
+    }])
+    selected = pd.DataFrame([{
+        '赛事编号': '周五001', '联赛': '英超', '对阵': '主队 vs 客队',
+        '推荐玩法': '胜负', '重点选项': '★ 胜', '模型概率': '60.0%',
+    }])
+    monkeypatch.setattr(sporttery_window, 'REPORT_ROOT', tmp_path)
+    monkeypatch.setattr(
+        sporttery_window, 'load_yesterday_hit_report',
+        lambda: (details, {'date': '2026-08-28'}),
+    )
+    monkeypatch.setattr(
+        sporttery_window, 'build_daily_recommendations',
+        lambda predictions, future_only=False: selected if not predictions.empty else selected.iloc[0:0],
+    )
+
+    result, review_date = sporttery_window.build_yesterday_recommendation_review()
+
+    assert review_date == '2026-08-28'
+    assert result['赛事编号'].tolist() == ['周五001']
+    assert result['命中状态'].tolist() == ['✓ 命中']
+
+
 def test_export_view_includes_opening_market_information():
     predictions = pd.DataFrame([{
         '赛事编号': '周六001', '主队': '主队', '客队': '客队',

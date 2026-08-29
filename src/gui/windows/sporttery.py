@@ -862,19 +862,31 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     review_date = str(summary.get('date') or '')
     if not review_date or details.empty:
         return pd.DataFrame(columns=columns), review_date
-    # A 周三 ticket may kick off after midnight on Thursday, so the report
-    # filename is not necessarily the settlement date. Search saved daily
-    # cards and collect rows by their real kickoff date.
+    # A 周五 ticket may kick off after midnight on Saturday.  The review date
+    # is the lottery card date, not the natural kickoff date.
     prediction_parts = []
     for report_path in sorted(REPORT_ROOT.glob('*-竞彩预测.csv'), reverse=True):
         try:
             candidate = pd.read_csv(report_path)
         except (OSError, pd.errors.EmptyDataError):
             continue
-        dates = candidate.get(
+        match_times = candidate.get(
             '比赛时间', pd.Series('', index=candidate.index),
-        ).fillna('').astype(str).str[:10]
-        matching = candidate.loc[dates.eq(review_date)].copy()
+        ).fillna('').astype(str)
+        match_numbers = candidate.get(
+            '赛事编号', pd.Series('', index=candidate.index),
+        ).fillna('').astype(str)
+        card_dates = pd.Series(
+            [
+                card_day.isoformat() if card_day is not None else ''
+                for card_day in (
+                    _ticket_card_date(match_time, match_number)
+                    for match_time, match_number in zip(match_times, match_numbers)
+                )
+            ],
+            index=candidate.index,
+        )
+        matching = candidate.loc[card_dates.eq(review_date)].copy()
         if not matching.empty:
             prediction_parts.append(matching)
     if not prediction_parts:
