@@ -549,32 +549,3 @@ def test_composite_recommendations_rank_markets_by_conservative_audit(monkeypatc
 def test_wilson_bound_penalizes_tiny_perfect_samples():
     assert sporttery_window._wilson_lower_bound(2, 2) < 0.60
     assert sporttery_window._wilson_lower_bound(85, 100) > 0.75
-
-
-def test_composite_match_card_keeps_all_playable_markets(monkeypatch):
-    predictions = pd.DataFrame([{
-        '赛事编号': '周日001', '比赛时间': '2026-08-30 20:00',
-        '联赛': '英超', '主队': '甲', '客队': '乙',
-        '胜平负首选': '胜', '胜平负首选概率': .64,
-        '官方让球数': -1, '让球首选': '胜', '让球次选': '平',
-        '大小球首选': '大于2.5球', '大小球首选概率': .71,
-        '半全场首选': '胜胜', '半全场次选': '平胜',
-        '首选比分': '2-1', '次选比分': '2-0', '第三比分': '1-0',
-        '比分爆冷': '1-2',
-    }])
-    monkeypatch.setattr(
-        sporttery_window, 'build_composite_recommendations',
-        lambda frame: pd.DataFrame([{
-            '比赛日期': '2026-08-30', '赛事编号': '周日001',
-            '联赛': '英超', '对阵': '甲 vs 乙', '推荐玩法': '大小球',
-            '重点选项': '★ 大于2.5球', '保守命中下限': '72.0%',
-        }]),
-    )
-
-    result = sporttery_window.build_composite_match_cards(predictions)
-
-    assert result.loc[0, '综合主推'] == '★ 大小球：大于2.5球'
-    assert result.loc[0, '胜平负'].startswith('胜 ')
-    assert result.loc[0, '让球'] == '-1球 胜 / 次平'
-    assert result.loc[0, '半全场'] == '胜胜 / 平胜'
-    assert result.loc[0, '比分'] == '2-1 / 2-0 / 1-0 / 冷:1-2'

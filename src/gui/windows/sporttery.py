@@ -1009,80 +1009,6 @@ def build_composite_recommendations(
     return selected.loc[:, columns].reset_index(drop=True)
 
 
-def build_composite_match_cards(predictions: pd.DataFrame) -> pd.DataFrame:
-    """Show every requested market for matches chosen by the meta-selector."""
-    columns = [
-        '比赛日期', '赛事编号', '联赛', '对阵', '综合主推',
-        '胜平负', '让球', '大小球', '半全场', '比分',
-        '保守命中下限', '风险说明',
-    ]
-    selected = build_composite_recommendations(predictions)
-    if selected.empty:
-        return pd.DataFrame(columns=columns)
-    source = _upcoming_predictions(predictions).copy()
-    source['_card_day'] = [
-        card_day.isoformat() if card_day is not None else ''
-        for card_day in (
-            _ticket_card_date(match_time, match_number)
-            for match_time, match_number in zip(
-                source.get('比赛时间', pd.Series('', index=source.index)),
-                source.get('赛事编号', pd.Series('', index=source.index)),
-            )
-        )
-    ]
-    source['_number'] = source.get(
-        '赛事编号', pd.Series('', index=source.index),
-    ).fillna('').astype(str)
-    lookup = source.drop_duplicates(['_card_day', '_number'], keep='first').set_index(
-        ['_card_day', '_number'], drop=False,
-    )
-
-    def probability_text(row: pd.Series, pick_column: str, probability_column: str) -> str:
-        pick = str(row.get(pick_column) or '').strip()
-        probability = pd.to_numeric(row.get(probability_column), errors='coerce')
-        return pick if pd.isna(probability) else f'{pick} {float(probability):.1%}'
-
-    rows = []
-    for _, anchor in selected.iterrows():
-        key = (str(anchor['比赛日期']), str(anchor['赛事编号']))
-        if key not in lookup.index:
-            continue
-        prediction = lookup.loc[key]
-        handicap_line = pd.to_numeric(prediction.get('官方让球数'), errors='coerce')
-        handicap_prefix = '' if pd.isna(handicap_line) else f'{float(handicap_line):+g}球 '
-        handicap_first = str(prediction.get('让球首选') or '').strip()
-        handicap_second = str(prediction.get('让球次选') or '').strip()
-        half_first = str(prediction.get('半全场首选') or '').strip()
-        half_second = str(prediction.get('半全场次选') or '').strip()
-        scores = []
-        for column in ('首选比分', '次选比分', '第三比分'):
-            value = str(prediction.get(column) or '').strip()
-            if value and value not in scores:
-                scores.append(value)
-        upset = str(
-            prediction.get('比分爆冷') or prediction.get('爆冷比分') or ''
-        ).strip()
-        if upset and upset not in scores:
-            scores.append(f'冷:{upset}')
-        rows.append({
-            '比赛日期': anchor['比赛日期'],
-            '赛事编号': anchor['赛事编号'],
-            '联赛': anchor['联赛'], '对阵': anchor['对阵'],
-            '综合主推': f'★ {anchor["推荐玩法"]}：{anchor["重点选项"].removeprefix("★ ")}',
-            '胜平负': probability_text(prediction, '胜平负首选', '胜平负首选概率'),
-            '让球': (
-                f'{handicap_prefix}{handicap_first}'
-                + (f' / 次{handicap_second}' if handicap_second else '')
-            ).strip(),
-            '大小球': probability_text(prediction, '大小球首选', '大小球首选概率'),
-            '半全场': f'{half_first}' + (f' / {half_second}' if half_second else ''),
-            '比分': ' / '.join(scores),
-            '保守命中下限': anchor['保守命中下限'],
-            '风险说明': '★为综合主推；其他玩法仅作同场参考',
-        })
-    return pd.DataFrame(rows, columns=columns)
-
-
 def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     """Rebuild yesterday's selected options and attach their settled outcome."""
     columns = [
@@ -1211,13 +1137,13 @@ class DailyRecommendationsDialog(QDialog):
         header.addWidget(review_button)
         root.addLayout(header)
         self._review_dialog = None
-        frame = build_composite_match_cards(predictions)
+        frame = build_composite_recommendations(predictions)
         if frame.empty:
             root.addWidget(QLabel('当前没有通过综合精算门槛的选项。'))
             return
         table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
-        if '综合主推' in frame.columns:
-            column = frame.columns.get_loc('综合主推')
+        if '重点选项' in frame.columns:
+            column = frame.columns.get_loc('重点选项')
             for row in range(table.rowCount()):
                 item = table.item(row, column)
                 item.setForeground(QBrush(QColor('#c62828')))
