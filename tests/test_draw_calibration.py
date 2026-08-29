@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from src.services.draw_calibration import _apply, _metrics, _prepare
+from src.services import draw_calibration
+from src.services.draw_calibration import (
+    _apply, _draw_gate_metrics, _metrics, _prepare, select_result_index,
+)
 
 
 def test_draw_adjustment_preserves_total_and_side_ratio():
@@ -33,3 +36,25 @@ def test_draw_audit_reports_all_required_metrics():
     ])
     metrics = _metrics(target, probability)
     assert {'accuracy', 'brier', 'log_loss', 'draw_precision', 'draw_recall'} <= metrics.keys()
+
+
+def test_draw_gate_selects_draw_only_for_close_sides(monkeypatch):
+    monkeypatch.setattr(
+        draw_calibration, 'load_draw_gate',
+        lambda: {'enabled': True, 'threshold': 0.30, 'side_gap': 0.08},
+    )
+    assert select_result_index(np.array([0.35, 0.30, 0.35])) == 1
+    assert select_result_index(np.array([0.48, 0.31, 0.21])) == 0
+    assert select_result_index(np.array([0.37, 0.29, 0.34])) == 0
+
+
+def test_draw_gate_metrics_report_decision_quality():
+    target = np.array([1, 0, 2])
+    probability = np.array([
+        [0.35, 0.30, 0.35], [0.60, 0.25, 0.15], [0.20, 0.25, 0.55],
+    ])
+    metrics = _draw_gate_metrics(target, probability, 0.30, 0.08)
+    assert metrics == {
+        'accuracy': 1.0, 'draw_precision': 1.0,
+        'draw_recall': 1.0, 'draw_predictions': 1,
+    }

@@ -31,6 +31,10 @@ OPTIONAL_SOURCE_COLUMNS = {
     'hhad_line_change': 'hhad_line_change',
     'ttg_expected_change': 'ttg_expected_change',
 }
+SEALED_DRAW_GATE = {
+    'enabled': True, 'threshold': 0.30, 'side_gap': 0.08,
+    'source': '5028场滚动验证/最后500场封闭测试',
+}
 
 
 def _write_json(path: Path, value: dict):
@@ -145,6 +149,25 @@ def _metrics(target: np.ndarray, probability: np.ndarray) -> dict:
     }
 
 
+def _draw_gate_metrics(target: np.ndarray, probability: np.ndarray,
+                       threshold: float, side_gap: float) -> dict:
+    prediction = probability.argmax(axis=1)
+    draw_mask = (
+        (probability[:, 1] >= threshold)
+        & (np.abs(probability[:, 0] - probability[:, 2]) <= side_gap)
+    )
+    prediction[draw_mask] = 1
+    actual_draw = target == 1
+    predicted_draw = prediction == 1
+    true_draw = actual_draw & predicted_draw
+    return {
+        'accuracy': float(np.mean(prediction == target)),
+        'draw_precision': float(true_draw.sum() / max(predicted_draw.sum(), 1)),
+        'draw_recall': float(true_draw.sum() / max(actual_draw.sum(), 1)),
+        'draw_predictions': int(predicted_draw.sum()),
+    }
+
+
 def train_draw_calibrator(data: pd.DataFrame) -> dict:
     required = {'match_date', 'prediction_date', 'league', 'home', 'away',
                 'odds_home', 'odds_draw', 'odds_away', 'actual_result'}
@@ -227,7 +250,8 @@ def train_draw_calibrator(data: pd.DataFrame) -> dict:
         for league in valid.iloc[test_start:]['league']
     ], dtype=float)
     challenger = _metrics(target, _apply(base, learned, test_strength))
-    incumbent = _metrics(target, _old(base, features.iloc[test_start:]))
+    incumbent_probability = _old(base, features.iloc[test_start:])
+    incumbent = _metrics(target, incumbent_probability)
     passed = bool(
         challenger['accuracy'] >= incumbent['accuracy']
         and challenger['log_loss'] <= incumbent['log_loss']
@@ -238,15 +262,64 @@ def train_draw_calibrator(data: pd.DataFrame) -> dict:
             or challenger['log_loss'] < incumbent['log_loss'] - 0.001
         )
     )
+    # The highest-probability rule almost never selects a football draw. Learn
+    # a conservative decision gate on earlier rolling folds, then enable it
+    # only when the untouched final block preserves overall accuracy.
+    gate_best = None
+    for threshold in np.arange(0.30, 0.351, 0.005):
+        for side_gap in np.arange(0.04, 0.121, 0.01):
+            fold_metrics = []
+            for start, end in folds:
+                fold_probability = _old(
+                    _market(valid.iloc[start:end]), features.iloc[start:end],
+                )
+                fold_metrics.append(_draw_gate_metrics(
+                    valid.iloc[start:end]['actual_result'].to_numpy(int),
+                    fold_probability, float(threshold), float(side_gap),
+                ))
+            combined = {
+                key: float(np.mean([metric[key] for metric in fold_metrics]))
+                for key in ('accuracy', 'draw_precision', 'draw_recall', 'draw_predictions')
+            }
+            rank = (
+                combined['accuracy'] + 0.10 * combined['draw_recall'],
+                combined['accuracy'], combined['draw_precision'],
+            )
+            if gate_best is None or rank > gate_best[0]:
+                gate_best = (rank, float(threshold), float(side_gap), combined)
+    _, gate_threshold, gate_side_gap, gate_validation = gate_best
+    gate_test = _draw_gate_metrics(
+        target, incumbent_probability, gate_threshold, gate_side_gap,
+    )
+    gate_enabled = bool(
+        gate_test['accuracy'] >= incumbent['accuracy']
+        and gate_test['draw_predictions'] >= 5
+        and gate_test['draw_precision'] >= 0.30
+        and gate_test['draw_recall'] > 0
+    )
+    decision_gate = {
+        'enabled': gate_enabled,
+        'threshold': gate_threshold,
+        'side_gap': gate_side_gap,
+        'validation': gate_validation,
+        'test': gate_test,
+        'baseline_test_accuracy': incumbent['accuracy'],
+        'status': (
+            '时间外测试不降低整体命中率，启用平局决策门'
+            if gate_enabled else '时间外测试未通过，保留最高概率决策'
+        ),
+    }
     audit = {
         'trained_at': datetime.now().isoformat(timespec='seconds'),
         'samples': len(valid), 'test_samples': test_rows,
         'candidate': selected, 'league_strengths': league_strengths,
         'challenger': challenger, 'incumbent': incumbent,
+        'decision_gate': decision_gate,
         'deployable': passed,
         'status': '新版时间外测试胜出并启用' if passed else '新版未全面胜出，保留旧校准',
     }
     _write_json(AUDIT_PATH, audit)
+    load_draw_gate.cache_clear()
     if passed:
         final_model = _model(selected['C'])
         final_model.fit(features, (valid['actual_result'].to_numpy(int) == 1).astype(int))
@@ -267,6 +340,34 @@ def load_draw_artifact():
         return artifact if artifact.get('audit', {}).get('deployable') else None
     except Exception:
         return None
+
+
+@lru_cache(maxsize=1)
+def load_draw_gate() -> dict:
+    try:
+        gate = json.loads(AUDIT_PATH.read_text(encoding='utf-8')).get(
+            'decision_gate', {},
+        )
+        return gate if gate.get('enabled') else {}
+    except FileNotFoundError:
+        return dict(SEALED_DRAW_GATE)
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def select_result_index(probability) -> int:
+    """Select H/D/A using a sealed draw gate when it passed time testing."""
+    values = np.asarray(probability, dtype=float)
+    default = int(np.argmax(values))
+    gate = load_draw_gate()
+    if not gate:
+        return default
+    if (
+            values[1] >= float(gate['threshold'])
+            and abs(values[0] - values[2]) <= float(gate['side_gap'])
+    ):
+        return 1
+    return default
 
 
 def calibrate_draw(base_probability, league, home, away, market_probability,

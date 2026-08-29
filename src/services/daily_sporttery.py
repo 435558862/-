@@ -33,7 +33,7 @@ from src.services.odds_tracking import (
     record_odds_snapshots,
 )
 from src.services.lineups import fetch_lineup_analysis
-from src.services.draw_calibration import calibrate_draw
+from src.services.draw_calibration import calibrate_draw, select_result_index
 from src.services.team_names import resolve_model_team
 from src.network.fixtures.sporttery import (
     SportteryMobileClient,
@@ -1581,7 +1581,8 @@ def _predict_supported_match(
     ranked_scores = [class_to_score(score_classes[i]) for i in top_score_columns]
     top_half_full = np.argsort(half_full_prob)[-3:][::-1]
     ranked_half_full = [HALF_FULL_LABELS[i] for i in top_half_full]
-    result_pick = OUTCOME_LABELS[int(np.argmax(result_prob))]
+    result_index = select_result_index(result_prob)
+    result_pick = OUTCOME_LABELS[result_index]
     final_selection = _market_selection(
         float(np.max(result_prob)), selection_league,
     )
@@ -1615,7 +1616,7 @@ def _predict_supported_match(
         advice = '跳过'
     conclusion_parts = [
         advice,
-        f'{result_pick} {float(result_prob[int(np.argmax(result_prob))]):.1%}',
+        f'{result_pick} {float(result_prob[result_index]):.1%}',
     ]
     if lineup_analysis.get('status') == '已确认':
         if lineup_shift:
@@ -1752,7 +1753,7 @@ def _predict_supported_match(
         '模型平局概率': result_prob[1],
         '模型客胜概率': result_prob[2],
         '胜平负首选': result_pick,
-        '胜平负首选概率': float(result_prob[int(np.argmax(result_prob))]),
+        '胜平负首选概率': float(result_prob[result_index]),
         '最终结论': '｜'.join(conclusion_parts),
         '市场去水主胜概率': market_prob[0],
         '市场去水平局概率': market_prob[1],
