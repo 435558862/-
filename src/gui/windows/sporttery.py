@@ -29,12 +29,13 @@ from src.services.odds_tracking import (
     format_market_flow, read_odds_series, record_odds_snapshots,
     record_official_history,
 )
-from src.services.yesterday_review import load_yesterday_hit_report
+from src.services.yesterday_review import _ticket_card_date, load_yesterday_hit_report
 
 
 REPORT_ROOT = Path('storage/jingcai/reports')
 PREDICTION_PATH = REPORT_ROOT / '最新竞彩预测.csv'
 LEARNING_STATUS_PATH = Path('storage/jingcai/learning/status.json')
+SETTLED_PREDICTIONS_PATH = Path('storage/jingcai/learning/settled_predictions.csv')
 
 
 def prediction_export_root() -> Path:
@@ -669,10 +670,19 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
     aspects = pd.Series([[] for _ in range(len(predictions))], index=predictions.index)
     if predictions.empty:
         return aspects
-    days = predictions.get(
+    match_times = predictions.get(
         '比赛时间', pd.Series('', index=predictions.index),
-    ).fillna('').astype(str).str.slice(0, 10)
-    days = days.where(days.str.fullmatch(r'\d{4}-\d{2}-\d{2}'), '全部')
+    )
+    match_numbers = predictions.get(
+        '赛事编号', pd.Series('', index=predictions.index),
+    )
+    days = pd.Series([
+        card_day.isoformat() if card_day is not None else '全部'
+        for card_day in (
+            _ticket_card_date(match_time, match_number)
+            for match_time, match_number in zip(match_times, match_numbers)
+        )
+    ], index=predictions.index)
     gate = predictions.get(
         '盘口门控', pd.Series('', index=predictions.index),
     ).fillna('').astype(str)
@@ -839,6 +849,166 @@ def build_daily_recommendations(
     return pd.DataFrame(rows, columns=columns)
 
 
+def _wilson_lower_bound(hits: int, samples: int, z: float = 1.2816) -> float:
+    """One-sided 90% Wilson lower bound used as conservative reliability."""
+    if samples <= 0:
+        return 0.0
+    rate = hits / samples
+    denominator = 1.0 + z * z / samples
+    centre = rate + z * z / (2.0 * samples)
+    margin = z * ((rate * (1.0 - rate) / samples + z * z / (4.0 * samples ** 2)) ** 0.5)
+    return (centre - margin) / denominator
+
+
+def _handicap_structure_audits(
+        settled_path: Path = SETTLED_PREDICTIONS_PATH,
+) -> dict[tuple[int, str], dict]:
+    """Audit supported handicap structures from sealed pre-match predictions."""
+    try:
+        settled = pd.read_csv(settled_path)
+    except (OSError, UnicodeError, pd.errors.EmptyDataError, pd.errors.ParserError):
+        return {}
+    required = {'handicap_line', 'predicted_handicap', 'handicap_hit'}
+    if not required.issubset(settled.columns):
+        return {}
+    lines = pd.to_numeric(settled['handicap_line'], errors='coerce')
+    hits = pd.to_numeric(settled['handicap_hit'], errors='coerce')
+    picks = settled['predicted_handicap'].fillna('').astype(str)
+    audits = {}
+    for structure in ((-1, '胜'), (1, '负')):
+        line, pick = structure
+        values = hits.loc[lines.eq(line) & picks.eq(pick) & hits.notna()]
+        samples = len(values)
+        successes = int(values.sum())
+        audits[structure] = {
+            'samples': samples,
+            'hits': successes,
+            'accuracy': successes / samples if samples else 0.0,
+            'lower_bound': _wilson_lower_bound(successes, samples),
+        }
+    return audits
+
+
+def build_composite_recommendations(
+        predictions: pd.DataFrame,
+        future_only: bool = True,
+        maximum_per_day: int = 2,
+) -> pd.DataFrame:
+    """Select a few cross-market picks using conservative sealed accuracy.
+
+    Markets compete on a one-sided confidence bound rather than incomparable
+    raw model probabilities.  Half/full-time and exact score remain visible in
+    the analysis table but cannot enter this high-accuracy list until their own
+    chronological audit clears the same reliability standard.
+    """
+    columns = [
+        '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
+        '模型概率', '保守命中下限', '验证样本', '入选理由',
+    ]
+    if predictions.empty:
+        return pd.DataFrame(columns=columns)
+    source = _upcoming_predictions(predictions) if future_only else predictions.copy()
+    source = _sort_by_match_number(source).reset_index(drop=True)
+    gate = source.get('盘口门控', pd.Series('', index=source.index)).fillna('').astype(str)
+    stable = ~gate.str.contains('冲突|震荡|不稳定', regex=True)
+    ou_profile = load_over_under_profile() or {'directions': []}
+    ou_rules = {
+        str(rule.get('pick')): rule for rule in ou_profile.get('directions', [])
+    }
+    handicap_audits = _handicap_structure_audits()
+    candidates = []
+
+    def number(row: pd.Series, column: str) -> float:
+        return pd.to_numeric(row.get(column), errors='coerce')
+
+    for index, row in source.iterrows():
+        if not bool(stable.iloc[index]):
+            continue
+        card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
+        day_text = card_day.isoformat() if card_day is not None else str(row.get('比赛时间') or '')[:10]
+        base = {
+            '比赛日期': day_text,
+            '赛事编号': row.get('赛事编号', ''),
+            '联赛': row.get('联赛', ''),
+            '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
+        }
+
+        if str(row.get('建议状态') or '') in ('精选主推', '高置信主推'):
+            probability = number(row, '胜平负首选概率')
+            accuracy = number(row, '同阈值历史命中率')
+            samples = number(row, '筛选回测样本数')
+            if pd.notna(probability) and pd.notna(accuracy) and pd.notna(samples):
+                samples_int = int(samples)
+                hits = int(round(float(accuracy) * samples_int))
+                lower = _wilson_lower_bound(hits, samples_int)
+                if probability >= 0.625 and samples_int >= 20 and lower >= 0.60:
+                    candidates.append({
+                        **base, '推荐玩法': '胜平负',
+                        '重点选项': f'★ {row.get("胜平负首选", "")}',
+                        '模型概率': f'{float(probability):.1%}',
+                        '保守命中下限': f'{lower:.1%}', '验证样本': samples_int,
+                        '入选理由': '高置信分档+盘口无冲突',
+                        '_lower': lower, '_probability': float(probability),
+                    })
+
+        ou_pick = str(row.get('大小球首选') or '')
+        ou_rule = ou_rules.get(ou_pick) or {}
+        ou_probability = number(row, '大小球首选概率')
+        ou_samples = int(ou_rule.get('audit_samples') or 0)
+        ou_accuracy = float(ou_rule.get('audit_accuracy') or 0.0)
+        ou_lower = _wilson_lower_bound(round(ou_accuracy * ou_samples), ou_samples)
+        if (
+                bool(ou_rule.get('enabled')) and pd.notna(ou_probability)
+                and ou_probability >= float(ou_rule.get('threshold') or 1.0)
+                and ou_samples >= 15 and ou_lower >= 0.60
+        ):
+            candidates.append({
+                **base, '推荐玩法': '大小球', '重点选项': f'★ {ou_pick}',
+                '模型概率': f'{float(ou_probability):.1%}',
+                '保守命中下限': f'{ou_lower:.1%}', '验证样本': ou_samples,
+                '入选理由': '时间测试通过+盘口无冲突',
+                '_lower': ou_lower, '_probability': float(ou_probability),
+            })
+
+        line_value = number(row, '官方让球数')
+        handicap_pick = str(row.get('让球首选') or '')
+        structure = None if pd.isna(line_value) else (int(line_value), handicap_pick)
+        handicap_audit = handicap_audits.get(structure, {})
+        handicap_probability = number(row, '让球首选概率')
+        if (
+                structure in ((-1, '胜'), (1, '负'))
+                and pd.notna(handicap_probability) and handicap_probability >= 0.38
+                and int(handicap_audit.get('samples') or 0) >= 15
+                and float(handicap_audit.get('lower_bound') or 0.0) >= 0.60
+        ):
+            lower = float(handicap_audit['lower_bound'])
+            candidates.append({
+                **base, '推荐玩法': '让球',
+                '重点选项': f'★ {int(line_value):+d}球 {handicap_pick}',
+                '模型概率': f'{float(handicap_probability):.1%}',
+                '保守命中下限': f'{lower:.1%}',
+                '验证样本': int(handicap_audit['samples']),
+                '入选理由': '让球结构实战通过+盘口无冲突',
+                '_lower': lower, '_probability': float(handicap_probability),
+            })
+
+    if not candidates:
+        return pd.DataFrame(columns=columns)
+    candidate_frame = pd.DataFrame(candidates).sort_values(
+        ['比赛日期', '_lower', '_probability'],
+        ascending=[True, False, False], kind='stable',
+    )
+    # A single match can generate several correlated picks. Retain its most
+    # reliable market, then cap the whole card to keep coverage deliberately low.
+    candidate_frame = candidate_frame.drop_duplicates(
+        ['比赛日期', '赛事编号'], keep='first',
+    )
+    selected = candidate_frame.groupby('比赛日期', sort=False).head(
+        maximum_per_day,
+    )
+    return selected.loc[:, columns].reset_index(drop=True)
+
+
 def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     """Rebuild yesterday's selected options and attach their settled outcome."""
     columns = [
@@ -858,10 +1028,20 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             candidate = pd.read_csv(report_path)
         except (OSError, pd.errors.EmptyDataError):
             continue
-        dates = candidate.get(
+        match_times = candidate.get(
             '比赛时间', pd.Series('', index=candidate.index),
-        ).fillna('').astype(str).str[:10]
-        matching = candidate.loc[dates.eq(review_date)].copy()
+        )
+        match_numbers = candidate.get(
+            '赛事编号', pd.Series('', index=candidate.index),
+        )
+        card_dates = pd.Series([
+            card_day.isoformat() if card_day is not None else ''
+            for card_day in (
+                _ticket_card_date(match_time, match_number)
+                for match_time, match_number in zip(match_times, match_numbers)
+            )
+        ], index=candidate.index)
+        matching = candidate.loc[card_dates.eq(review_date)].copy()
         if not matching.empty:
             prediction_parts.append(matching)
     if not prediction_parts:
@@ -869,7 +1049,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     predictions = pd.concat(prediction_parts, ignore_index=True)
     identity = '比赛ID' if '比赛ID' in predictions.columns else '赛事编号'
     predictions = predictions.drop_duplicates(identity, keep='first')
-    recommendations = build_daily_recommendations(
+    recommendations = build_composite_recommendations(
         predictions, future_only=False,
     )
     detail_by_number = details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
@@ -910,7 +1090,7 @@ class YesterdayRecommendationReviewDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         frame, review_date = build_yesterday_recommendation_review()
-        self.setWindowTitle(f'{review_date or "昨日"} 每日推荐复盘')
+        self.setWindowTitle(f'{review_date or "昨日"} 综合精选复盘')
         self.resize(1180, 560)
         root = QVBoxLayout(self)
         if frame.empty:
@@ -918,7 +1098,7 @@ class YesterdayRecommendationReviewDialog(QDialog):
             return
         hits = int(frame['命中状态'].eq('✓ 命中').sum())
         root.addWidget(QLabel(
-            f'{review_date} 每日推荐：{hits}/{len(frame)} 命中（按具体重点选项结算）'
+            f'{review_date} 综合精选：{hits}/{len(frame)} 命中（按具体重点选项结算）'
         ))
         table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
         status_column = frame.columns.get_loc('命中状态')
@@ -934,11 +1114,11 @@ class YesterdayRecommendationReviewDialog(QDialog):
 
 
 class DailyRecommendationsDialog(QDialog):
-    """Focused list of the strongest daily options across all markets."""
+    """Conservative cross-market shortlist ranked by sealed reliability."""
 
     def __init__(self, predictions: pd.DataFrame, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('每日重点推荐')
+        self.setWindowTitle('综合精算精选')
         self.setWindowFlags(
             Qt.WindowType.Window | Qt.WindowType.WindowMinimizeButtonHint
             | Qt.WindowType.WindowMaximizeButtonHint | Qt.WindowType.WindowCloseButtonHint
@@ -946,7 +1126,10 @@ class DailyRecommendationsDialog(QDialog):
         self.resize(1120, 560)
         root = QVBoxLayout(self)
         header = QHBoxLayout()
-        notice = QLabel('仅显示未开赛赛事；每个比赛日、每种玩法最多选择一项最强推荐。')
+        notice = QLabel(
+            '各玩法统一按独立时间验证的保守命中下限竞争；'
+            '每张竞彩卡最多2项。未达标玩法仍保留分析，但不进精选。'
+        )
         notice.setWordWrap(True)
         header.addWidget(notice, 1)
         review_button = QPushButton('昨日推荐复盘')
@@ -954,9 +1137,9 @@ class DailyRecommendationsDialog(QDialog):
         header.addWidget(review_button)
         root.addLayout(header)
         self._review_dialog = None
-        frame = build_daily_recommendations(predictions)
+        frame = build_composite_recommendations(predictions)
         if frame.empty:
-            root.addWidget(QLabel('当前没有达到推荐门槛的选项。'))
+            root.addWidget(QLabel('当前没有通过综合精算门槛的选项。'))
             return
         table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
         if '重点选项' in frame.columns:
@@ -1097,8 +1280,8 @@ class SportteryPredictionsDialog(QDialog):
         market_button.setObjectName('marketTrendButton')
         market_button.setToolTip('查看欧赔概率、让球和大小球的初盘到临盘走势')
         market_button.clicked.connect(self._show_market_trends)
-        daily_button = QPushButton('每日推荐')
-        daily_button.setToolTip('集中查看胜负、让球、大小球、比分和半全场重点选项')
+        daily_button = QPushButton('综合精选')
+        daily_button.setToolTip('各玩法统一竞争，仅显示通过保守实战门槛的少量选项')
         daily_button.clicked.connect(self._show_daily_recommendations)
         export_button = QPushButton('导出 Excel')
         export_button.clicked.connect(self._export)

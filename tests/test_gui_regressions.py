@@ -357,7 +357,7 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
     assert options['比分'] == '★ 2-1'
 
 
-def test_yesterday_recommendation_review_scores_only_the_primary_option(
+def test_yesterday_composite_review_keeps_only_the_best_market_per_match(
         monkeypatch, tmp_path):
     report = pd.DataFrame([{
         '赛事编号': '周四001', '比赛时间': '2026-08-27 20:00',
@@ -386,14 +386,17 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
         sporttery_window, 'load_yesterday_hit_report',
         lambda: (details, {'date': '2026-08-27'}),
     )
+    monkeypatch.setattr(sporttery_window, 'load_over_under_profile', lambda: {
+        'directions': [{
+            'pick': '大于2.5球', 'enabled': True, 'threshold': 0.60,
+            'audit_samples': 20, 'audit_accuracy': 0.85,
+        }],
+    })
+    monkeypatch.setattr(sporttery_window, '_handicap_structure_audits', lambda: {})
     result, review_date = sporttery_window.build_yesterday_recommendation_review()
     assert review_date == '2026-08-27'
     statuses = dict(zip(result['推荐玩法'], result['命中状态']))
-    assert statuses == {
-        '胜负': '✓ 命中', '胜平负·平局': '✕ 未中',
-        '让球': '✕ 未中', '大小球': '✓ 命中',
-        '半全场': '✓ 命中', '比分': '✓ 命中',
-    }
+    assert statuses == {'大小球': '✓ 命中'}
 
 
 def test_export_view_includes_opening_market_information():
@@ -501,3 +504,48 @@ def test_priority_summary_only_lists_markets_that_pass_the_gate(monkeypatch):
     assert sporttery_window._priority_summary(predictions) == (
         '今日重点 胜负1·大小球1·比分1'
     )
+
+
+def test_composite_recommendations_rank_markets_by_conservative_audit(monkeypatch):
+    monkeypatch.setattr(sporttery_window, 'load_over_under_profile', lambda: {
+        'directions': [{
+            'pick': '大于2.5球', 'enabled': True, 'threshold': 0.60,
+            'audit_samples': 20, 'audit_accuracy': 0.85,
+        }],
+    })
+    monkeypatch.setattr(sporttery_window, '_handicap_structure_audits', lambda: {})
+    predictions = pd.DataFrame([
+        {
+            '赛事编号': '周五001', '比赛时间': '2026-08-29 01:00',
+            '联赛': 'A', '主队': '甲', '客队': '乙', '盘口门控': '盘口稳定',
+            '建议状态': '精选主推', '胜平负首选': '胜', '胜平负首选概率': .72,
+            '同阈值历史命中率': .75, '筛选回测样本数': 100,
+            '大小球首选': '大于2.5球', '大小球首选概率': .78,
+        },
+        {
+            '赛事编号': '周五002', '比赛时间': '2026-08-29 02:00',
+            '联赛': 'B', '主队': '丙', '客队': '丁', '盘口门控': '模型与盘口同向胜',
+            '建议状态': '高置信主推', '胜平负首选': '胜', '胜平负首选概率': .68,
+            '同阈值历史命中率': .72, '筛选回测样本数': 80,
+            '大小球首选': '小于2.5球', '大小球首选概率': .70,
+        },
+        {
+            '赛事编号': '周五003', '比赛时间': '2026-08-29 03:00',
+            '联赛': 'C', '主队': '戊', '客队': '己', '盘口门控': '盘口稳定',
+            '建议状态': '跳过', '半全场首选': '胜胜', '半全场首选概率': .80,
+        },
+    ])
+
+    result = sporttery_window.build_composite_recommendations(
+        predictions, future_only=False, maximum_per_day=2,
+    )
+
+    assert len(result) == 2
+    assert result['赛事编号'].tolist() == ['周五001', '周五002']
+    assert result['推荐玩法'].tolist() == ['大小球', '胜平负']
+    assert '半全场' not in result['推荐玩法'].tolist()
+
+
+def test_wilson_bound_penalizes_tiny_perfect_samples():
+    assert sporttery_window._wilson_lower_bound(2, 2) < 0.60
+    assert sporttery_window._wilson_lower_bound(85, 100) > 0.75
