@@ -419,6 +419,51 @@ class ExcelTable(QTableWidget):
         self._find_dialog = None
         self._initialize_table(df=df, readonly=readonly)
 
+    def update_dataframe(self, df: pd.DataFrame) -> None:
+        """Replace cell data while preserving this table widget and widths."""
+        sorting = self.isSortingEnabled()
+        sort_column = self.horizontalHeader().sortIndicatorSection()
+        sort_order = self.horizontalHeader().sortIndicatorOrder()
+        self.setSortingEnabled(False)
+        self.setUpdatesEnabled(False)
+        self.clearContents()
+        self.setRowCount(df.shape[0])
+        self.setColumnCount(df.shape[1])
+        self.rows = df.shape[0]
+        self.columns = df.columns.tolist()
+        self._missing_rows = df.index[df.isna().any(axis=1)].tolist()
+        self._missing_rows_set = set(self._missing_rows)
+        self._hidden_rows_list = []
+        self.setHorizontalHeaderLabels([column_zh(column) for column in self.columns])
+
+        ticket_ranks = {}
+        if '赛事编号' in df.columns:
+            from src.services.daily_sporttery import _sort_by_match_number
+            ranked = df.reset_index(drop=True).assign(_原始行=range(len(df)))
+            ranked = _sort_by_match_number(ranked)
+            ticket_ranks = {
+                int(original): rank
+                for rank, original in enumerate(ranked['_原始行'].tolist())
+            }
+        for row in range(df.shape[0]):
+            for column in range(df.shape[1]):
+                value = df.iat[row, column]
+                displayed = (
+                    '' if pd.isna(value)
+                    else cell_zh(self.columns[column], str(value))
+                )
+                if self.columns[column] == '赛事编号':
+                    item = _TicketSortItem(displayed, ticket_ranks.get(row, row))
+                else:
+                    item = QTableWidgetItem(displayed)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.setItem(row, column, item)
+        self.setUpdatesEnabled(True)
+        self.setSortingEnabled(sorting)
+        if sorting and 0 <= sort_column < self.columnCount():
+            self.sortItems(sort_column, sort_order)
+        self.viewport().update()
+
     def _initialize_table(self, df: pd.DataFrame, readonly: bool):
         """ Initializes and customizes table widget. """
 
@@ -488,6 +533,9 @@ class ExcelTable(QTableWidget):
         if self._supports_sorting:
             self.setSortingEnabled(True)
             hh.setSortIndicatorShown(True)
+            if self.columnCount():
+                hh.setSortIndicator(0, Qt.SortOrder.AscendingOrder)
+                self.sortItems(0, Qt.SortOrder.AscendingOrder)
 
         # Adding Shortcuts + Context Menu.
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

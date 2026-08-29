@@ -1,4 +1,4 @@
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QEvent, QObject
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QApplication,
@@ -748,17 +748,26 @@ def translate_widget(widget: QWidget) -> None:
             menu.setTitle(translated)
 
 
-def install_live_translation(app: QApplication) -> QTimer:
-    timer = QTimer(app)
+class _TranslateWindowOnShow(QObject):
+    """Translate each top-level window once when Qt first shows it."""
 
-    def translate_all() -> None:
-        for widget in app.allWidgets():
-            translate_widget(widget)
+    def eventFilter(self, watched, event):
+        if (
+                event.type() == QEvent.Type.Show
+                and isinstance(watched, QWidget)
+                and watched.isWindow()
+                and not watched.property('_prophitbet_translated')
+        ):
+            translate_widget(watched)
+            watched.setProperty('_prophitbet_translated', True)
+        return False
 
-    timer.timeout.connect(translate_all)
-    # Newly opened dialogs do not need four full widget-tree scans per second.
-    # A one-second interval keeps translations effectively immediate while
-    # reducing idle CPU use on WSLg.
-    timer.start(1000)
-    QTimer.singleShot(0, translate_all)
-    return timer
+
+def install_live_translation(app: QApplication) -> QObject:
+    translator = _TranslateWindowOnShow(app)
+    app.installEventFilter(translator)
+    # The main window is normally visible before this hook is installed.
+    for widget in app.topLevelWidgets():
+        translate_widget(widget)
+        widget.setProperty('_prophitbet_translated', True)
+    return translator

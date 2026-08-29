@@ -38,10 +38,16 @@ from src.services.team_names import resolve_model_team
 class DailySportteryTests(unittest.TestCase):
 
     def setUp(self):
-        sporttery_module._selling_api_suspended_until = 0.0
+        self._state_directory = TemporaryDirectory()
+        self._state_path_patch = patch.object(
+            sporttery_module, '_SELLING_API_STATE_PATH',
+            Path(self._state_directory.name) / 'selling-state.json',
+        )
+        self._state_path_patch.start()
 
     def tearDown(self):
-        sporttery_module._selling_api_suspended_until = 0.0
+        self._state_path_patch.stop()
+        self._state_directory.cleanup()
 
     def test_official_feeds_are_unioned_instead_of_using_calculator_subset(self):
         client = SportteryMobileClient(retries=1)
@@ -59,7 +65,6 @@ class DailySportteryTests(unittest.TestCase):
     def test_denied_full_feed_is_temporarily_skipped_but_calculator_stays_live(self):
         client = SportteryMobileClient(retries=1)
         calculator = [{'matchId': 7, 'had': {'h': '1.9'}}]
-        sporttery_module._selling_api_suspended_until = 0.0
         with patch.object(
                 client, '_matches_from',
                 side_effect=[RuntimeError('403 Forbidden'), calculator, calculator],
@@ -70,7 +75,7 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(second, calculator)
         self.assertEqual(fetch.call_count, 3)
 
-    def test_smaller_refresh_does_not_erase_matches_seen_earlier_today(self):
+    def test_refresh_keeps_fixture_but_never_reuses_stale_market(self):
         client = SportteryMobileClient(retries=1)
         with TemporaryDirectory() as directory:
             output = Path(directory) / 'today.json'
@@ -84,6 +89,11 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual({row['matchId'] for row in matches}, {1, 2})
         second = next(row for row in matches if row['matchId'] == 2)
         self.assertEqual(second['had']['h'], '2.0')
+        self.assertTrue(second['marketFresh'])
+        first = next(row for row in matches if row['matchId'] == 1)
+        self.assertFalse(first['marketFresh'])
+        self.assertNotIn('had', first)
+        self.assertNotIn('fixedBonus', first)
 
     def test_draw_calibration_uses_league_prior_without_breaking_sum(self):
         history = pd.DataFrame({'Result': ['D'] * 30 + ['H'] * 40 + ['A'] * 30})

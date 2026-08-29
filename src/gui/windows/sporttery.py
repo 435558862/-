@@ -543,10 +543,6 @@ class MarketTrendDialog(QDialog):
             f'初盘基准：{rows[0]["label"] if rows else "--"}'
         )
         self._chart.set_rows(rows)
-        while self._table_layout.count():
-            item = self._table_layout.takeAt(0)
-            if item.widget() is not None:
-                item.widget().deleteLater()
         frame = pd.DataFrame([{
             '记录时间': row['label'],
             '胜赔': f'{row["had_H"]:.2f}',
@@ -561,10 +557,14 @@ class MarketTrendDialog(QDialog):
             '大球': '' if row['over'] is None else f'{row["over"]:.1%}',
             '小球': '' if row['under'] is None else f'{row["under"]:.1%}',
         } for row in rows])
-        self._table = ExcelTable(
-            parent=self, df=frame, readonly=True, supports_sorting=False,
-            supports_query_search=False,
-        )
+        if self._table is None:
+            self._table = ExcelTable(
+                parent=self, df=frame, readonly=True, supports_sorting=False,
+                supports_query_search=False,
+            )
+            self._table_layout.addWidget(self._table)
+        else:
+            self._table.update_dataframe(frame)
         header = self._table.horizontalHeader()
         header.setStretchLastSection(False)
         widths = (190, 55, 55, 55, 65, 65, 65, 62, 76, 76, 76, 72, 72)
@@ -572,7 +572,6 @@ class MarketTrendDialog(QDialog):
             if column_index < self._table.columnCount():
                 self._table.setColumnWidth(column_index, width)
         self._table.verticalHeader().setDefaultSectionSize(26)
-        self._table_layout.addWidget(self._table)
 
 
 def _safe_filename(value: str) -> str:
@@ -1055,6 +1054,7 @@ class SportteryPredictionsDialog(QDialog):
         self._yesterday_dialog = None
         self._market_dialog = None
         self._daily_recommendations_dialog = None
+        self._table = None
         self._odds_pulse_running = False
         self._odds_pulse_queue = Queue()
         self._trained_leagues = trained_dedicated_leagues()
@@ -1678,19 +1678,20 @@ class SportteryPredictionsDialog(QDialog):
     def _render(self):
         visible = self._visible_predictions()
         active_count = len(_upcoming_predictions(self._predictions))
-        while self._table_layout.count():
-            item = self._table_layout.takeAt(0)
-            if item.widget() is not None:
-                item.widget().deleteLater()
         display_frame = self._display_predictions(visible)
         priorities = _daily_priority_aspects(visible).reset_index(drop=True)
         marked_cells = _mark_priority_cells(display_frame, priorities)
-        table = ExcelTable(
-            parent=self,
-            df=display_frame,
-            readonly=True,
-            supports_sorting=True,
-        )
+        if self._table is None:
+            self._table = ExcelTable(
+                parent=self,
+                df=display_frame,
+                readonly=True,
+                supports_sorting=True,
+            )
+            self._table_layout.addWidget(self._table)
+        else:
+            self._table.update_dataframe(display_frame)
+        table = self._table
         for row_index, columns in marked_cells.items():
             for column in columns:
                 column_index = display_frame.columns.get_loc(column)
@@ -1723,7 +1724,6 @@ class SportteryPredictionsDialog(QDialog):
         table.horizontalHeader().setFixedHeight(26)
         table.verticalHeader().setDefaultSectionSize(25)
         table.verticalHeader().setMinimumSectionSize(23)
-        self._table_layout.addWidget(table)
         priority_text = _priority_summary(_upcoming_predictions(self._predictions))
         if visible.empty and not self._predictions.empty:
             self._summary.setText(
@@ -1778,8 +1778,11 @@ class SportteryPredictionsDialog(QDialog):
             parent=self,
         )
         result = runner.run()
-        if runner.error_message is not None:
-            QMessageBox.critical(self, '补同步失败', runner.error_message)
+        if runner.error_message is not None or result is None:
+            QMessageBox.critical(
+                self, '补同步失败',
+                runner.error_message or '复盘任务没有返回结果，请稍后重试。',
+            )
             return
         self._render()
         accuracy = result.get('result_accuracy')

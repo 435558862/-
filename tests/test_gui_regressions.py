@@ -110,6 +110,25 @@ def test_ticket_header_sort_uses_card_date_and_natural_sequence():
     ]
 
 
+def test_excel_table_reuses_widget_when_dataframe_changes():
+    _app()
+    widget = ExcelTable(
+        None, pd.DataFrame([{'赛事编号': '周五001', '结果': '胜'}]),
+        supports_query_search=False,
+    )
+    identity = id(widget)
+
+    widget.update_dataframe(pd.DataFrame([
+        {'赛事编号': '周六002', '结果': '平'},
+        {'赛事编号': '周六003', '结果': '负'},
+    ]))
+
+    assert id(widget) == identity
+    assert widget.rowCount() == 2
+    assert widget.columnCount() == 2
+    assert widget.item(0, 1).text() == '平'
+
+
 def test_fixture_worker_maps_official_sporttery_rows(monkeypatch):
     class FakeClient:
         def __init__(self, *args, **kwargs):

@@ -1889,23 +1889,10 @@ def run_daily_sporttery(
                     ) is not None,
                 )
         except Exception as scraper_error:
-            # An outage must not blank an already usable screen.  Rebuild the
-            # predictions from today's last successful official snapshot.
-            try:
-                cached = json.loads(raw_path.read_text(encoding='utf-8'))
-                matches = list(cached.get('matches') or [])
-            except (OSError, ValueError, TypeError) as cache_error:
-                raise RuntimeError(
-                    '官方接口和浏览器备用抓取均不可用，且没有可读取的今日缓存。'
-                ) from cache_error
-            if not matches:
-                raise RuntimeError(
-                    '官方接口和浏览器备用抓取均不可用，今日缓存中没有比赛。'
-                ) from scraper_error
-            logging.warning(
-                '官方数据暂时不可用，使用今日最近缓存（%s 场）：API=%s；浏览器=%s',
-                len(matches), api_error, scraper_error,
-            )
+            raise RuntimeError(
+                '官方实时接口和浏览器实时抓取均不可用；为避免使用旧盘口，'
+                '本次同步已停止，请稍后重试。'
+            ) from scraper_error
 
     # Append odds snapshots so 盘口分析 can track open-to-kickoff drift.
     record_odds_snapshots(matches)

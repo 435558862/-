@@ -3,6 +3,7 @@
 import json
 import logging
 import shutil
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,10 +35,31 @@ RESULT_API = (
     'getUniformMatchResultV1.qry'
 )
 
-# Avoid retrying a known-denied legacy endpoint on every background pulse.
-# The calculator feed remains active and this endpoint is retried after an hour.
-_selling_api_suspended_until = 0.0
+# This file stores only endpoint health, never match or odds data.
+_SELLING_API_STATE_PATH = Path('storage/jingcai/selling_api_state.json')
 _SELLING_API_COOLDOWN_SECONDS = 60 * 60
+_official_request_lock = threading.Lock()
+_endpoint_state_lock = threading.Lock()
+
+
+def _selling_api_suspended() -> bool:
+    with _endpoint_state_lock:
+        try:
+            state = json.loads(_SELLING_API_STATE_PATH.read_text(encoding='utf-8'))
+            return float(state.get('retry_after') or 0) > time.time()
+        except (OSError, ValueError, TypeError):
+            return False
+
+
+def _suspend_selling_api() -> None:
+    with _endpoint_state_lock:
+        _SELLING_API_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        temporary = _SELLING_API_STATE_PATH.with_suffix('.tmp')
+        temporary.write_text(json.dumps({
+            'retry_after': time.time() + _SELLING_API_COOLDOWN_SECONDS,
+            'reason': 'HTTP 403',
+        }, ensure_ascii=False), encoding='utf-8')
+        temporary.replace(_SELLING_API_STATE_PATH)
 
 
 class SportteryMobileClient:
@@ -61,7 +83,8 @@ class SportteryMobileClient:
         last_error = None
         for attempt in range(self.retries):
             try:
-                response = self.session.get(url, timeout=self.timeout)
+                with _official_request_lock:
+                    response = self.session.get(url, timeout=self.timeout)
                 response.raise_for_status()
                 data = response.json()
                 if str(data.get('errorCode')) != '0':
@@ -100,10 +123,9 @@ class SportteryMobileClient:
         The calculator endpoint can contain only the subset offered in one or
         more pools.  It must therefore never be treated as the complete card.
         """
-        global _selling_api_suspended_until
         feeds, errors = [], []
         sources = []
-        if time.monotonic() >= _selling_api_suspended_until:
+        if not _selling_api_suspended():
             sources.append((SELLING_API, None, '全量在售'))
         sources.append((CALCULATOR_API, 'matchInfoList', '计算器赔率'))
         for url, value_key, label in sources:
@@ -112,9 +134,7 @@ class SportteryMobileClient:
             except RuntimeError as error:
                 errors.append(f'{label}={error}')
                 if url == SELLING_API and '403' in str(error):
-                    _selling_api_suspended_until = (
-                        time.monotonic() + _SELLING_API_COOLDOWN_SECONDS
-                    )
+                    _suspend_selling_api()
         if not feeds:
             raise RuntimeError(f'竞彩网官方接口读取失败：{"; ".join(errors)}')
         if errors:
@@ -126,10 +146,11 @@ class SportteryMobileClient:
         last_error = None
         for attempt in range(self.retries):
             try:
-                response = self.session.get(
-                    BONUS_API.format(match_id=str(match_id)),
-                    timeout=self.timeout,
-                )
+                with _official_request_lock:
+                    response = self.session.get(
+                        BONUS_API.format(match_id=str(match_id)),
+                        timeout=self.timeout,
+                    )
                 response.raise_for_status()
                 data = response.json()
                 if str(data.get('errorCode')) != '0':
@@ -146,16 +167,37 @@ class SportteryMobileClient:
     def snapshot(self, output: Path) -> List[dict]:
         matches = self.selling_matches()
         output.parent.mkdir(parents=True, exist_ok=True)
-        # A feed may shrink after a sales cutoff or during an upstream partial
-        # response.  Preserve every match already observed on today's card.
+        # Keep every fixture already seen on today's lottery card, but never
+        # present an old price as a fresh market quote.  Missing fixtures retain
+        # identity/schedule metadata only; all price-bearing fields are removed.
         if output.exists():
             try:
                 cached = json.loads(output.read_text(encoding='utf-8'))
-                matches = self._merge_match_feeds(
-                    list(cached.get('matches') or []), matches,
-                )
+                fresh_ids = {
+                    str(match.get('matchId') or '') for match in matches
+                    if match.get('matchId') is not None
+                }
+                stale_market_keys = {
+                    'had', 'hhad', 'ttg', 'crs', 'hafu', 'fixedBonus',
+                }
+                preserved = []
+                for cached_match in cached.get('matches') or []:
+                    match_id = str(cached_match.get('matchId') or '')
+                    if match_id and match_id in fresh_ids:
+                        continue
+                    item = {
+                        key: value for key, value in dict(cached_match).items()
+                        if key not in stale_market_keys
+                    }
+                    item['marketFresh'] = False
+                    preserved.append(item)
+                matches = [
+                    {**dict(match), 'marketFresh': True} for match in matches
+                ] + preserved
             except (OSError, ValueError, TypeError):
-                logging.warning('无法合并今日竞彩原始快照：%s', output)
+                logging.warning('无法读取今日比赛名单存档：%s', output)
+        else:
+            matches = [{**dict(match), 'marketFresh': True} for match in matches]
         output.write_text(json.dumps({
             'fetchedAt': datetime.now(timezone.utc).isoformat(),
             'source': SPORTTERY_MOBILE_PAGE,
@@ -195,9 +237,10 @@ class SportteryResultClient:
             last_error = None
             for attempt in range(self.retries):
                 try:
-                    response = self.session.get(
-                        RESULT_API, params=params, timeout=self.timeout,
-                    )
+                    with _official_request_lock:
+                        response = self.session.get(
+                            RESULT_API, params=params, timeout=self.timeout,
+                        )
                     response.raise_for_status()
                     data = response.json()
                     if str(data.get('errorCode')) != '0':
