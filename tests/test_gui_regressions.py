@@ -501,3 +501,22 @@ def test_priority_summary_only_lists_markets_that_pass_the_gate(monkeypatch):
     assert sporttery_window._priority_summary(predictions) == (
         '今日重点 胜负1·大小球1·比分1'
     )
+
+
+def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypatch):
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日018', '比赛时间': '2026-08-31 01:00',
+        '联赛': '荷甲', '主队': '甲', '客队': '乙',
+        '大小球首选': '大于2.5球', '大小球首选概率': .68,
+    }])
+    monkeypatch.setattr(
+        sporttery_window, '_daily_priority_aspects',
+        lambda frame: pd.Series([['大小球']]),
+    )
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert result.loc[0, '比赛日期'] == '2026-08-30'
+    assert result.loc[0, '赛事编号'] == '周日018'

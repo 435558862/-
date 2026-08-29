@@ -29,7 +29,7 @@ from src.services.odds_tracking import (
     format_market_flow, read_odds_series, record_odds_snapshots,
     record_official_history,
 )
-from src.services.yesterday_review import load_yesterday_hit_report
+from src.services.yesterday_review import _ticket_card_date, load_yesterday_hit_report
 
 
 REPORT_ROOT = Path('storage/jingcai/reports')
@@ -669,10 +669,19 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
     aspects = pd.Series([[] for _ in range(len(predictions))], index=predictions.index)
     if predictions.empty:
         return aspects
-    days = predictions.get(
+    match_times = predictions.get(
         '比赛时间', pd.Series('', index=predictions.index),
-    ).fillna('').astype(str).str.slice(0, 10)
-    days = days.where(days.str.fullmatch(r'\d{4}-\d{2}-\d{2}'), '全部')
+    )
+    match_numbers = predictions.get(
+        '赛事编号', pd.Series('', index=predictions.index),
+    )
+    days = pd.Series([
+        card_day.isoformat() if card_day is not None else '全部'
+        for card_day in (
+            _ticket_card_date(match_time, match_number)
+            for match_time, match_number in zip(match_times, match_numbers)
+        )
+    ], index=predictions.index)
     gate = predictions.get(
         '盘口门控', pd.Series('', index=predictions.index),
     ).fillna('').astype(str)
@@ -815,6 +824,7 @@ def build_daily_recommendations(
     rows = []
     for index, labels in priorities.items():
         row = active.loc[index]
+        card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
         for market in labels:
             choice_column, probability_column = specs[market]
             choice = '平' if choice_column == '__draw__' else str(row.get(choice_column) or '').strip()
@@ -824,7 +834,10 @@ def build_daily_recommendations(
                 choice = f'{line_text}球 {choice}'.strip()
             probability = pd.to_numeric(row.get(probability_column), errors='coerce')
             rows.append({
-                '比赛日期': str(row.get('比赛时间') or '')[:10],
+                '比赛日期': (
+                    card_day.isoformat() if card_day is not None
+                    else str(row.get('比赛时间') or '')[:10]
+                ),
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
