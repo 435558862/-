@@ -30,6 +30,10 @@ METRIC_LABELS = {
     'score': '比分5选',
 }
 
+_TICKET_WEEKDAYS = {
+    '一': 0, '二': 1, '三': 2, '四': 3, '五': 4, '六': 5, '日': 6, '天': 6,
+}
+
 
 def _normalize_match_id(value) -> str:
     text = str(value or '').strip()
@@ -92,6 +96,19 @@ def _safe_read_csv(path: Path) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def _ticket_card_date(match_date, match_number) -> Optional[date]:
+    """Map an actual kickoff timestamp back to its printed lottery card day."""
+    kickoff = pd.to_datetime(match_date, errors='coerce')
+    if pd.isna(kickoff):
+        return None
+    match = re.search(r'(?:星期|周)([一二三四五六日天])', _text(match_number))
+    if match is None:
+        return kickoff.date()
+    ticket_weekday = _TICKET_WEEKDAYS[match.group(1)]
+    days_after_ticket = (kickoff.weekday() - ticket_weekday) % 7
+    return kickoff.date() - timedelta(days=days_after_ticket)
+
+
 def _prediction_rows(settled: pd.DataFrame, report_root: Path) -> dict[str, dict]:
     """Load only the source reports referenced by the requested settled rows."""
     paths: list[Path] = []
@@ -127,6 +144,9 @@ def _report_match_ids(report_root: Path, prediction_day: date) -> set[str]:
     report = _safe_read_csv(report_root / f'{prediction_day.isoformat()}-竞彩预测.csv')
     if report.empty or '比赛ID' not in report.columns:
         return set()
+    numbers = report.get('赛事编号', pd.Series('', index=report.index)).fillna('').astype(str)
+    expected = '一二三四五六日'[prediction_day.weekday()]
+    report = report.loc[numbers.str.match(rf'^(?:星期|周){expected}')]
     return {
         match_id for match_id in report['比赛ID'].map(_normalize_match_id)
         if match_id
@@ -550,11 +570,17 @@ def load_yesterday_hit_report(
     if settled.empty or 'match_date' not in settled.columns:
         return pd.DataFrame(columns=DETAIL_COLUMNS), empty_summary
 
-    # Parse row by row: pandas' strict vector parser can otherwise reject a
-    # valid timestamp when the same column mixes YYYY-MM-DD and date-time text.
-    match_dates = settled['match_date'].map(
-        lambda value: pd.to_datetime(value, errors='coerce'),
-    ).map(lambda value: value.date() if pd.notna(value) else None)
+    # Settlement uses actual kickoff dates, while Sporttery assigns matches
+    # after midnight to the preceding printed weekday.  Review by that ticket
+    # day so Friday's 01:00 fixtures stay with Friday and Thursday's fixtures
+    # cannot leak into Friday merely because both kicked off on a Friday date.
+    match_numbers = settled.get(
+        'match_number', pd.Series('', index=settled.index),
+    )
+    card_dates = pd.Series([
+        _ticket_card_date(match_date, match_number)
+        for match_date, match_number in zip(settled['match_date'], match_numbers)
+    ], index=settled.index)
     display_day = target_day
     is_fallback = False
     # A Sporttery daily card often contains fixtures kicking off after midnight.
@@ -565,18 +591,18 @@ def load_yesterday_hit_report(
         _normalize_match_id,
     )
     selected = settled.loc[
-        match_dates.eq(target_day) | settled_ids.isin(target_report_ids)
+        card_dates.eq(target_day) | settled_ids.isin(target_report_ids)
     ].copy()
     if selected.empty:
         available = sorted({
-            value for value in match_dates
+            value for value in card_dates
             if value is not None and value < today
         })
         if not available:
             return pd.DataFrame(columns=DETAIL_COLUMNS), empty_summary
         display_day = available[-1]
         is_fallback = True
-        selected = settled.loc[match_dates.eq(display_day)].copy()
+        selected = settled.loc[card_dates.eq(display_day)].copy()
     settled = selected
 
     if 'match_id' not in settled.columns:
@@ -612,13 +638,14 @@ def load_yesterday_hit_report(
     ).drop(columns='_kickoff').reset_index(drop=True)
 
     metrics = _metric_summary(internal_rows)
+    ticket_label = f'周{"一二三四五六日"[display_day.weekday()]}票'
     fallback_prefix = (
         f'{target_day.isoformat()}赛果尚未补齐｜显示最近已结算日 '
         if is_fallback else ''
     )
     headline = (
         fallback_prefix
-        + f'{display_day.isoformat()} 已结算 {len(detail_frame)} 场｜'
+        + f'{display_day.isoformat()} {ticket_label} 已结算 {len(detail_frame)} 场｜'
         + '｜'.join(_format_metric(metrics[key]) for key in METRIC_LABELS)
     )
     summary = {

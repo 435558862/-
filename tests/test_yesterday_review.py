@@ -49,7 +49,7 @@ def test_yesterday_details_backfill_old_settlement_from_source_report(tmp_path):
         },
         {
             'prediction_date': '2026-08-22', 'match_id': 99,
-            'match_date': '2026-08-23', 'home_goals': 1, 'away_goals': 1,
+            'match_date': '2026-08-22', 'home_goals': 1, 'away_goals': 1,
         },
     ]).to_csv(settled_path, index=False)
     pd.DataFrame([
@@ -70,7 +70,7 @@ def test_yesterday_details_backfill_old_settlement_from_source_report(tmp_path):
     ]).to_csv(reports / '2026-08-23-竞彩预测.csv', index=False)
 
     details, summary = load_yesterday_hit_report(
-        today=date(2026, 8, 25),
+        today=date(2026, 8, 24),
         settled_path=settled_path,
         report_root=reports,
     )
@@ -139,6 +139,31 @@ def test_yesterday_includes_after_midnight_fixtures_from_daily_card(tmp_path):
     assert details['赛事编号'].tolist() == ['周四001']
     assert summary['date'] == '2026-08-27'
     assert summary['is_fallback'] is False
+
+
+def test_yesterday_excludes_previous_card_that_kicked_off_on_same_calendar_day(tmp_path):
+    settled_path = tmp_path / 'settled.csv'
+    pd.DataFrame([
+        {
+            'match_id': 1, 'match_date': '2026-08-28 01:00',
+            'match_number': '周四001', 'home_goals': 1, 'away_goals': 0,
+            'predicted_result': '胜',
+        },
+        {
+            'match_id': 2, 'match_date': '2026-08-29 01:00',
+            'match_number': '周五001', 'home_goals': 2, 'away_goals': 0,
+            'predicted_result': '胜',
+        },
+    ]).to_csv(settled_path, index=False)
+
+    details, summary = load_yesterday_hit_report(
+        today=date(2026, 8, 29), settled_path=settled_path,
+        report_root=tmp_path / 'reports',
+    )
+
+    assert details['赛事编号'].tolist() == ['周五001']
+    assert summary['date'] == '2026-08-28'
+    assert '2026-08-28 周五票 已结算 1 场' in summary['headline']
 
 
 def test_missing_markets_do_not_count_as_losses(tmp_path):
