@@ -1157,14 +1157,18 @@ def _historical_goal_strengths(
     league_away = float(league_recent['AG'].mean())
     if not np.isfinite(league_home + league_away) or min(league_home, league_away) <= 0:
         return None
-    home_rows = frame.loc[frame['Home'].astype(str).eq(str(home))].tail(12)
-    away_rows = frame.loc[frame['Away'].astype(str).eq(str(away))].tail(12)
+    home_rows = frame.loc[frame['Home'].astype(str).eq(str(home))].tail(18)
+    away_rows = frame.loc[frame['Away'].astype(str).eq(str(away))].tail(18)
     if len(home_rows) < 3 or len(away_rows) < 3:
         return None
 
-    def shrink(values: pd.Series, prior: float, strength: float = 6.0) -> float:
+    def shrink(values: pd.Series, prior: float, strength: float = 7.0) -> float:
         sample = pd.to_numeric(values, errors='coerce').dropna()
-        return float((sample.sum() + strength * prior) / (len(sample) + strength))
+        # Recent matches carry more information, but the league prior prevents
+        # a short hot/cold streak from producing implausible scoring rates.
+        weights = np.power(0.5, np.arange(len(sample) - 1, -1, -1) / 6.0)
+        weighted_sum = float(np.dot(sample.to_numpy(dtype=float), weights))
+        return float((weighted_sum + strength * prior) / (weights.sum() + strength))
 
     home_scored = shrink(home_rows['HG'], league_home)
     home_conceded = shrink(home_rows['AG'], league_away)
@@ -1177,6 +1181,72 @@ def _historical_goal_strengths(
         float(np.clip(away_lambda, 0.20, 4.20)),
         len(home_rows), len(away_rows),
     )
+
+
+def _league_dixon_coles_rho(
+    history: Optional[pd.DataFrame],
+    match_date: Optional[date],
+) -> float:
+    """Estimate a conservative league-level low-score dependency.
+
+    It is intentionally fitted on historical matches only, never to the
+    current fixture or its odds.  Shrinkage towards zero avoids unstable rho
+    values in small datasets.
+    """
+    if history is None or not {'Date', 'HG', 'AG'}.issubset(history.columns):
+        return 0.0
+    frame = history[['Date', 'HG', 'AG']].copy()
+    frame['Date'] = pd.to_datetime(frame['Date'], errors='coerce')
+    frame['HG'] = pd.to_numeric(frame['HG'], errors='coerce')
+    frame['AG'] = pd.to_numeric(frame['AG'], errors='coerce')
+    frame = frame.dropna().sort_values('Date')
+    if match_date is not None:
+        frame = frame.loc[frame['Date'].dt.date < match_date]
+    frame = frame.tail(1200)
+    if len(frame) < 80:
+        return 0.0
+    home_rate = float(frame['HG'].mean())
+    away_rate = float(frame['AG'].mean())
+    low = frame.loc[frame['HG'].le(1) & frame['AG'].le(1)]
+    counts = low.groupby(['HG', 'AG']).size().to_dict()
+    best_rho, best_score = 0.0, -float('inf')
+    for rho in np.linspace(-0.15, 0.15, 121):
+        tau = {
+            (0.0, 0.0): 1.0 - home_rate * away_rate * rho,
+            (0.0, 1.0): 1.0 + home_rate * rho,
+            (1.0, 0.0): 1.0 + away_rate * rho,
+            (1.0, 1.0): 1.0 - rho,
+        }
+        if min(tau.values()) <= 0:
+            continue
+        score = sum(counts.get(cell, 0) * np.log(value) for cell, value in tau.items())
+        # Equivalent to about 160 neutral observations: enough to stop a
+        # noisy league window from pinning rho at the search boundary.
+        score -= 80.0 * rho * rho
+        if score > best_score:
+            best_rho, best_score = float(rho), float(score)
+    return best_rho
+
+
+def _dixon_coles_sample_weights(
+    homes: np.ndarray,
+    aways: np.ndarray,
+    home_rates: np.ndarray,
+    away_rates: np.ndarray,
+    rho: float,
+) -> np.ndarray:
+    weights = np.ones(len(homes), dtype=np.float64)
+    if abs(rho) < 1e-12:
+        return weights
+    masks_and_values = (
+        ((homes == 0) & (aways == 0), 1.0 - home_rates * away_rates * rho),
+        ((homes == 0) & (aways == 1), 1.0 + home_rates * rho),
+        ((homes == 1) & (aways == 0), 1.0 + away_rates * rho),
+        ((homes == 1) & (aways == 1), np.full(len(homes), 1.0 - rho)),
+    )
+    for mask, values in masks_and_values:
+        weights[mask] = np.asarray(values)[mask]
+    return np.clip(weights, 0.05, 3.0)
 
 
 def _monte_carlo_summary(
@@ -1231,18 +1301,28 @@ def _monte_carlo_summary(
     homes = half_homes + rng.poisson(home_lambda * 0.55)
     aways = half_aways + rng.poisson(away_lambda * 0.55)
 
+    rho = _league_dixon_coles_rho(history, match_date)
+    sample_weights = _dixon_coles_sample_weights(
+        homes, aways, home_lambda, away_lambda, rho,
+    )
+    weight_total = float(sample_weights.sum())
+
     encoded_scores = np.minimum(homes, 6) * 7 + np.minimum(aways, 6)
-    counts = np.bincount(encoded_scores, minlength=49)
-    simulated_score_probability = counts / float(simulations)
+    counts = np.bincount(encoded_scores, weights=sample_weights, minlength=49)
+    simulated_score_probability = counts / weight_total
     top_columns = np.argsort(simulated_score_probability)[::-1][:3]
 
     result_index = np.where(homes > aways, 0, np.where(homes == aways, 1, 2))
-    result_probability = np.bincount(result_index, minlength=3) / float(simulations)
+    result_probability = (
+        np.bincount(result_index, weights=sample_weights, minlength=3)
+        / weight_total
+    )
     result_pick = int(np.argmax(result_probability))
     totals = homes + aways
     total_bands = np.array([
-        np.mean(totals <= 1), np.mean((totals >= 2) & (totals <= 3)),
-        np.mean(totals >= 4),
+        sample_weights[totals <= 1].sum() / weight_total,
+        sample_weights[(totals >= 2) & (totals <= 3)].sum() / weight_total,
+        sample_weights[totals >= 4].sum() / weight_total,
     ])
     total_labels = ('0-1球', '2-3球', '4球以上')
 
@@ -1252,8 +1332,8 @@ def _monte_carlo_summary(
     )
     half_full_index = half_result * 3 + result_index
     half_probability = np.bincount(
-        half_full_index, minlength=len(HALF_FULL_LABELS),
-    ) / float(simulations)
+        half_full_index, weights=sample_weights, minlength=len(HALF_FULL_LABELS),
+    ) / weight_total
     half_top = np.argsort(half_probability)[::-1][:2]
 
     handicap_text = ''
@@ -1263,7 +1343,8 @@ def _monte_carlo_summary(
             difference > 0, 0, np.where(difference == 0, 1, 2),
         )
         handicap_probability = (
-            np.bincount(handicap_index, minlength=3) / float(simulations)
+            np.bincount(handicap_index, weights=sample_weights, minlength=3)
+            / weight_total
         )
         handicap_pick = int(np.argmax(handicap_probability))
         handicap_text = (
@@ -1277,6 +1358,8 @@ def _monte_carlo_summary(
     )
     if prior_used:
         confidence_score = min(confidence_score, 2)
+    elif min(home_samples, away_samples) < 8:
+        confidence_score = min(confidence_score, 3)
     return {
         '模拟次数': simulations,
         '模拟Top3比分': ' / '.join(
@@ -1300,8 +1383,9 @@ def _monte_carlo_summary(
             f'{historical_prior_source or "真实比分历史先验"}（球队样本不足，低置信；'
             f'未使用赔率/正式模型/首发校正）'
             if prior_used else (
-                f'历史攻防双泊松蒙特卡洛（主场{home_samples}场/'
-                f'客场{away_samples}场，未使用赔率/正式模型/首发校正）'
+                f'历史攻防双泊松蒙特卡洛（近期加权；主场{home_samples}场/'
+                f'客场{away_samples}场；联赛DCρ={rho:+.3f}；'
+                f'未使用赔率/正式模型/首发校正）'
             )
         ),
     }

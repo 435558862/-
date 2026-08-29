@@ -338,6 +338,25 @@ class DailySportteryTests(unittest.TestCase):
         self.assertIn('历史攻防样本不足', result['模拟模型来源'])
         self.assertIn('未使用赔率/模型兜底', result['模拟模型来源'])
 
+    def test_monte_carlo_handicap_uses_official_signed_line(self):
+        rows = []
+        for index in range(18):
+            rows.extend([
+                {'Date': f'2024-{index % 12 + 1:02d}-{index % 27 + 1:02d}',
+                 'Home': 'A', 'Away': 'X', 'HG': 2, 'AG': 0},
+                {'Date': f'2024-{index % 12 + 1:02d}-{index % 27 + 1:02d}',
+                 'Home': 'Y', 'Away': 'B', 'HG': 1, 'AG': 1},
+            ])
+        history = pd.DataFrame(rows)
+        no_line = _monte_carlo_summary(
+            history, 'A', 'B', date(2026, 1, 1), 0, False, 0, 'same',
+        )
+        gives_one = _monte_carlo_summary(
+            history, 'A', 'B', date(2026, 1, 1), 0, False, -1, 'same',
+        )
+        self.assertNotEqual(no_line['模拟让球'], gives_one['模拟让球'])
+        self.assertIn('近期加权', gives_one['模拟模型来源'])
+
     def test_monte_carlo_rejects_market_fallback_rates(self):
         result = _monte_carlo_summary(
             None, 'A', 'B', date(2026, 1, 1), 0.0, False, -1, 123,
