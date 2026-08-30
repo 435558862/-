@@ -405,6 +405,11 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
         sporttery_window, 'load_yesterday_hit_report',
         lambda: (details, {'date': '2026-08-27'}),
     )
+    frozen = sporttery_window.build_daily_recommendations(report, future_only=False)
+    monkeypatch.setattr(
+        sporttery_window, '_load_daily_recommendation_snapshot',
+        lambda day: frozen if day == '2026-08-27' else frozen.iloc[0:0],
+    )
     result, review_date = sporttery_window.build_yesterday_recommendation_review()
     assert review_date == '2026-08-27'
     statuses = dict(zip(result['推荐玩法'], result['命中状态']))
@@ -436,8 +441,8 @@ def test_yesterday_recommendation_review_uses_lottery_card_date(
         lambda: (details, {'date': '2026-08-28'}),
     )
     monkeypatch.setattr(
-        sporttery_window, 'build_daily_recommendations',
-        lambda predictions, future_only=False: selected if not predictions.empty else selected.iloc[0:0],
+        sporttery_window, '_load_daily_recommendation_snapshot',
+        lambda day: selected if day == '2026-08-28' else selected.iloc[0:0],
     )
 
     result, review_date = sporttery_window.build_yesterday_recommendation_review()

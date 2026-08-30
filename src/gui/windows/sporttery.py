@@ -35,6 +35,7 @@ from src.services.yesterday_review import _ticket_card_date, load_yesterday_hit_
 REPORT_ROOT = Path('storage/jingcai/reports')
 PREDICTION_PATH = REPORT_ROOT / '最新竞彩预测.csv'
 LEARNING_STATUS_PATH = Path('storage/jingcai/learning/status.json')
+DAILY_RECOMMENDATION_ROOT = Path('storage/jingcai/daily_recommendations')
 
 
 def prediction_export_root() -> Path:
@@ -806,7 +807,7 @@ def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
     """Build one explicit recommendation row per selected match and market."""
-    columns = ['实际开赛时间', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项', '该玩法概率', '入选理由']
+    columns = ['比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项', '模型概率', '入选理由']
     if predictions.empty:
         return pd.DataFrame(columns=columns)
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
@@ -823,6 +824,7 @@ def build_daily_recommendations(
     rows = []
     for index, labels in priorities.items():
         row = active.loc[index]
+        card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
         for market in labels:
             choice_column, probability_column = specs[market]
             choice = '平' if choice_column == '__draw__' else str(row.get(choice_column) or '').strip()
@@ -831,17 +833,17 @@ def build_daily_recommendations(
                 line_text = '' if pd.isna(line) else f'{float(line):+g}'
                 choice = f'{line_text}球 {choice}'.strip()
             probability = pd.to_numeric(row.get(probability_column), errors='coerce')
-            kickoff_text = str(row.get('比赛时间') or '').strip()
             rows.append({
-                # Ticket labels such as 周六 may include matches kicking off on
-                # Sunday in China.  Display the actual kickoff, not card date.
-                '实际开赛时间': kickoff_text[:16],
+                '比赛日期': (
+                    card_day.isoformat() if card_day is not None
+                    else str(row.get('比赛时间') or '')[:10]
+                ),
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
                 '推荐玩法': '胜平负·平局' if market == '平局' else market,
                 '重点选项': f'★ {choice}',
-                '该玩法概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
+                '模型概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
                 '入选理由': (
                     '平局概率≥32%且盘口稳定'
                     if market == '平局' else f'当日{market}通过门槛且概率最高'
@@ -850,8 +852,43 @@ def build_daily_recommendations(
     return pd.DataFrame(rows, columns=columns)
 
 
+def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
+    """Persist the recommendations that were actually shown to the user."""
+    if frame.empty or '比赛日期' not in frame.columns:
+        return
+    DAILY_RECOMMENDATION_ROOT.mkdir(parents=True, exist_ok=True)
+    for day, rows in frame.groupby('比赛日期', sort=False):
+        day_text = str(day or '').strip()
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', day_text):
+            continue
+        path = DAILY_RECOMMENDATION_ROOT / f'{day_text}.csv'
+        existing = pd.DataFrame()
+        if path.exists():
+            try:
+                existing = pd.read_csv(path)
+            except (OSError, pd.errors.EmptyDataError, UnicodeError):
+                existing = pd.DataFrame()
+        combined = pd.concat([existing, rows], ignore_index=True)
+        keys = [column for column in ('赛事编号', '推荐玩法') if column in combined.columns]
+        if keys:
+            combined = combined.drop_duplicates(keys, keep='last')
+        temporary = path.with_suffix('.tmp')
+        combined.to_csv(temporary, index=False, encoding='utf-8-sig')
+        temporary.replace(path)
+
+
+def _load_daily_recommendation_snapshot(day: str) -> pd.DataFrame:
+    path = DAILY_RECOMMENDATION_ROOT / f'{day}.csv'
+    if not path.exists():
+        return pd.DataFrame()
+    try:
+        return pd.read_csv(path)
+    except (OSError, pd.errors.EmptyDataError, UnicodeError):
+        return pd.DataFrame()
+
+
 def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
-    """Rebuild yesterday's selected options and attach their settled outcome."""
+    """Score the frozen recommendations that were actually shown yesterday."""
     columns = [
         '赛事编号', '联赛', '对阵', '推荐玩法', '昨日推荐',
         '模型概率', '完场比分', '复盘结果', '命中状态',
@@ -860,41 +897,11 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     review_date = str(summary.get('date') or '')
     if not review_date or details.empty:
         return pd.DataFrame(columns=columns), review_date
-    # A 周五 ticket may kick off after midnight on Saturday.  The review date
-    # is the lottery card date, not the natural kickoff date.
-    prediction_parts = []
-    for report_path in sorted(REPORT_ROOT.glob('*-竞彩预测.csv'), reverse=True):
-        try:
-            candidate = pd.read_csv(report_path)
-        except (OSError, pd.errors.EmptyDataError):
-            continue
-        match_times = candidate.get(
-            '比赛时间', pd.Series('', index=candidate.index),
-        ).fillna('').astype(str)
-        match_numbers = candidate.get(
-            '赛事编号', pd.Series('', index=candidate.index),
-        ).fillna('').astype(str)
-        card_dates = pd.Series(
-            [
-                card_day.isoformat() if card_day is not None else ''
-                for card_day in (
-                    _ticket_card_date(match_time, match_number)
-                    for match_time, match_number in zip(match_times, match_numbers)
-                )
-            ],
-            index=candidate.index,
-        )
-        matching = candidate.loc[card_dates.eq(review_date)].copy()
-        if not matching.empty:
-            prediction_parts.append(matching)
-    if not prediction_parts:
+    recommendations = _load_daily_recommendation_snapshot(review_date)
+    if recommendations.empty:
+        # Never apply today's thresholds retroactively.  Without a frozen
+        # snapshot there is no honest way to know what the user saw yesterday.
         return pd.DataFrame(columns=columns), review_date
-    predictions = pd.concat(prediction_parts, ignore_index=True)
-    identity = '比赛ID' if '比赛ID' in predictions.columns else '赛事编号'
-    predictions = predictions.drop_duplicates(identity, keep='first')
-    recommendations = build_daily_recommendations(
-        predictions, future_only=False,
-    )
     detail_by_number = details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
     result_columns = {
         '胜负': '胜负', '胜平负·平局': '胜负',
@@ -938,7 +945,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             '对阵': recommendation['对阵'],
             '推荐玩法': market,
             '昨日推荐': recommendation['重点选项'],
-            '模型概率': recommendation['该玩法概率'],
+            '模型概率': recommendation['模型概率'],
             '完场比分': detail.get('完场比分', ''),
             '复盘结果': result,
             '命中状态': '✓ 命中' if hit else '✕ 未中',
@@ -954,7 +961,10 @@ class YesterdayRecommendationReviewDialog(QDialog):
         self.resize(1180, 560)
         root = QVBoxLayout(self)
         if frame.empty:
-            root.addWidget(QLabel('昨日推荐或官方赛果尚未补齐。'))
+            root.addWidget(QLabel(
+                '昨日重点推荐快照未保存，或官方赛果尚未补齐。\n'
+                '为保证准确，本页不会使用今天的门槛倒推昨日推荐。'
+            ))
             return
         hits = int(frame['命中状态'].eq('✓ 命中').sum())
         root.addWidget(QLabel(
@@ -995,6 +1005,7 @@ class DailyRecommendationsDialog(QDialog):
         root.addLayout(header)
         self._review_dialog = None
         frame = build_daily_recommendations(predictions)
+        _save_daily_recommendation_snapshot(frame)
         if frame.empty:
             root.addWidget(QLabel('当前没有达到推荐门槛的选项。'))
             return
@@ -1764,6 +1775,9 @@ class SportteryPredictionsDialog(QDialog):
             )
             return
         self._predictions, _ = result
+        _save_daily_recommendation_snapshot(
+            build_daily_recommendations(self._predictions),
+        )
         self._refresh_model_selector()
         self._refresh_date_selector()
         self._refresh_advice_selector()

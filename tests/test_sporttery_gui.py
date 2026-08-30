@@ -128,11 +128,12 @@ def test_yesterday_score_review_compares_only_visible_priority_pick(monkeypatch,
     }]).to_csv(tmp_path / '2026-08-29-竞彩预测.csv', index=False)
     monkeypatch.setattr(sporttery_module, 'REPORT_ROOT', tmp_path)
     monkeypatch.setattr(
-        sporttery_module, 'build_daily_recommendations',
-        lambda frame, future_only=False: pd.DataFrame([{
+        sporttery_module, '_load_daily_recommendation_snapshot',
+        lambda day: pd.DataFrame([{
+            '比赛日期': day,
             '赛事编号': '周六004', '联赛': '韩职',
             '对阵': '蔚山现代 vs 金泉尚武', '推荐玩法': '比分',
-            '重点选项': '★ 1-1', '该玩法概率': '13.4%',
+            '重点选项': '★ 1-1', '模型概率': '13.4%',
         }]),
     )
 
@@ -144,7 +145,7 @@ def test_yesterday_score_review_compares_only_visible_priority_pick(monkeypatch,
     assert review.loc[0, '命中状态'] == '✕ 未中'
 
 
-def test_daily_recommendation_shows_actual_kickoff_not_ticket_card_date(monkeypatch):
+def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatch):
     predictions = pd.DataFrame([{
         '赛事编号': '周六018', '比赛时间': '2026-08-30 23:00',
         '联赛': '挪威超级联赛', '主队': '维京', '客队': '奥勒松',
@@ -159,6 +160,23 @@ def test_daily_recommendation_shows_actual_kickoff_not_ticket_card_date(monkeypa
         predictions, future_only=False,
     )
 
-    assert result.loc[0, '实际开赛时间'] == '2026-08-30 23:00'
-    assert result.loc[0, '该玩法概率'] == '74.9%'
-    assert '比赛日期' not in result.columns
+    assert result.loc[0, '比赛日期'] == '2026-08-29'
+    assert result.loc[0, '模型概率'] == '74.9%'
+
+
+def test_daily_recommendation_snapshot_is_frozen_and_upserted(monkeypatch, tmp_path):
+    monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
+    first = pd.DataFrame([{
+        '比赛日期': '2026-08-29', '赛事编号': '周六001',
+        '推荐玩法': '胜负', '重点选项': '★ 胜', '模型概率': '60.0%',
+    }])
+    later = pd.DataFrame([{
+        '比赛日期': '2026-08-29', '赛事编号': '周六002',
+        '推荐玩法': '比分', '重点选项': '★ 1-1', '模型概率': '13.0%',
+    }])
+    sporttery_module._save_daily_recommendation_snapshot(first)
+    sporttery_module._save_daily_recommendation_snapshot(later)
+
+    frozen = sporttery_module._load_daily_recommendation_snapshot('2026-08-29')
+
+    assert frozen['赛事编号'].tolist() == ['周六001', '周六002']
