@@ -180,3 +180,29 @@ def test_daily_recommendation_snapshot_is_frozen_and_upserted(monkeypatch, tmp_p
     frozen = sporttery_module._load_daily_recommendation_snapshot('2026-08-29')
 
     assert frozen['赛事编号'].tolist() == ['周六001', '周六002']
+
+
+def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):
+    frozen = pd.DataFrame([{
+        '比赛日期': '2026-08-29', '赛事编号': '周六018',
+        '联赛': '挪威超级联赛', '对阵': '维京 vs 奥勒松',
+        '推荐玩法': '大小球', '重点选项': '★ 大于2.5球',
+        '模型概率': '74.9%',
+    }])
+    monkeypatch.setattr(
+        sporttery_module, 'load_yesterday_hit_report',
+        lambda: (pd.DataFrame([{
+            '赛事编号': '周六001', '完场比分': '1-0',
+        }]), {'date': '2026-08-29'}),
+    )
+    monkeypatch.setattr(
+        sporttery_module, '_load_daily_recommendation_snapshot',
+        lambda day: frozen,
+    )
+
+    review, review_date = sporttery_module.build_yesterday_recommendation_review()
+
+    assert review_date == '2026-08-29'
+    assert review.loc[0, '赛事编号'] == '周六018'
+    assert review.loc[0, '命中状态'] == '○ 待复盘'
+    assert '延期或未完场' in review.loc[0, '复盘结果']

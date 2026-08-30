@@ -912,6 +912,17 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     for _, recommendation in recommendations.iterrows():
         number = recommendation['赛事编号']
         if number not in detail_by_number.index:
+            rows.append({
+                '赛事编号': number,
+                '联赛': recommendation.get('联赛', ''),
+                '对阵': recommendation.get('对阵', ''),
+                '推荐玩法': recommendation.get('推荐玩法', ''),
+                '昨日推荐': recommendation.get('重点选项', ''),
+                '模型概率': recommendation.get('模型概率', ''),
+                '完场比分': '',
+                '复盘结果': '官方赛果未补齐（延期或未完场）',
+                '命中状态': '○ 待复盘',
+            })
             continue
         detail = detail_by_number.loc[number]
         market = recommendation['推荐玩法']
@@ -966,17 +977,28 @@ class YesterdayRecommendationReviewDialog(QDialog):
                 '为保证准确，本页不会使用今天的门槛倒推昨日推荐。'
             ))
             return
-        hits = int(frame['命中状态'].eq('✓ 命中').sum())
+        settled = frame['命中状态'].ne('○ 待复盘')
+        settled_count = int(settled.sum())
+        pending_count = int((~settled).sum())
+        hits = int(frame.loc[settled, '命中状态'].eq('✓ 命中').sum())
         root.addWidget(QLabel(
-            f'{review_date} 每日推荐：{hits}/{len(frame)} 命中（按具体重点选项结算）'
+            (
+                f'{review_date} 每日推荐：已结算 {hits}/{settled_count} 命中，'
+                f'待复盘 {pending_count} 项（按具体重点选项结算）'
+            ) if settled_count else (
+                f'{review_date} 每日推荐：{pending_count} 项均为延期或未完场，待复盘'
+            )
         ))
         table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
         status_column = frame.columns.get_loc('命中状态')
         for row in range(table.rowCount()):
             item = table.item(row, status_column)
             hit = item.text().startswith('✓')
-            item.setForeground(QBrush(QColor('#137333' if hit else '#c62828')))
-            item.setBackground(QBrush(QColor('#eef8f0' if hit else '#fff1f1')))
+            pending = item.text().startswith('○')
+            foreground = '#9a6700' if pending else ('#137333' if hit else '#c62828')
+            background = '#fff8df' if pending else ('#eef8f0' if hit else '#fff1f1')
+            item.setForeground(QBrush(QColor(foreground)))
+            item.setBackground(QBrush(QColor(background)))
             font = QFont(item.font())
             font.setBold(True)
             item.setFont(font)
