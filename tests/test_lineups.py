@@ -1,7 +1,15 @@
 from datetime import datetime
 
 from src.services import lineups
-from src.services.lineups import _analyse, _match_fixture, _record, SHANGHAI
+from src.services.lineups import (
+    _analyse, _match_fixture, _record, lineup_poll_interval_seconds, SHANGHAI,
+)
+
+
+def test_lineup_polling_accelerates_toward_kickoff():
+    assert lineup_poll_interval_seconds(80) == 15 * 60
+    assert lineup_poll_interval_seconds(40) == 5 * 60
+    assert lineup_poll_interval_seconds(10) == 2 * 60
 
 
 def test_fixture_match_requires_both_codes_and_close_kickoff():

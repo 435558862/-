@@ -606,7 +606,7 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
     assert result.loc[0, '重点选项'] == '★ 胜'
 
 
-def test_daily_recommendations_select_six_triple_confirmed_matches():
+def test_daily_recommendations_select_up_to_eight_triple_confirmed_matches():
     predictions = pd.DataFrame([{
         '赛事编号': f'周日{index:03d}', '比赛时间': f'2099-08-30 {10 + index:02d}:00',
         '联赛': '测试联赛', '主队': f'主{index}', '客队': f'客{index}',
@@ -625,11 +625,28 @@ def test_daily_recommendations_select_six_triple_confirmed_matches():
         predictions, future_only=False,
     )
 
-    assert len(result) == 6
-    assert result['赛事编号'].nunique() == 6
+    assert len(result) == 8
+    assert result['赛事编号'].nunique() == 8
     assert result['推荐玩法'].eq('胜平负').all()
     assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
-    assert result['盘口验证'].str.startswith('同向支持').all()
+    assert result['盘口验证'].str.contains('支持').all()
+
+
+def test_daily_recommendations_reject_high_lineup_warning():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日001', '比赛时间': '2099-08-30 18:00',
+        '联赛': '测试联赛', '主队': '主队', '客队': '客队',
+        '盘口门控': '稳定', '胜平负首选': '胜', '胜平负首选概率': .68,
+        '模型主胜概率': .68, '模型平局概率': .20, '模型客胜概率': .12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
+        '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 69.0%', '首发状态': '已确认',
+        '阵容预警级别': '高', '阵容方向冲突': False,
+    }])
+    assert sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    ).empty
 
 
 def test_daily_recommendations_reject_monte_or_market_conflict():

@@ -1648,6 +1648,7 @@ def _predict_supported_match(
 
     lineup_analysis = lineup_analysis or {}
     lineup_shift = float(lineup_analysis.get('probability_shift') or 0.0)
+    result_prob_before_lineup = np.asarray(result_prob, dtype=float).copy()
     if lineup_analysis.get('status') == '已确认' and lineup_shift:
         # Shift only between home and away, retain the calibrated draw mass and
         # cap the adjustment in the lineup service at four percentage points.
@@ -1717,7 +1718,8 @@ def _predict_supported_match(
             or result_pick == '平'
         )
     )
-    if lineup_conflict:
+    lineup_high_warning = lineup_analysis.get('warning_level') == '高'
+    if lineup_conflict or lineup_high_warning:
         advice = '跳过'
     sale = _sale_context(raw)
     # Accuracy-first mode: an early-board prediction remains visible for
@@ -1738,6 +1740,8 @@ def _predict_supported_match(
         conclusion_parts.append('首发待公布')
     if lineup_conflict:
         conclusion_parts.append('阵容与原方向冲突')
+    elif lineup_high_warning:
+        conclusion_parts.append('阵容高风险预警，已撤下重点')
     if flow_gate['state'] == 'conflict':
         conclusion_parts.append('盘口反向')
     elif flow_gate['state'] == 'unstable':
@@ -1879,6 +1883,14 @@ def _predict_supported_match(
         '盘口门控': flow_gate['label'],
         '首发状态': lineup_analysis.get('status', '未获取'),
         '阵容分析': lineup_analysis.get('summary', '未到首发公布时间'),
+        '阵容预警级别': lineup_analysis.get('warning_level', '无'),
+        '阵容预警': '；'.join(lineup_analysis.get('warnings') or []),
+        '阵容调整前胜概率': result_prob_before_lineup[0],
+        '阵容调整前平概率': result_prob_before_lineup[1],
+        '阵容调整前负概率': result_prob_before_lineup[2],
+        '阵容调整后胜概率': result_prob[0],
+        '阵容调整后平概率': result_prob[1],
+        '阵容调整后负概率': result_prob[2],
         '主队阵型': lineup_analysis.get('home_formation', ''),
         '客队阵型': lineup_analysis.get('away_formation', ''),
         '主队首发': lineup_analysis.get('home_starting', ''),

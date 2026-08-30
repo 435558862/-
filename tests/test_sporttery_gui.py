@@ -257,6 +257,26 @@ def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):
     assert '延期或未完场' in review.loc[0, '复盘结果']
 
 
+def test_yesterday_review_lists_frozen_rows_when_no_result_is_settled(monkeypatch):
+    frozen = pd.DataFrame([{
+        '比赛日期': '2026-08-29', '赛事编号': '周六018',
+        '联赛': '挪威超级联赛', '对阵': '维京 vs 奥勒松',
+        '推荐玩法': '胜平负', '重点选项': '★ 胜',
+        '正式模型概率': '74.9%',
+    }])
+    monkeypatch.setattr(
+        sporttery_module, 'load_yesterday_hit_report',
+        lambda: (pd.DataFrame(), {'date': '2026-08-29'}),
+    )
+    monkeypatch.setattr(
+        sporttery_module, '_load_daily_recommendation_snapshot',
+        lambda day: frozen,
+    )
+    review, _ = sporttery_module.build_yesterday_recommendation_review()
+    assert review.loc[0, '命中状态'] == '○ 待复盘'
+    assert review.loc[0, '失败原因'] == '待官方赛果，不计失败'
+
+
 def test_official_total_goals_replaces_same_match_legacy_over_under(
         monkeypatch, tmp_path):
     monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)

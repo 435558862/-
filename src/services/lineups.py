@@ -22,6 +22,24 @@ ROOT = Path('storage/jingcai/lineups')
 HISTORY_PATH = ROOT / 'confirmed_history.jsonl'
 SHANGHAI = ZoneInfo('Asia/Shanghai')
 
+
+def lineup_poll_interval_seconds(minutes_to_kickoff):
+    """Return a quota-conscious adaptive interval for confirmed lineups."""
+    try:
+        minutes = float(minutes_to_kickoff)
+    except (TypeError, ValueError):
+        return 15 * 60
+    if minutes <= 15:
+        return 2 * 60
+    if minutes <= 45:
+        return 5 * 60
+    return 15 * 60
+
+
+def lineup_api_configured():
+    """Expose configuration state without ever revealing the secret key."""
+    return bool(_key())
+
 # Official Sporttery names which are not present in the trained-league alias
 # catalog (notably cup/second-tier fixtures), mapped to API-Football names.
 LINEUP_NAME_OVERRIDES = {
@@ -261,6 +279,14 @@ def _analyse(record, history):
         parts.append(f'轮换 主{home["rotation"]}/客{away["rotation"]}')
     if home['missing_core'] or away['missing_core']:
         parts.append(f'核心缺阵 主{home["missing_core"]}/客{away["missing_core"]}')
+    warnings = []
+    for label, value in (('主队', home), ('客队', away)):
+        if value['goalkeeper_changed']:
+            warnings.append(f'{label}门将变化')
+        if value['missing_core']:
+            warnings.append(f'{label}核心缺阵{value["missing_core"]}人')
+        if value['rotation'] is not None and value['rotation'] >= 5:
+            warnings.append(f'{label}异常轮换{value["rotation"]}人')
     return {
         'status': '已确认', 'summary': '｜'.join(parts),
         'home_formation': record['home']['formation'],
@@ -273,6 +299,12 @@ def _analyse(record, history):
         'away_goalkeeper_changed': away['goalkeeper_changed'],
         'home_penalty': penalty(home), 'away_penalty': penalty(away),
         'probability_shift': shift,
+        'warning_level': '高' if any(
+            value['goalkeeper_changed'] or value['missing_core'] >= 2
+            or (value['rotation'] is not None and value['rotation'] >= 6)
+            for value in (home, away)
+        ) else ('中' if warnings else '无'),
+        'warnings': warnings,
     }
 
 

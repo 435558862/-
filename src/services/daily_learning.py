@@ -22,6 +22,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from src.network.fixtures.sporttery import SportteryResultClient
 from src.services.draw_calibration import AUDIT_PATH as DRAW_AUDIT_PATH, train_draw_calibrator
+from src.services.storage_governance import run_storage_governance
 
 
 REPORT_ROOT = Path('storage/jingcai/reports')
@@ -1356,6 +1357,31 @@ def review_and_learn(
     selected = settled[
         settled.get('advice', pd.Series(dtype=str)).fillna('').astype(str).str.contains('主推')
     ] if not settled.empty else settled
+
+    def settled_accuracy(*columns: str) -> Optional[float]:
+        """Audit one play only from frozen, officially settled predictions."""
+        if settled.empty:
+            return None
+        for column in columns:
+            if column not in settled.columns:
+                continue
+            values = pd.to_numeric(settled[column], errors='coerce').dropna()
+            if not values.empty:
+                return float(values.mean())
+        return None
+
+    accuracy_by_market = {
+        '胜平负': settled_accuracy('result_hit'),
+        '让球胜平负': settled_accuracy('handicap_hit'),
+        '总进球': settled_accuracy('over_under_hit'),
+        '比分': settled_accuracy('score_hit_any', 'score_hit'),
+        '半全场': settled_accuracy('half_full_hit'),
+    }
+    try:
+        storage_cleanup = run_storage_governance(dry_run=False)
+    except Exception as exception:
+        logging.exception('存储治理失败，复盘数据不受影响。')
+        storage_cleanup = {'removed_files': 0, 'removed_bytes': 0, 'errors': [str(exception)]}
     summary = {
         'last_review': datetime.now().isoformat(timespec='seconds'),
         'newly_settled': len(new_records),
@@ -1376,6 +1402,8 @@ def review_and_learn(
         'over_under_accuracy': (
             float(settled['over_under_hit'].mean()) if not settled.empty else None
         ),
+        'accuracy_by_market': accuracy_by_market,
+        'storage_cleanup': storage_cleanup,
         'accuracy_by_model': _accuracy_by_model(settled),
         'selection_profile': selection_profile,
         'over_under_profile': over_under_profile,

@@ -21,6 +21,7 @@ from src.gui.utils.taskrunner import TaskRunnerDialog
 from src.gui.widgets.tables import ExcelTable
 from src.network.fixtures.sporttery import SportteryMobileClient
 from src.services.daily_learning import load_over_under_profile, review_and_learn
+from src.services.lineups import lineup_api_configured, lineup_poll_interval_seconds
 from src.services.daily_sporttery import (
     LEAGUE_ALIASES, _sort_by_match_number, backfill_missing_simulations,
     run_daily_sporttery,
@@ -835,7 +836,7 @@ def build_daily_recommendations(
     """
     columns = [
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
-        '正式模型概率', '盘口验证', '蒙特卡洛是否同向',
+        '正式主模型', '正式模型概率', '盘口验证', '蒙特卡洛是否同向', '阵容验证',
         '比分参考', '半全场参考', '入选理由',
     ]
     if predictions.empty:
@@ -927,9 +928,17 @@ def build_daily_recommendations(
         if int(np.argmax(current)) != pick_index:
             return False, '当前盘口首选与正式模型不同向'
         movement = float(current[pick_index] - opening[pick_index])
+        if movement < -0.015:
+            return False, f'临场明显反向 {movement:+.1%}'
         if movement < -0.005:
             return False, f'正式方向走弱 {movement:+.1%}'
-        return True, f'同向支持 {movement:+.1%}'
+        if movement > 0.015:
+            state = '持续走强'
+        elif abs(movement) <= 0.003:
+            state = '当前支持·去水概率基本不变'
+        else:
+            state = '当前支持·轻微走强'
+        return True, f'{state} {movement:+.1%}'
 
     candidates_by_day: dict[str, list[dict]] = {}
     for _, row in active.iterrows():
@@ -979,6 +988,15 @@ def build_daily_recommendations(
             supported, support_text = market_support(row, market, formal_compare)
             if not supported:
                 continue
+            lineup_status = str(row.get('首发状态') or '')
+            lineup_conflict = bool(row.get('阵容方向冲突'))
+            lineup_warning = str(row.get('阵容预警级别') or '无')
+            if lineup_conflict or lineup_warning == '高':
+                continue
+            lineup_text = (
+                f'已确认·预警{lineup_warning}' if lineup_status == '已确认'
+                else '未确认·不调整模型'
+            )
             candidates_by_day.setdefault(day_text, []).append({
                 '_quality': quality,
                 '比赛日期': day_text,
@@ -987,9 +1005,11 @@ def build_daily_recommendations(
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
                 '推荐玩法': market,
                 '重点选项': f'★ {choice}',
+                '正式主模型': str(row.get('胜负模型类别') or '市场基线'),
                 '正式模型概率': f'{probability:.1%}',
                 '盘口验证': support_text,
                 '蒙特卡洛是否同向': f'同向（蒙特：{monte_pick}）',
+                '阵容验证': lineup_text,
                 '比分参考': score_reference(row),
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
@@ -1002,7 +1022,7 @@ def build_daily_recommendations(
         ranked = sorted(day_rows, key=lambda item: item['_quality'], reverse=True)
         selected, used_matches = [], set()
         for item in ranked:
-            if len(selected) >= 6:
+            if len(selected) >= 8:
                 break
             number = str(item['赛事编号'])
             if number in used_matches:
@@ -1071,18 +1091,22 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     """Score the frozen recommendations that were actually shown yesterday."""
     columns = [
         '赛事编号', '联赛', '对阵', '推荐玩法', '昨日推荐',
-        '正式模型概率', '蒙特卡洛是否同向', '完场比分', '复盘结果', '命中状态',
+        '正式模型概率', '蒙特卡洛是否同向', '完场比分', '复盘结果',
+        '失败原因', '命中状态',
     ]
     details, summary = load_yesterday_hit_report()
     review_date = str(summary.get('date') or '')
-    if not review_date or details.empty:
+    if not review_date:
         return pd.DataFrame(columns=columns), review_date
     recommendations = _load_daily_recommendation_snapshot(review_date)
     if recommendations.empty:
         # Never apply today's thresholds retroactively.  Without a frozen
         # snapshot there is no honest way to know what the user saw yesterday.
         return pd.DataFrame(columns=columns), review_date
-    detail_by_number = details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
+    detail_by_number = (
+        details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
+        if not details.empty else pd.DataFrame()
+    )
     result_columns = {
         '胜负': '胜负', '胜平负': '胜负', '胜平负·平局': '胜负',
         '让球': '让球（首/次）', '让球胜平负': '让球（首/次）', '大小球': '大小球',
@@ -1104,6 +1128,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
                 '蒙特卡洛是否同向': recommendation.get('蒙特卡洛是否同向', ''),
                 '完场比分': '',
                 '复盘结果': '官方赛果未补齐（延期或未完场）',
+                '失败原因': '待官方赛果，不计失败',
                 '命中状态': '○ 待复盘',
             })
             continue
@@ -1142,6 +1167,15 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             hit = '→ 平（命中）' in result
         else:
             hit = '（命中）' in result
+        failure_reason = ''
+        if not hit:
+            market_note = str(recommendation.get('盘口验证') or '')
+            if '反向' in market_note or '走弱' in market_note:
+                failure_reason = '盘口临场反转'
+            elif market in ('比分', '半全场', '总进球'):
+                failure_reason = '主方向或具体玩法选择偏差'
+            else:
+                failure_reason = '正式模型方向错误'
         rows.append({
             '赛事编号': number,
             '联赛': recommendation['联赛'],
@@ -1154,6 +1188,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             '蒙特卡洛是否同向': recommendation.get('蒙特卡洛是否同向', ''),
             '完场比分': detail.get('完场比分', ''),
             '复盘结果': result,
+            '失败原因': failure_reason,
             '命中状态': '✓ 命中' if hit else '✕ 未中',
         })
     return pd.DataFrame(rows, columns=columns), review_date
@@ -1214,7 +1249,7 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '核心重点最多6场；比分Top3和半全场前两项仅供参考，'
+            '核心重点0～8场、质量优先；比分Top3和半全场前两项仅供参考，'
             '不占重点名额、不计入核心命中率。'
         )
         notice.setWordWrap(True)
@@ -1304,6 +1339,9 @@ class SportteryPredictionsDialog(QDialog):
         self._table = None
         self._odds_pulse_running = False
         self._odds_pulse_queue = Queue()
+        self._lineup_running = False
+        self._foreground_sync_running = False
+        self._lineup_queue = Queue()
         self._trained_leagues = trained_dedicated_leagues()
         self._build_ui()
         self._load_saved_reports()
@@ -1315,7 +1353,71 @@ class SportteryPredictionsDialog(QDialog):
         self._odds_pulse_result_timer.setInterval(300)
         self._odds_pulse_result_timer.timeout.connect(self._collect_odds_pulse)
         self._odds_pulse_result_timer.start()
+        self._lineup_timer = QTimer(self)
+        self._lineup_timer.setSingleShot(True)
+        self._lineup_timer.timeout.connect(self._start_lineup_supervision)
+        self._lineup_result_timer = QTimer(self)
+        self._lineup_result_timer.setInterval(500)
+        self._lineup_result_timer.timeout.connect(self._collect_lineup_supervision)
         QTimer.singleShot(12_000, self._start_odds_pulse)
+        QTimer.singleShot(15_000, self._schedule_lineup_supervision)
+
+    def _schedule_lineup_supervision(self):
+        """Poll only pending fixtures inside the 90-minute lineup window."""
+        self._lineup_timer.stop()
+        if (
+                not lineup_api_configured() or self._predictions.empty
+                or '比赛时间' not in self._predictions.columns
+        ):
+            return
+        kickoff = pd.to_datetime(
+            self._predictions.get('比赛时间'), errors='coerce',
+        )
+        now = pd.Timestamp.now()
+        minutes = (kickoff - now).dt.total_seconds() / 60.0
+        status = self._predictions.get(
+            '首发状态', pd.Series('', index=self._predictions.index),
+        ).fillna('').astype(str)
+        pending = minutes.between(-15, 90) & status.ne('已确认')
+        if not pending.any():
+            return
+        interval = lineup_poll_interval_seconds(float(minutes.loc[pending].min()))
+        self._lineup_timer.start(max(1_000, int(interval * 1000)))
+        self._summary.setToolTip(
+            f'阵容自动督导已开启：{int(pending.sum())}场待确认，'
+            f'{interval // 60}分钟后复查。'
+        )
+
+    def _start_lineup_supervision(self):
+        if self._lineup_running or self._foreground_sync_running:
+            return
+        self._lineup_running = True
+        self._lineup_result_timer.start()
+        Thread(target=self._fetch_lineup_supervision, daemon=True).start()
+
+    def _fetch_lineup_supervision(self):
+        try:
+            self._lineup_queue.put(('ok', run_daily_sporttery()))
+        except Exception as error:
+            self._lineup_queue.put(('error', str(error)))
+
+    def _collect_lineup_supervision(self):
+        try:
+            state, payload = self._lineup_queue.get_nowait()
+        except Empty:
+            return
+        self._lineup_running = False
+        self._lineup_result_timer.stop()
+        if state == 'ok' and payload is not None:
+            self._predictions, _ = payload
+            _save_daily_recommendation_snapshot(
+                build_daily_recommendations(self._predictions),
+            )
+            self._refresh_model_selector()
+            self._refresh_date_selector()
+            self._refresh_advice_selector()
+            self._render()
+        self._schedule_lineup_supervision()
 
     def _start_odds_pulse(self):
         """Persist actual market changes while the prediction window is open."""
@@ -1346,6 +1448,8 @@ class SportteryPredictionsDialog(QDialog):
     def closeEvent(self, event):
         self._odds_pulse_timer.stop()
         self._odds_pulse_result_timer.stop()
+        self._lineup_timer.stop()
+        self._lineup_result_timer.stop()
         super().closeEvent(event)
 
     def _build_ui(self):
@@ -1971,13 +2075,22 @@ class SportteryPredictionsDialog(QDialog):
             )
 
     def _sync(self):
+        if self._lineup_running:
+            QMessageBox.information(self, '请稍候', '阵容督导正在更新，完成后即可手动同步。')
+            return
+        self._foreground_sync_running = True
+        self._lineup_timer.stop()
         runner = TaskRunnerDialog(
             title='同步竞猜数据',
             info='正在获取官方场次并生成预测…',
             task_fn=run_daily_sporttery,
             parent=self,
         )
-        result = runner.run()
+        try:
+            result = runner.run()
+        finally:
+            self._foreground_sync_running = False
+            self._schedule_lineup_supervision()
         if runner.error_message is not None or result is None:
             QMessageBox.critical(
                 self, '同步失败', runner.error_message or '同步任务没有返回数据，请稍后重试。',
@@ -2061,6 +2174,13 @@ class SportteryPredictionsDialog(QDialog):
                 f'{float(row.get("audit_accuracy") or 0):.1%}）'
                 for row in over_under_rows
             )
+        market_accuracy = result.get('accuracy_by_market') or {}
+        available_accuracy = [
+            f'{name}{float(value):.1%}'
+            for name, value in market_accuracy.items() if value is not None
+        ]
+        if available_accuracy:
+            message += '\n各玩法冻结预测复盘：' + '；'.join(available_accuracy)
         model_lines = []
         for name, audit in result.get('accuracy_by_model', {}).items():
             samples = int(audit.get('samples') or 0)
