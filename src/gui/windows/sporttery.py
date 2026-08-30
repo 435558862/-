@@ -666,7 +666,26 @@ def _score_recommendation_mask(predictions: pd.DataFrame) -> pd.Series:
 
 
 def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
-    """Pick at most one strongest row per day and market for red emphasis."""
+    """Map the unified daily recommendation list back onto main-table cells."""
+    aspects = pd.Series([[] for _ in range(len(predictions))], index=predictions.index)
+    if predictions.empty:
+        return aspects
+    recommendations = build_daily_recommendations(predictions, future_only=False)
+    labels = {
+        '胜平负': '胜负', '让球胜平负': '让球', '总进球': '总进球',
+        '比分': '比分', '半全场': '半全场',
+    }
+    for index, row in predictions.iterrows():
+        number = str(row.get('赛事编号') or '')
+        matches = recommendations.loc[
+            recommendations['赛事编号'].astype(str).eq(number), '推荐玩法',
+        ]
+        aspects.at[index] = [labels[value] for value in matches if value in labels]
+    return aspects
+
+
+def _legacy_daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
+    """Legacy threshold audit retained for historical analysis only."""
     aspects = pd.Series([[] for _ in range(len(predictions))], index=predictions.index)
     if predictions.empty:
         return aspects
@@ -777,7 +796,7 @@ def _mark_priority_cells(
         '胜负': '综合方向',
         '平局': '综合方向',
         '让球': '让球',
-        '大小球': '大小球',
+        '大小球': '大小球', '总进球': '总进球',
         '半全场': '半全场',
         '比分': '比分',
     }
@@ -799,7 +818,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
     for labels in _daily_priority_aspects(predictions):
         for label in labels:
             counts[label] = counts.get(label, 0) + 1
-    ordered = ('胜负', '平局', '让球', '大小球', '半全场', '比分')
+    ordered = ('胜负', '让球', '总进球', '半全场', '比分')
     selected = [f'{label}{counts[label]}' for label in ordered if counts.get(label)]
     return '今日重点 ' + ('·'.join(selected) if selected else '暂无达标项')
 
@@ -858,32 +877,51 @@ def build_daily_recommendations(
         add('总进球', str(row.get('竞彩总进球首选') or ''), number(row, '竞彩总进球首选概率'), 0.20)
         add('比分', str(row.get('首选比分') or ''), number(row, '首选比分概率'), 0.12)
         add('半全场', str(row.get('半全场首选') or ''), number(row, '半全场首选概率'), 0.35)
-        if not market_candidates:
-            continue
-        quality, market, choice, probability = max(market_candidates, key=lambda item: item[0])
-        monte_pick = first_simulation_pick(row, market)
-        formal_compare = choice.split()[-1] if market == '让球胜平负' else choice
-        monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
-        agreement = (
-            '无独立模拟数据' if not monte_pick else
-            f'同向（蒙特：{monte_pick}）' if formal_compare == monte_compare else
-            f'反向（蒙特：{monte_pick}）'
-        )
-        candidates_by_day.setdefault(day_text, []).append({
-            '_quality': quality,
-            '比赛日期': day_text,
-            '赛事编号': row.get('赛事编号', ''),
-            '联赛': row.get('联赛', ''),
-            '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
-            '推荐玩法': market,
-            '重点选项': f'★ {choice}',
-            '正式模型概率': f'{probability:.1%}',
-            '蒙特卡洛是否同向': agreement,
-            '入选理由': f'正式模型五玩法比较后，本场以{market}最优',
-        })
+        for quality, market, choice, probability in market_candidates:
+            monte_pick = first_simulation_pick(row, market)
+            formal_compare = choice.split()[-1] if market == '让球胜平负' else choice
+            monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
+            agreement = (
+                '无独立模拟数据' if not monte_pick else
+                f'同向（蒙特：{monte_pick}）' if formal_compare == monte_compare else
+                f'反向（蒙特：{monte_pick}）'
+            )
+            candidates_by_day.setdefault(day_text, []).append({
+                '_quality': quality,
+                '比赛日期': day_text,
+                '赛事编号': row.get('赛事编号', ''),
+                '联赛': row.get('联赛', ''),
+                '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
+                '推荐玩法': market,
+                '重点选项': f'★ {choice}',
+                '正式模型概率': f'{probability:.1%}',
+                '蒙特卡洛是否同向': agreement,
+                '入选理由': f'正式模型五玩法横向比较；本场仅保留{market}',
+            })
     rows = []
     for day_rows in candidates_by_day.values():
-        rows.extend(sorted(day_rows, key=lambda item: item['_quality'], reverse=True)[:8])
+        ranked = sorted(day_rows, key=lambda item: item['_quality'], reverse=True)
+        selected, used_matches = [], set()
+        # Guarantee useful coverage of every official play type before filling
+        # the remaining slots by overall formal-model strength.
+        for market in ('胜平负', '让球胜平负', '总进球', '比分', '半全场'):
+            choice = next((
+                item for item in ranked
+                if item['推荐玩法'] == market
+                and str(item['赛事编号']) not in used_matches
+            ), None)
+            if choice is not None:
+                selected.append(choice)
+                used_matches.add(str(choice['赛事编号']))
+        for item in ranked:
+            if len(selected) >= 8:
+                break
+            number = str(item['赛事编号'])
+            if number in used_matches:
+                continue
+            selected.append(item)
+            used_matches.add(number)
+        rows.extend(selected)
     for row in rows:
         row.pop('_quality', None)
     return pd.DataFrame(rows, columns=columns)
@@ -1488,7 +1526,9 @@ class SportteryPredictionsDialog(QDialog):
             score_with_probability('让球首选', '让球首选概率', handicap_labels) + '/'
             + score_with_probability('让球次选', '让球次选概率', handicap_labels)
         )
-        display['大小球首选'] = score_with_probability('大小球首选', '大小球首选概率')
+        display['总进球首选'] = score_with_probability(
+            '竞彩总进球首选', '竞彩总进球首选概率',
+        )
         display['半全场首选/次选'] = (
             score_with_probability('半全场首选', '半全场首选概率') + '/'
             + score_with_probability('半全场次选', '半全场次选概率')
@@ -1550,22 +1590,9 @@ class SportteryPredictionsDialog(QDialog):
             simulated_handicap = first_choice(row.get('模拟让球'))
             parts.append(comparison('让球', primary_handicap, simulated_handicap))
 
-            primary_total = first_choice(row.get('大小球首选'))
-            simulated_total = first_choice(row.get('模拟总进球'))
-            if primary_total and simulated_total:
-                primary_direction = (
-                    '大' if primary_total.startswith('大') else
-                    '小' if primary_total.startswith('小') else ''
-                )
-                simulated_direction = (
-                    '大' if simulated_total.startswith('4球以上') else
-                    '小' if simulated_total.startswith(('0-1球', '1球以内')) else ''
-                )
-                if (
-                    primary_direction and simulated_direction
-                    and primary_direction != simulated_direction
-                ):
-                    parts.append(f'进球 {primary_total}→{simulated_total}✕')
+            primary_total = first_choice(row.get('竞彩总进球首选'))
+            simulated_total = first_choice(row.get('模拟竞彩总进球'))
+            parts.append(comparison('总进球', primary_total, simulated_total))
 
             primary_score = str(row.get('首选比分') or '').strip()
             simulated_match = re.match(
@@ -1608,7 +1635,7 @@ class SportteryPredictionsDialog(QDialog):
             parts = []
             result = str(row.get('胜负首选') or '').strip()
             handicap = str(row.get('让球首选/次选') or '').strip()
-            total = str(row.get('大小球首选') or '').strip()
+            total = str(row.get('总进球首选') or '').strip()
             if result:
                 parts.append(f'胜负 {result}')
             if handicap and handicap != '/':
@@ -1633,12 +1660,12 @@ class SportteryPredictionsDialog(QDialog):
         display['综合方向'] = display.apply(compact_direction, axis=1)
         display['风险提示'] = display.apply(compact_risk, axis=1)
         display['让球'] = display['让球首选/次选']
-        display['大小球'] = display['大小球首选']
+        display['总进球'] = display['总进球首选']
         display['半全场'] = display['半全场首选/次选']
         display['比分'] = display['比分情景（Top3/反向/高进球）']
         preferred = [
             '赛事编号', '比赛时间', '联赛', '对阵', '距参考截止',
-            '综合方向', '盘口流向', '让球', '大小球', '半全场', '比分',
+            '综合方向', '盘口流向', '让球', '总进球', '半全场', '比分',
             '风险提示',
         ]
         if include_market_details:

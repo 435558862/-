@@ -495,14 +495,14 @@ def test_sporttery_table_keeps_only_compact_decision_columns():
 
     assert display.columns.tolist() == [
         '赛事编号', '联赛', '对阵', '距参考截止', '综合方向', '盘口流向',
-        '让球', '大小球', '半全场', '比分', '风险提示',
+        '让球', '总进球', '半全场', '比分', '风险提示',
     ]
     assert display.loc[0, '对阵'] == '主队 vs 客队'
     assert display.loc[0, '综合方向'] == '胜负 胜（70.0%）'
     assert display.loc[0, '风险提示'] == '正常'
 
 
-def test_daily_priority_selects_strongest_row_per_market_and_day():
+def test_daily_priority_matches_unified_daily_recommendation_cells(monkeypatch):
     predictions = pd.DataFrame([
         {
             '赛事编号': '周六001', '比赛时间': '2026-08-29 18:00',
@@ -522,10 +522,16 @@ def test_daily_priority_selects_strongest_row_per_market_and_day():
         },
     ])
 
+    monkeypatch.setattr(
+        sporttery_window, 'build_daily_recommendations',
+        lambda frame, future_only=False: pd.DataFrame([{
+            '赛事编号': '周六002', '推荐玩法': '比分',
+        }]),
+    )
     priorities = sporttery_window._daily_priority_aspects(predictions)
 
     assert priorities.iloc[0] == []
-    assert priorities.iloc[1] == ['胜负', '大小球', '半全场', '比分']
+    assert priorities.iloc[1] == ['比分']
 
 
 def test_daily_priority_rejects_unstable_market_signals():
@@ -546,10 +552,10 @@ def test_priority_summary_only_lists_markets_that_pass_the_gate(monkeypatch):
     monkeypatch.setattr(
         sporttery_window,
         '_daily_priority_aspects',
-        lambda frame: pd.Series([['胜负', '比分'], ['大小球']]),
+        lambda frame: pd.Series([['胜负', '比分'], ['总进球']]),
     )
     assert sporttery_window._priority_summary(predictions) == (
-        '今日重点 胜负1·大小球1·比分1'
+        '今日重点 胜负1·总进球1·比分1'
     )
 
 
