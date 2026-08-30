@@ -185,6 +185,27 @@ def test_daily_recommendation_snapshot_keeps_latest_displayed_list(monkeypatch, 
     assert frozen['赛事编号'].tolist() == ['周六002']
 
 
+def test_previous_card_merges_still_visible_after_midnight_matches(monkeypatch, tmp_path):
+    monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
+    card_day = (pd.Timestamp.today().date() - pd.Timedelta(days=1)).isoformat()
+    frozen_before_midnight = pd.DataFrame([{
+        '比赛日期': card_day, '赛事编号': '周六001',
+        '推荐玩法': '胜平负', '重点选项': '★ 胜', '正式模型概率': '66.0%',
+    }])
+    newly_visible_after_midnight = pd.DataFrame([{
+        '比赛日期': card_day, '赛事编号': '周六026',
+        '推荐玩法': '让球胜平负', '重点选项': '★ +1球 负',
+        '正式模型概率': '54.6%',
+    }])
+
+    sporttery_module._save_daily_recommendation_snapshot(frozen_before_midnight)
+    sporttery_module._save_daily_recommendation_snapshot(newly_visible_after_midnight)
+    frozen = sporttery_module._load_daily_recommendation_snapshot(card_day)
+
+    assert frozen['赛事编号'].tolist() == ['周六001', '周六026']
+    assert frozen.loc[frozen['赛事编号'].eq('周六026'), '重点选项'].item() == '★ +1球 负'
+
+
 def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):
     frozen = pd.DataFrame([{
         '比赛日期': '2026-08-29', '赛事编号': '周六018',
