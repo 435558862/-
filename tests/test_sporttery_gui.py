@@ -1,5 +1,8 @@
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
+
+import src.gui.windows.sporttery as sporttery_module
 
 from src.gui.windows.sporttery import (
     SportteryPredictionsDialog, _score_recommendation_mask, _upcoming_predictions,
@@ -109,3 +112,33 @@ def test_only_audited_score_recommendations_are_marked():
         {'比分推荐状态': '', '原始最高概率比分概率': 0.12},
     ])
     assert _score_recommendation_mask(predictions).tolist() == [True, False, True]
+def test_yesterday_score_review_compares_only_visible_priority_pick(monkeypatch, tmp_path):
+    details = pd.DataFrame([{
+        '赛事编号': '周六004', '完场比分': '3-1',
+        '比分（首/次1/次2/冷/进）': '1-1/1-0/2-1/0-0/2-2 → 3-1（未中）',
+    }])
+    monkeypatch.setattr(
+        sporttery_module, 'load_yesterday_hit_report',
+        lambda: (details, {'date': '2026-08-29'}),
+    )
+    pd.DataFrame([{
+        '比赛ID': 4, '比赛时间': '2026-08-29 18:30',
+        '赛事编号': '周六004', '联赛': '韩职', '主队': '蔚山现代',
+        '客队': '金泉尚武', '首选比分': '1-1',
+    }]).to_csv(tmp_path / '2026-08-29-竞彩预测.csv', index=False)
+    monkeypatch.setattr(sporttery_module, 'REPORT_ROOT', tmp_path)
+    monkeypatch.setattr(
+        sporttery_module, 'build_daily_recommendations',
+        lambda frame, future_only=False: pd.DataFrame([{
+            '赛事编号': '周六004', '联赛': '韩职',
+            '对阵': '蔚山现代 vs 金泉尚武', '推荐玩法': '比分',
+            '重点选项': '★ 1-1', '模型概率': '13.4%',
+        }]),
+    )
+
+    review, review_date = sporttery_module.build_yesterday_recommendation_review()
+
+    assert review_date == '2026-08-29'
+    assert review.loc[0, '昨日推荐'] == '★ 1-1'
+    assert review.loc[0, '复盘结果'] == '1-1 → 3-1（未中）'
+    assert review.loc[0, '命中状态'] == '✕ 未中'

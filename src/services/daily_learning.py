@@ -260,11 +260,73 @@ def _prediction_reports(today: date) -> pd.DataFrame:
     result = pd.concat(frames, ignore_index=True)
     result['_match_id'] = result['比赛ID'].map(_normalize_match_id)
     result = result[result['_match_id'].ne('')].copy()
-    # A match offered on multiple days contributes one observation: use the
-    # freshest pre-match odds rather than overweighting that fixture.
-    return result.sort_values('_prediction_date').drop_duplicates(
-        '_match_id', keep='last',
-    )
+    # A match offered on multiple days contributes one observation.  Keep the
+    # newest snapshot, but do not let a transient API omission erase a real
+    # handicap/market value captured by an earlier snapshot of the same match.
+    result = result.sort_values('_prediction_date', kind='stable')
+    merged_rows = []
+    for _, group in result.groupby('_match_id', sort=False):
+        newest = group.iloc[-1].copy()
+        for column in result.columns:
+            value = newest.get(column)
+            missing = pd.isna(value) or (
+                isinstance(value, str) and not value.strip()
+            )
+            if not missing:
+                continue
+            candidates = group[column].loc[
+                group[column].map(
+                    lambda item: not pd.isna(item)
+                    and not (isinstance(item, str) and not item.strip())
+                )
+            ]
+            if not candidates.empty:
+                newest[column] = candidates.iloc[-1]
+        merged_rows.append(newest)
+    return pd.DataFrame(merged_rows).reset_index(drop=True)
+
+
+def _restore_missing_settled_markets(
+    settled: pd.DataFrame, predictions: pd.DataFrame,
+) -> tuple[pd.DataFrame, int]:
+    """Fill only missing frozen market fields from earlier real snapshots."""
+    if settled.empty or predictions.empty or 'match_id' not in settled.columns:
+        return settled, 0
+    restored = settled.copy()
+    by_id = predictions.drop_duplicates('_match_id', keep='last').set_index('_match_id')
+    fields = {
+        'handicap_line': ('官方让球数', 'number'),
+        'predicted_handicap': ('让球首选', 'text'),
+        'predicted_handicap_second': ('让球次选', 'text'),
+        'monte_carlo_handicap': ('模拟让球', 'text'),
+    }
+    changed = 0
+    for index, row in restored.iterrows():
+        match_id = _normalize_match_id(row.get('match_id'))
+        if match_id not in by_id.index:
+            continue
+        prediction = by_id.loc[match_id]
+        for target, (source, kind) in fields.items():
+            current = row.get(target)
+            if not (pd.isna(current) or not str(current).strip()):
+                continue
+            value = _float(prediction, source) if kind == 'number' else _first_text(prediction.get(source))
+            if (kind == 'number' and not np.isfinite(value)) or (kind == 'text' and not value):
+                continue
+            restored.at[index, target] = value
+            changed += 1
+        line = pd.to_numeric(restored.at[index, 'handicap_line'], errors='coerce')
+        home_goals = pd.to_numeric(row.get('home_goals'), errors='coerce')
+        away_goals = pd.to_numeric(row.get('away_goals'), errors='coerce')
+        if pd.notna(line) and pd.notna(home_goals) and pd.notna(away_goals):
+            adjusted = float(home_goals) + float(line) - float(away_goals)
+            actual = '胜' if adjusted > 1e-9 else '平' if abs(adjusted) <= 1e-9 else '负'
+            restored.at[index, 'actual_handicap'] = actual
+            first = _first_text(restored.at[index, 'predicted_handicap'])
+            second = _first_text(restored.at[index, 'predicted_handicap_second'])
+            restored.at[index, 'handicap_hit'] = int(first == actual) if first else np.nan
+            restored.at[index, 'handicap_second_hit'] = int(second == actual) if second else np.nan
+    return restored, changed
 
 
 def _load_settled() -> pd.DataFrame:
@@ -1221,6 +1283,11 @@ def review_and_learn(
             pass
     predictions = _prediction_reports(today)
     settled = _load_settled()
+    settled, restored_market_fields = _restore_missing_settled_markets(
+        settled, predictions,
+    )
+    if restored_market_fields:
+        _save_frame(SETTLED_PATH, settled)
     settled_ids = set(settled.get('match_id', pd.Series(dtype=str)).astype(str))
     pending = predictions[
         ~predictions.get('_match_id', pd.Series(dtype=str)).isin(settled_ids)

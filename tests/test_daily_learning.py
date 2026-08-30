@@ -127,6 +127,51 @@ def test_match_dates_accept_mixed_date_and_datetime_values():
     ]
 
 
+def test_prediction_reports_keep_latest_nonempty_market_snapshot(tmp_path, monkeypatch):
+    reports = tmp_path / 'reports'
+    reports.mkdir()
+    older = pd.DataFrame([{
+        '比赛ID': 88, '比赛时间': '2026-08-29 18:30',
+        '赛事编号': '周六004', '官方让球数': -1, '让球首选': '负',
+        '首选比分': '1-1',
+    }])
+    newer = older.copy()
+    newer['官方让球数'] = float('nan')
+    newer['让球首选'] = ''
+    newer['首选比分'] = '2-1'
+    older.to_csv(reports / '2026-08-28-竞彩预测.csv', index=False)
+    newer.to_csv(reports / '2026-08-29-竞彩预测.csv', index=False)
+    monkeypatch.setattr(daily_learning, 'REPORT_ROOT', reports)
+
+    row = daily_learning._prediction_reports(date(2026, 8, 30)).iloc[0]
+
+    assert row['_prediction_date'] == '2026-08-29'
+    assert row['官方让球数'] == -1
+    assert row['让球首选'] == '负'
+    assert row['首选比分'] == '2-1'
+
+
+def test_restore_missing_settled_handicap_from_real_snapshot():
+    settled = pd.DataFrame([{
+        'match_id': '88', 'home_goals': 3, 'away_goals': 1,
+        'handicap_line': float('nan'), 'predicted_handicap': '',
+        'predicted_handicap_second': '', 'monte_carlo_handicap': '',
+    }])
+    predictions = pd.DataFrame([{
+        '_match_id': '88', '官方让球数': -1, '让球首选': '负',
+        '让球次选': '平', '模拟让球': '让负 60.0%',
+    }])
+
+    restored, changed = daily_learning._restore_missing_settled_markets(
+        settled, predictions,
+    )
+
+    assert changed == 4
+    assert restored.loc[0, 'actual_handicap'] == '胜'
+    assert restored.loc[0, 'handicap_hit'] == 0
+    assert restored.loc[0, 'handicap_second_hit'] == 0
+
+
 def test_generic_challenger_uses_chronological_three_way_audit(tmp_path, monkeypatch):
     rows = []
     templates = [

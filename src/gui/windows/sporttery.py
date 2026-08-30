@@ -910,10 +910,27 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
         detail = detail_by_number.loc[number]
         market = recommendation['推荐玩法']
         result = str(detail.get(result_columns[market]) or '')
-        if market == '胜平负·平局':
+        selected = str(recommendation['重点选项'] or '').replace('★', '').strip()
+        if market == '比分':
+            actual = str(detail.get('完场比分') or '').strip()
+            hit = bool(selected and actual and selected == actual)
+            result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
+        elif market == '半全场':
+            actual_match = re.search(r'→\s*([胜平负]{2})', result)
+            actual = actual_match.group(1) if actual_match else ''
+            hit = bool(selected and actual and selected == actual)
+            result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
+        elif market == '让球':
+            actual_match = re.search(r'→\s*让([胜平负])', result)
+            actual = actual_match.group(1) if actual_match else ''
+            selected_pick = selected[-1:] if selected[-1:] in '胜平负' else ''
+            hit = bool(selected_pick and actual and selected_pick == actual)
+            result = (
+                f'{selected or "—"} → 让{actual}（{"命中" if hit else "未中"}）'
+                if actual else '未开盘'
+            )
+        elif market == '胜平负·平局':
             hit = '→ 平（命中）' in result
-        elif market in ('让球', '半全场', '比分'):
-            hit = '首中' in result
         else:
             hit = '（命中）' in result
         rows.append({
@@ -1787,8 +1804,10 @@ class SportteryPredictionsDialog(QDialog):
         self._render()
         accuracy = result.get('result_accuracy')
         accuracy_text = f'{float(accuracy):.1%}' if accuracy is not None else '--'
+        newly_settled = int(result.get('newly_settled') or 0)
         message = (
-            f'本次补结算 {int(result.get("newly_settled") or 0)} 场，'
+            ('本次未发现新增赛果；以下均为累计复盘数据。\n' if newly_settled == 0 else '')
+            + f'本次补结算 {newly_settled} 场，'
             f'累计复盘 {int(result.get("settled_samples") or 0)} 场，'
             f'等待官方赛果 {int(result.get("pending_samples") or 0)} 场，'
             f'胜平负历史命中率 {accuracy_text}（累计已结算样本）。\n'
@@ -1822,12 +1841,16 @@ class SportteryPredictionsDialog(QDialog):
             )
         model_lines = []
         for name, audit in result.get('accuracy_by_model', {}).items():
-            model_lines.append(
-                f'{name}：{int(audit.get("samples") or 0)}场，'
-                f'模型 {float(audit.get("accuracy") or 0):.1%}，'
-                f'市场基线 {float(audit.get("market_accuracy") or 0):.1%}，'
-                f'{audit.get("status", "继续观察")}'
-            )
+            samples = int(audit.get('samples') or 0)
+            if samples < 10:
+                model_lines.append(f'{name}：{samples}场，样本不足，继续积累')
+            else:
+                model_lines.append(
+                    f'{name}：{samples}场，'
+                    f'模型 {float(audit.get("accuracy") or 0):.1%}，'
+                    f'市场基线 {float(audit.get("market_accuracy") or 0):.1%}，'
+                    f'{audit.get("status", "继续观察")}'
+                )
         if model_lines:
             message += '\n\n分模型最近实战：\n' + '\n'.join(model_lines)
         if result.get('review_error'):
