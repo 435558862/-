@@ -370,7 +370,10 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.27,
         '半全场首选': '胜胜', '半全场首选概率': 0.36,
+        '半全场次选': '平胜', '半全场次选概率': 0.22,
         '比分推荐状态': '推荐', '首选比分': '2-1',
+        '首选比分概率': 0.16, '次选比分': '1-0', '次选比分概率': 0.13,
+        '第三比分': '2-0',
         '原始最高概率比分概率': 0.16,
     }])
     result = sporttery_window.build_daily_recommendations(predictions)
@@ -378,6 +381,8 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
     assert result.loc[0, '推荐玩法'] == '让球胜平负'
     assert result.loc[0, '重点选项'] == '★ -1球 胜'
     assert result.loc[0, '正式模型概率'] == '64.0%'
+    assert result.loc[0, '比分参考'] == '2-1（16.0%） / 1-0（13.0%） / 2-0'
+    assert result.loc[0, '半全场参考'] == '胜胜（36.0%） / 平胜（22.0%）'
 
 
 def test_yesterday_recommendation_review_scores_only_the_primary_option(

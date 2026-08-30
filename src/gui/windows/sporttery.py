@@ -835,7 +835,8 @@ def build_daily_recommendations(
     """
     columns = [
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
-        '正式模型概率', '盘口验证', '蒙特卡洛是否同向', '入选理由',
+        '正式模型概率', '盘口验证', '蒙特卡洛是否同向',
+        '比分参考', '半全场参考', '入选理由',
     ]
     if predictions.empty:
         return pd.DataFrame(columns=columns)
@@ -867,6 +868,37 @@ def build_daily_recommendations(
             return 0.0
         values.sort()
         return float(values[-1] - values[-2])
+
+    def probability_text(row: pd.Series, column: str) -> str:
+        value = number(row, column)
+        return f'{value:.1%}' if np.isfinite(value) else ''
+
+    def score_reference(row: pd.Series) -> str:
+        picks = []
+        for pick_column, probability_column in (
+                ('首选比分', '首选比分概率'),
+                ('次选比分', '次选比分概率'),
+                ('第三比分', '第三比分概率'),
+        ):
+            pick = str(row.get(pick_column) or '').strip()
+            if not pick or pick.lower() == 'nan' or pick in picks:
+                continue
+            probability = probability_text(row, probability_column)
+            picks.append(f'{pick}（{probability}）' if probability else pick)
+        return ' / '.join(picks[:3]) or '暂无可靠比分'
+
+    def half_full_reference(row: pd.Series) -> str:
+        picks = []
+        for pick_column, probability_column in (
+                ('半全场首选', '半全场首选概率'),
+                ('半全场次选', '半全场次选概率'),
+        ):
+            pick = str(row.get(pick_column) or '').strip()
+            if not pick or pick.lower() == 'nan' or pick in picks:
+                continue
+            probability = probability_text(row, probability_column)
+            picks.append(f'{pick}（{probability}）' if probability else pick)
+        return ' / '.join(picks) or '暂无可靠半全场'
 
     def market_support(row: pd.Series, market: str, formal_pick: str) -> tuple[bool, str]:
         gate = str(row.get('盘口门控') or '')
@@ -958,6 +990,8 @@ def build_daily_recommendations(
                 '正式模型概率': f'{probability:.1%}',
                 '盘口验证': support_text,
                 '蒙特卡洛是否同向': f'同向（蒙特：{monte_pick}）',
+                '比分参考': score_reference(row),
+                '半全场参考': half_full_reference(row),
                 '入选理由': (
                     f'正式模型定方向；领先第二方向{margin:.1%}；'
                     '盘口与独立模拟双重同向'
@@ -1161,10 +1195,13 @@ class DailyRecommendationsDialog(QDialog):
             Qt.WindowType.Window | Qt.WindowType.WindowMinimizeButtonHint
             | Qt.WindowType.WindowMaximizeButtonHint | Qt.WindowType.WindowCloseButtonHint
         )
-        self.resize(1120, 560)
+        self.resize(1440, 620)
         root = QVBoxLayout(self)
         header = QHBoxLayout()
-        notice = QLabel('仅显示未开赛赛事；每个比赛日、每种玩法最多选择一项最强推荐。')
+        notice = QLabel(
+            '核心重点最多6场；比分Top3和半全场前两项仅供参考，'
+            '不占重点名额、不计入核心命中率。'
+        )
         notice.setWordWrap(True)
         header.addWidget(notice, 1)
         review_button = QPushButton('昨日推荐复盘')
