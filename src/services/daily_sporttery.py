@@ -1679,6 +1679,16 @@ def _predict_supported_match(
         for i in top_score_columns
     ]
     ranked_scores = [class_to_score(score_classes[i]) for i in top_score_columns]
+    lottery_total_probability = np.zeros(8, dtype=np.float64)
+    for score_class, probability in zip(score_classes, score_prob):
+        score_text = class_to_score(score_class)
+        score_match = re.fullmatch(r'(\d+)-(\d+)', score_text)
+        if score_match is None:
+            continue
+        home_goals, away_goals = map(int, score_match.groups())
+        lottery_total_probability[min(home_goals + away_goals, 7)] += float(probability)
+    lottery_total_pick = int(np.argmax(lottery_total_probability))
+    lottery_total_labels = ('0球', '1球', '2球', '3球', '4球', '5球', '6球', '7+球')
     top_half_full = np.argsort(half_full_prob)[-3:][::-1]
     ranked_half_full = [HALF_FULL_LABELS[i] for i in top_half_full]
     result_index = select_result_index(result_prob)
@@ -1932,6 +1942,8 @@ def _predict_supported_match(
         '大于2.5球概率': ou_prob[1],
         '大小球首选': ou_pick,
         '大小球首选概率': float(np.max(ou_prob)),
+        '竞彩总进球首选': lottery_total_labels[lottery_total_pick],
+        '竞彩总进球首选概率': float(lottery_total_probability[lottery_total_pick]),
         '半全场首选': ranked_half_full[0],
         '半全场次选': ranked_half_full[1],
         '半全场首选概率': float(half_full_prob[top_half_full[0]]),

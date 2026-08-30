@@ -151,6 +151,7 @@ def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatc
         '联赛': '挪威超级联赛', '主队': '维京', '客队': '奥勒松',
         '大小球首选': '大于2.5球', '大小球首选概率': 0.749,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.286,
+        '竞彩总进球首选': '2球', '竞彩总进球首选概率': 0.251,
     }])
     monkeypatch.setattr(
         sporttery_module, '_daily_priority_aspects',
@@ -163,11 +164,12 @@ def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatc
 
     assert result.loc[0, '比赛日期'] == '2026-08-29'
     assert result.loc[0, '推荐玩法'] == '总进球'
-    assert result.loc[0, '重点选项'] == '★ 3球'
-    assert result.loc[0, '模型概率'] == '28.6%'
+    assert result.loc[0, '重点选项'] == '★ 2球'
+    assert result.loc[0, '正式模型概率'] == '25.1%'
+    assert result.loc[0, '蒙特卡洛是否同向'] == '反向（蒙特：3球）'
 
 
-def test_daily_recommendation_snapshot_is_frozen_and_upserted(monkeypatch, tmp_path):
+def test_daily_recommendation_snapshot_keeps_latest_displayed_list(monkeypatch, tmp_path):
     monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
     first = pd.DataFrame([{
         '比赛日期': '2099-08-29', '赛事编号': '周六001',
@@ -182,7 +184,7 @@ def test_daily_recommendation_snapshot_is_frozen_and_upserted(monkeypatch, tmp_p
 
     frozen = sporttery_module._load_daily_recommendation_snapshot('2099-08-29')
 
-    assert frozen['赛事编号'].tolist() == ['周六001', '周六002']
+    assert frozen['赛事编号'].tolist() == ['周六002']
 
 
 def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):

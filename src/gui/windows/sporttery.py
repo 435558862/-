@@ -8,6 +8,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPalette, QPen
 from PySide6.QtWidgets import (
@@ -806,58 +807,85 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Build one explicit recommendation row per selected match and market."""
-    columns = ['比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项', '模型概率', '入选理由']
+    """Select 6-8 fixtures per card day, with one official play per fixture."""
+    columns = [
+        '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
+        '正式模型概率', '蒙特卡洛是否同向', '入选理由',
+    ]
     if predictions.empty:
         return pd.DataFrame(columns=columns)
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
     active = _sort_by_match_number(source).reset_index(drop=True)
-    priorities = _daily_priority_aspects(active)
-    specs = {
-        '胜负': ('胜平负首选', '胜平负首选概率'),
-        '平局': ('__draw__', '模型平局概率'),
-        '让球': ('让球首选', '让球首选概率'),
-        # The candidate remains selected by the established over/under model;
-        # the user-facing pick is converted to China's official 0..7+ total
-        # goals market using the independent Monte Carlo distribution.
-        '大小球': ('模拟竞彩总进球', '模拟竞彩总进球概率'),
-        '比分': ('首选比分', '原始最高概率比分概率'),
-        '半全场': ('半全场首选', '半全场首选概率'),
-    }
-    rows = []
-    for index, labels in priorities.items():
-        row = active.loc[index]
+
+    def number(row: pd.Series, column: str) -> float:
+        value = pd.to_numeric(row.get(column), errors='coerce')
+        return float(value) if pd.notna(value) else float('nan')
+
+    def first_simulation_pick(row: pd.Series, market: str) -> str:
+        column = {
+            '胜平负': '模拟胜负', '让球胜平负': '模拟让球',
+            '总进球': '模拟竞彩总进球', '比分': '模拟Top3比分',
+            '半全场': '模拟半全场',
+        }[market]
+        text = str(row.get(column) or '').strip()
+        return re.split(r'[\s/｜]', text, maxsplit=1)[0]
+
+    candidates_by_day: dict[str, list[dict]] = {}
+    for _, row in active.iterrows():
         card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
-        for market in labels:
-            choice_column, probability_column = specs[market]
-            choice = '平' if choice_column == '__draw__' else str(row.get(choice_column) or '').strip()
-            if market == '让球':
-                line = pd.to_numeric(row.get('官方让球数'), errors='coerce')
-                line_text = '' if pd.isna(line) else f'{float(line):+g}'
-                choice = f'{line_text}球 {choice}'.strip()
-            probability = pd.to_numeric(row.get(probability_column), errors='coerce')
-            rows.append({
-                '比赛日期': (
-                    card_day.isoformat() if card_day is not None
-                    else str(row.get('比赛时间') or '')[:10]
-                ),
-                '赛事编号': row.get('赛事编号', ''),
-                '联赛': row.get('联赛', ''),
-                '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
-                '推荐玩法': (
-                    '胜平负·平局' if market == '平局'
-                    else '总进球' if market == '大小球' else market
-                ),
-                '重点选项': f'★ {choice}',
-                '模型概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
-                '入选理由': (
-                    '平局概率≥32%且盘口稳定'
-                    if market == '平局' else (
-                        '大小球方向通过原门槛；转换为竞彩总进球最高概率项'
-                        if market == '大小球' else f'当日{market}通过门槛且概率最高'
-                    )
-                ),
-            })
+        day_text = card_day.isoformat() if card_day is not None else str(row.get('比赛时间') or '')[:10]
+        market_candidates = []
+
+        def add(market: str, choice: str, probability: float, reference: float) -> None:
+            if not choice or not np.isfinite(probability) or probability <= 0:
+                return
+            market_candidates.append((probability / reference, market, choice, probability))
+
+        regular_offered = all(np.isfinite(number(row, column)) for column in (
+            '官方胜奖金', '官方平奖金', '官方负奖金',
+        ))
+        if regular_offered:
+            add('胜平负', str(row.get('胜平负首选') or ''), number(row, '胜平负首选概率'), 0.625)
+        line = number(row, '官方让球数')
+        handicap_offered = np.isfinite(line) and all(
+            np.isfinite(number(row, column)) for column in (
+                '官方让胜奖金', '官方让平奖金', '官方让负奖金',
+            )
+        )
+        if handicap_offered:
+            handicap_pick = str(row.get('让球首选') or '').strip()
+            add('让球胜平负', f'{line:+g}球 {handicap_pick}', number(row, '让球首选概率'), 0.38)
+        add('总进球', str(row.get('竞彩总进球首选') or ''), number(row, '竞彩总进球首选概率'), 0.20)
+        add('比分', str(row.get('首选比分') or ''), number(row, '首选比分概率'), 0.12)
+        add('半全场', str(row.get('半全场首选') or ''), number(row, '半全场首选概率'), 0.35)
+        if not market_candidates:
+            continue
+        quality, market, choice, probability = max(market_candidates, key=lambda item: item[0])
+        monte_pick = first_simulation_pick(row, market)
+        formal_compare = choice.split()[-1] if market == '让球胜平负' else choice
+        monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
+        agreement = (
+            '无独立模拟数据' if not monte_pick else
+            f'同向（蒙特：{monte_pick}）' if formal_compare == monte_compare else
+            f'反向（蒙特：{monte_pick}）'
+        )
+        candidates_by_day.setdefault(day_text, []).append({
+            '_quality': quality,
+            '比赛日期': day_text,
+            '赛事编号': row.get('赛事编号', ''),
+            '联赛': row.get('联赛', ''),
+            '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
+            '推荐玩法': market,
+            '重点选项': f'★ {choice}',
+            '正式模型概率': f'{probability:.1%}',
+            '蒙特卡洛是否同向': agreement,
+            '入选理由': f'正式模型五玩法比较后，本场以{market}最优',
+        })
+    rows = []
+    for day_rows in candidates_by_day.values():
+        rows.extend(sorted(day_rows, key=lambda item: item['_quality'], reverse=True)[:8])
+    for row in rows:
+        row.pop('_quality', None)
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -876,29 +904,10 @@ def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
         # later software upgrade must not rewrite what yesterday displayed.
         if path.exists() and day_text < date.today().isoformat():
             continue
-        existing = pd.DataFrame()
-        if path.exists():
-            try:
-                existing = pd.read_csv(path)
-            except (OSError, pd.errors.EmptyDataError, UnicodeError):
-                existing = pd.DataFrame()
-        # Once a match has a directly playable official total-goals pick,
-        # replace its legacy over/under display in the same day's snapshot.
-        if (
-            not existing.empty
-            and {'赛事编号', '推荐玩法'}.issubset(existing.columns)
-            and {'赛事编号', '推荐玩法'}.issubset(rows.columns)
-        ):
-            converted = set(
-                rows.loc[rows['推荐玩法'].eq('总进球'), '赛事编号'].astype(str)
-            )
-            if converted:
-                legacy = (
-                    existing['赛事编号'].astype(str).isin(converted)
-                    & existing['推荐玩法'].eq('大小球')
-                )
-                existing = existing.loc[~legacy]
-        combined = pd.concat([existing, rows], ignore_index=True)
+        # For an active/future card, persist exactly the latest list shown.
+        # Accumulating selections from every sync would make tomorrow's review
+        # larger than the promised 6-8 fixtures and include superseded picks.
+        combined = rows.copy().reset_index(drop=True)
         keys = [column for column in ('赛事编号', '推荐玩法') if column in combined.columns]
         if keys:
             combined = combined.drop_duplicates(keys, keep='last')
@@ -921,7 +930,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     """Score the frozen recommendations that were actually shown yesterday."""
     columns = [
         '赛事编号', '联赛', '对阵', '推荐玩法', '昨日推荐',
-        '模型概率', '完场比分', '复盘结果', '命中状态',
+        '正式模型概率', '蒙特卡洛是否同向', '完场比分', '复盘结果', '命中状态',
     ]
     details, summary = load_yesterday_hit_report()
     review_date = str(summary.get('date') or '')
@@ -934,8 +943,8 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
         return pd.DataFrame(columns=columns), review_date
     detail_by_number = details.drop_duplicates('赛事编号', keep='last').set_index('赛事编号')
     result_columns = {
-        '胜负': '胜负', '胜平负·平局': '胜负',
-        '让球': '让球（首/次）', '大小球': '大小球',
+        '胜负': '胜负', '胜平负': '胜负', '胜平负·平局': '胜负',
+        '让球': '让球（首/次）', '让球胜平负': '让球（首/次）', '大小球': '大小球',
         '半全场': '半全场（首/次）', '比分': '比分（首/次1/次2/冷/进）',
     }
     rows = []
@@ -948,7 +957,10 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
                 '对阵': recommendation.get('对阵', ''),
                 '推荐玩法': recommendation.get('推荐玩法', ''),
                 '昨日推荐': recommendation.get('重点选项', ''),
-                '模型概率': recommendation.get('模型概率', ''),
+                '正式模型概率': recommendation.get(
+                    '正式模型概率', recommendation.get('模型概率', ''),
+                ),
+                '蒙特卡洛是否同向': recommendation.get('蒙特卡洛是否同向', ''),
                 '完场比分': '',
                 '复盘结果': '官方赛果未补齐（延期或未完场）',
                 '命中状态': '○ 待复盘',
@@ -976,7 +988,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             actual = actual_match.group(1) if actual_match else ''
             hit = bool(selected and actual and selected == actual)
             result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
-        elif market == '让球':
+        elif market in ('让球', '让球胜平负'):
             actual_match = re.search(r'→\s*让([胜平负])', result)
             actual = actual_match.group(1) if actual_match else ''
             selected_pick = selected[-1:] if selected[-1:] in '胜平负' else ''
@@ -995,7 +1007,10 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             '对阵': recommendation['对阵'],
             '推荐玩法': market,
             '昨日推荐': recommendation['重点选项'],
-            '模型概率': recommendation['模型概率'],
+            '正式模型概率': recommendation.get(
+                '正式模型概率', recommendation.get('模型概率', ''),
+            ),
+            '蒙特卡洛是否同向': recommendation.get('蒙特卡洛是否同向', ''),
             '完场比分': detail.get('完场比分', ''),
             '复盘结果': result,
             '命中状态': '✓ 命中' if hit else '✕ 未中',

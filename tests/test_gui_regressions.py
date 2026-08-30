@@ -357,6 +357,7 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
         '胜平负首选': '胜', '胜平负首选概率': 0.66,
         '模型平局概率': 0.33,
         '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
+        '官方让胜奖金': 2.0, '官方让平奖金': 3.2, '官方让负奖金': 3.4,
         '让球最大概率优势': 0.05,
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.27,
@@ -365,16 +366,10 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
         '原始最高概率比分概率': 0.16,
     }])
     result = sporttery_window.build_daily_recommendations(predictions)
-    assert result['推荐玩法'].tolist() == [
-        '胜负', '胜平负·平局', '让球', '总进球', '半全场', '比分',
-    ]
-    options = dict(zip(result['推荐玩法'], result['重点选项']))
-    assert options['胜负'] == '★ 胜'
-    assert options['胜平负·平局'] == '★ 平'
-    assert options['总进球'] == '★ 3球'
-    assert options['半全场'] == '★ 胜胜'
-    assert options['让球'] == '★ -1球 胜'
-    assert options['比分'] == '★ 2-1'
+    assert len(result) == 1
+    assert result.loc[0, '推荐玩法'] == '让球胜平负'
+    assert result.loc[0, '重点选项'] == '★ -1球 胜'
+    assert result.loc[0, '正式模型概率'] == '64.0%'
 
 
 def test_yesterday_recommendation_review_scores_only_the_primary_option(
@@ -386,6 +381,7 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
         '胜平负首选': '胜', '胜平负首选概率': 0.66,
         '模型平局概率': 0.33,
         '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
+        '官方让胜奖金': 2.0, '官方让平奖金': 3.2, '官方让负奖金': 3.4,
         '让球最大概率优势': 0.05,
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.27,
@@ -415,11 +411,7 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
     result, review_date = sporttery_window.build_yesterday_recommendation_review()
     assert review_date == '2026-08-27'
     statuses = dict(zip(result['推荐玩法'], result['命中状态']))
-    assert statuses == {
-        '胜负': '✓ 命中', '胜平负·平局': '✕ 未中',
-        '让球': '✕ 未中', '总进球': '✓ 命中',
-        '半全场': '✓ 命中', '比分': '✓ 命中',
-    }
+    assert statuses == {'让球胜平负': '✕ 未中'}
 
 
 def test_yesterday_recommendation_review_uses_lottery_card_date(
@@ -567,6 +559,7 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
         '联赛': '荷甲', '主队': '甲', '客队': '乙',
         '大小球首选': '大于2.5球', '大小球首选概率': .68,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': .26,
+        '竞彩总进球首选': '2球', '竞彩总进球首选概率': .24,
     }])
     monkeypatch.setattr(
         sporttery_window, '_daily_priority_aspects',
@@ -580,4 +573,22 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
     assert result.loc[0, '比赛日期'] == '2026-08-30'
     assert result.loc[0, '赛事编号'] == '周日018'
     assert result.loc[0, '推荐玩法'] == '总进球'
-    assert result.loc[0, '重点选项'] == '★ 3球'
+    assert result.loc[0, '重点选项'] == '★ 2球'
+
+
+def test_daily_recommendations_select_eight_unique_matches_with_one_play_each():
+    predictions = pd.DataFrame([{
+        '赛事编号': f'周日{index:03d}', '比赛时间': f'2099-08-30 {10 + index:02d}:00',
+        '联赛': '测试联赛', '主队': f'主{index}', '客队': f'客{index}',
+        '半全场首选': '胜胜', '半全场首选概率': 0.40 + index / 100,
+        '模拟半全场': '胜胜 45.0% / 平胜 20.0%',
+    } for index in range(1, 11)])
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert len(result) == 8
+    assert result['赛事编号'].nunique() == 8
+    assert result['推荐玩法'].eq('半全场').all()
+    assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
