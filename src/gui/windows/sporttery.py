@@ -1026,23 +1026,30 @@ def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
             continue
         path = DAILY_RECOMMENDATION_ROOT / f'{day_text}.csv'
         combined = rows.copy().reset_index(drop=True)
-        if path.exists() and day_text < date.today().isoformat():
+        preserving_past_card = day_text < date.today().isoformat()
+        if path.exists() and preserving_past_card:
             # Lottery cards legitimately continue after midnight.  Preserve
-            # already-frozen/kicked-off fixtures, but replace any match that is
-            # still being displayed with its latest pre-kickoff recommendation.
+            # every recommendation already shown on the previous card and only
+            # append fixtures that were never frozen.  Historical cards may
+            # legitimately contain multiple legacy plays for one match; never
+            # collapse or reinterpret those rows with today's selection rules.
             # Once no row from the old card is visible, this function receives
             # no group for that day and the audit file becomes immutable.
             existing = _load_daily_recommendation_snapshot(day_text)
             if not existing.empty and '赛事编号' in combined.columns:
-                active_numbers = set(combined['赛事编号'].astype(str))
-                existing = existing.loc[
-                    ~existing['赛事编号'].astype(str).isin(active_numbers)
+                frozen_numbers = set(existing['赛事编号'].astype(str))
+                unseen = combined.loc[
+                    ~combined['赛事编号'].astype(str).isin(frozen_numbers)
                 ]
-                combined = pd.concat([existing, combined], ignore_index=True, sort=False)
+                combined = pd.concat([existing, unseen], ignore_index=True, sort=False)
         # During the active card, persist exactly the latest list shown.  One
         # fixture owns one core play; a direction/play change replaces the old
         # row instead of inflating yesterday's review.
-        keys = ['赛事编号'] if '赛事编号' in combined.columns else []
+        keys = (
+            [column for column in ('赛事编号', '推荐玩法') if column in combined.columns]
+            if preserving_past_card else
+            (['赛事编号'] if '赛事编号' in combined.columns else [])
+        )
         if keys:
             combined = combined.drop_duplicates(keys, keep='last')
         temporary = path.with_suffix('.tmp')

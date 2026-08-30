@@ -206,6 +206,31 @@ def test_previous_card_merges_still_visible_after_midnight_matches(monkeypatch, 
     assert frozen.loc[frozen['赛事编号'].eq('周六026'), '重点选项'].item() == '★ +1球 负'
 
 
+def test_previous_card_never_collapses_legacy_multi_play_rows(monkeypatch, tmp_path):
+    monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
+    card_day = (pd.Timestamp.today().date() - pd.Timedelta(days=1)).isoformat()
+    legacy = pd.DataFrame([
+        {
+            '比赛日期': card_day, '赛事编号': '周六018',
+            '推荐玩法': '大小球', '重点选项': '★ 大于2.5球',
+        },
+        {
+            '比赛日期': card_day, '赛事编号': '周六018',
+            '推荐玩法': '半全场', '重点选项': '★ 胜胜',
+        },
+    ])
+    today_rule_for_same_delayed_match = pd.DataFrame([{
+        '比赛日期': card_day, '赛事编号': '周六018',
+        '推荐玩法': '胜平负', '重点选项': '★ 胜',
+    }])
+
+    sporttery_module._save_daily_recommendation_snapshot(legacy)
+    sporttery_module._save_daily_recommendation_snapshot(today_rule_for_same_delayed_match)
+    frozen = sporttery_module._load_daily_recommendation_snapshot(card_day)
+
+    assert frozen['推荐玩法'].tolist() == ['大小球', '半全场']
+
+
 def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):
     frozen = pd.DataFrame([{
         '比赛日期': '2026-08-29', '赛事编号': '周六018',
