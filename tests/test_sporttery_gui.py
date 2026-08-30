@@ -150,6 +150,7 @@ def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatc
         '赛事编号': '周六018', '比赛时间': '2026-08-30 23:00',
         '联赛': '挪威超级联赛', '主队': '维京', '客队': '奥勒松',
         '大小球首选': '大于2.5球', '大小球首选概率': 0.749,
+        '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.286,
     }])
     monkeypatch.setattr(
         sporttery_module, '_daily_priority_aspects',
@@ -161,23 +162,25 @@ def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatc
     )
 
     assert result.loc[0, '比赛日期'] == '2026-08-29'
-    assert result.loc[0, '模型概率'] == '74.9%'
+    assert result.loc[0, '推荐玩法'] == '总进球'
+    assert result.loc[0, '重点选项'] == '★ 3球'
+    assert result.loc[0, '模型概率'] == '28.6%'
 
 
 def test_daily_recommendation_snapshot_is_frozen_and_upserted(monkeypatch, tmp_path):
     monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
     first = pd.DataFrame([{
-        '比赛日期': '2026-08-29', '赛事编号': '周六001',
+        '比赛日期': '2099-08-29', '赛事编号': '周六001',
         '推荐玩法': '胜负', '重点选项': '★ 胜', '模型概率': '60.0%',
     }])
     later = pd.DataFrame([{
-        '比赛日期': '2026-08-29', '赛事编号': '周六002',
+        '比赛日期': '2099-08-29', '赛事编号': '周六002',
         '推荐玩法': '比分', '重点选项': '★ 1-1', '模型概率': '13.0%',
     }])
     sporttery_module._save_daily_recommendation_snapshot(first)
     sporttery_module._save_daily_recommendation_snapshot(later)
 
-    frozen = sporttery_module._load_daily_recommendation_snapshot('2026-08-29')
+    frozen = sporttery_module._load_daily_recommendation_snapshot('2099-08-29')
 
     assert frozen['赛事编号'].tolist() == ['周六001', '周六002']
 
@@ -206,3 +209,23 @@ def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):
     assert review.loc[0, '赛事编号'] == '周六018'
     assert review.loc[0, '命中状态'] == '○ 待复盘'
     assert '延期或未完场' in review.loc[0, '复盘结果']
+
+
+def test_official_total_goals_replaces_same_match_legacy_over_under(
+        monkeypatch, tmp_path):
+    monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
+    legacy = pd.DataFrame([{
+        '比赛日期': '2099-08-30', '赛事编号': '周日013',
+        '推荐玩法': '大小球', '重点选项': '★ 大于2.5球', '模型概率': '80.2%',
+    }])
+    official = pd.DataFrame([{
+        '比赛日期': '2099-08-30', '赛事编号': '周日013',
+        '推荐玩法': '总进球', '重点选项': '★ 3球', '模型概率': '24.0%',
+    }])
+    sporttery_module._save_daily_recommendation_snapshot(legacy)
+    sporttery_module._save_daily_recommendation_snapshot(official)
+
+    frozen = sporttery_module._load_daily_recommendation_snapshot('2099-08-30')
+
+    assert frozen['推荐玩法'].tolist() == ['总进球']
+    assert frozen['重点选项'].tolist() == ['★ 3球']

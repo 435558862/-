@@ -1277,7 +1277,9 @@ def _monte_carlo_summary(
         if len(rates) != 2 or not all(np.isfinite(value) and value > 0 for value in rates):
             return {
                 '模拟次数': 0, '模拟Top3比分': '', '模拟胜负': '', '模拟让球': '',
-                '模拟总进球': '', '模拟半全场': '', '模拟可信度': '',
+                '模拟总进球': '', '模拟竞彩总进球': '',
+                '模拟竞彩总进球概率': float('nan'),
+                '模拟半全场': '', '模拟可信度': '',
                 '模拟最高赛果概率': float('nan'),
                 '模拟模型来源': '历史攻防样本不足（未使用赔率/模型兜底）',
             }
@@ -1325,6 +1327,14 @@ def _monte_carlo_summary(
         sample_weights[totals >= 4].sum() / weight_total,
     ])
     total_labels = ('0-1球', '2-3球', '4球以上')
+    lottery_total_index = np.minimum(totals, 7).astype(int)
+    lottery_total_probability = (
+        np.bincount(
+            lottery_total_index, weights=sample_weights, minlength=8,
+        ) / weight_total
+    )
+    lottery_total_pick = int(np.argmax(lottery_total_probability))
+    lottery_total_labels = ('0球', '1球', '2球', '3球', '4球', '5球', '6球', '7+球')
 
     half_result = np.where(
         half_homes > half_aways, 0,
@@ -1373,6 +1383,8 @@ def _monte_carlo_summary(
             f'{total_labels[int(np.argmax(total_bands))]} '
             f'{float(total_bands.max()):.1%}'
         ),
+        '模拟竞彩总进球': lottery_total_labels[lottery_total_pick],
+        '模拟竞彩总进球概率': float(lottery_total_probability[lottery_total_pick]),
         '模拟半全场': ' / '.join(
             f'{HALF_FULL_LABELS[index]} {half_probability[index]:.1%}'
             for index in half_top
@@ -1398,12 +1410,16 @@ def backfill_missing_simulations(predictions: pd.DataFrame) -> pd.DataFrame:
     result = predictions.copy()
     simulation_columns = (
         '模拟次数', '模拟Top3比分', '模拟胜负', '模拟让球', '模拟总进球',
+        '模拟竞彩总进球', '模拟竞彩总进球概率',
         '模拟半全场', '模拟可信度', '模拟最高赛果概率', '模拟模型来源',
     )
     for column in simulation_columns:
         if column not in result.columns:
             result[column] = ''
-    missing = result['模拟胜负'].fillna('').astype(str).str.strip().eq('')
+    missing = (
+        result['模拟胜负'].fillna('').astype(str).str.strip().eq('')
+        | result['模拟竞彩总进球'].fillna('').astype(str).str.strip().eq('')
+    )
     for index, row in result.loc[missing].iterrows():
         raw_date = str(row.get('比赛时间') or '')[:10]
         try:

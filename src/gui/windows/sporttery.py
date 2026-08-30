@@ -817,7 +817,10 @@ def build_daily_recommendations(
         '胜负': ('胜平负首选', '胜平负首选概率'),
         '平局': ('__draw__', '模型平局概率'),
         '让球': ('让球首选', '让球首选概率'),
-        '大小球': ('大小球首选', '大小球首选概率'),
+        # The candidate remains selected by the established over/under model;
+        # the user-facing pick is converted to China's official 0..7+ total
+        # goals market using the independent Monte Carlo distribution.
+        '大小球': ('模拟竞彩总进球', '模拟竞彩总进球概率'),
         '比分': ('首选比分', '原始最高概率比分概率'),
         '半全场': ('半全场首选', '半全场首选概率'),
     }
@@ -841,12 +844,18 @@ def build_daily_recommendations(
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
-                '推荐玩法': '胜平负·平局' if market == '平局' else market,
+                '推荐玩法': (
+                    '胜平负·平局' if market == '平局'
+                    else '总进球' if market == '大小球' else market
+                ),
                 '重点选项': f'★ {choice}',
                 '模型概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
                 '入选理由': (
                     '平局概率≥32%且盘口稳定'
-                    if market == '平局' else f'当日{market}通过门槛且概率最高'
+                    if market == '平局' else (
+                        '大小球方向通过原门槛；转换为竞彩总进球最高概率项'
+                        if market == '大小球' else f'当日{market}通过门槛且概率最高'
+                    )
                 ),
             })
     return pd.DataFrame(rows, columns=columns)
@@ -862,12 +871,33 @@ def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
         if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', day_text):
             continue
         path = DAILY_RECOMMENDATION_ROOT / f'{day_text}.csv'
+        # Completed card days are audit records. A postponed match can still
+        # appear in today's live list under its original card number, but a
+        # later software upgrade must not rewrite what yesterday displayed.
+        if path.exists() and day_text < date.today().isoformat():
+            continue
         existing = pd.DataFrame()
         if path.exists():
             try:
                 existing = pd.read_csv(path)
             except (OSError, pd.errors.EmptyDataError, UnicodeError):
                 existing = pd.DataFrame()
+        # Once a match has a directly playable official total-goals pick,
+        # replace its legacy over/under display in the same day's snapshot.
+        if (
+            not existing.empty
+            and {'赛事编号', '推荐玩法'}.issubset(existing.columns)
+            and {'赛事编号', '推荐玩法'}.issubset(rows.columns)
+        ):
+            converted = set(
+                rows.loc[rows['推荐玩法'].eq('总进球'), '赛事编号'].astype(str)
+            )
+            if converted:
+                legacy = (
+                    existing['赛事编号'].astype(str).isin(converted)
+                    & existing['推荐玩法'].eq('大小球')
+                )
+                existing = existing.loc[~legacy]
         combined = pd.concat([existing, rows], ignore_index=True)
         keys = [column for column in ('赛事编号', '推荐玩法') if column in combined.columns]
         if keys:
@@ -926,9 +956,18 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             continue
         detail = detail_by_number.loc[number]
         market = recommendation['推荐玩法']
-        result = str(detail.get(result_columns[market]) or '')
+        result = str(detail.get(result_columns.get(market, '')) or '')
         selected = str(recommendation['重点选项'] or '').replace('★', '').strip()
-        if market == '比分':
+        if market == '总进球':
+            actual_score = str(detail.get('完场比分') or '').strip()
+            score_match = re.fullmatch(r'(\d+)-(\d+)', actual_score)
+            actual_total = sum(map(int, score_match.groups())) if score_match else None
+            actual = '7+球' if actual_total is not None and actual_total >= 7 else (
+                f'{actual_total}球' if actual_total is not None else ''
+            )
+            hit = bool(selected and actual and selected == actual)
+            result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
+        elif market == '比分':
             actual = str(detail.get('完场比分') or '').strip()
             hit = bool(selected and actual and selected == actual)
             result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'

@@ -327,6 +327,12 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(first['模拟次数'], 10_000)
         self.assertEqual(len(first['模拟Top3比分'].split(' / ')), 3)
         self.assertTrue(first['模拟让球'])
+        self.assertIn(
+            first['模拟竞彩总进球'],
+            ('0球', '1球', '2球', '3球', '4球', '5球', '6球', '7+球'),
+        )
+        self.assertGreater(first['模拟竞彩总进球概率'], 0)
+        self.assertLessEqual(first['模拟竞彩总进球概率'], 1)
         self.assertTrue(first['模拟模型来源'].startswith('历史攻防双泊松蒙特卡洛'))
         self.assertIn('未使用赔率/正式模型/首发校正', first['模拟模型来源'])
 
