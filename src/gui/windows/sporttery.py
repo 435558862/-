@@ -2112,8 +2112,13 @@ class SportteryPredictionsDialog(QDialog):
                     f'\n每日复盘：本次结算 {int(learning.get("newly_settled") or 0)} 场，'
                     f'累计 {int(learning.get("settled_samples") or 0)} 场，'
                     f'等待官方赛果 {int(learning.get("pending_samples") or 0)} 场；'
+                    f'有效训练样本 {int(learning.get("model_samples") or 0)} 场；'
                     f'{learning.get("model_status", "积累样本中")}。'
                 )
+                next_training = int(learning.get('next_training_at') or 0)
+                model_samples = int(learning.get('model_samples') or 0)
+                if next_training > model_samples:
+                    learning_message += f' 距下轮自动训练还差{next_training-model_samples}场。'
             except (OSError, ValueError, TypeError):
                 pass
         QMessageBox.information(
@@ -2147,11 +2152,19 @@ class SportteryPredictionsDialog(QDialog):
             f'等待官方赛果 {int(result.get("pending_samples") or 0)} 场，'
             f'胜平负历史命中率 {accuracy_text}（累计已结算样本）。\n'
             f'本次补入官方市场样本 {int(result.get("new_official_history") or 0)} 场，'
-            f'通用训练样本累计 {int(result.get("total_training_samples") or 0)} 场。\n'
+            f'累计收集 {int(result.get("total_training_samples") or 0)} 场，'
+            f'其中有效训练样本 {int(result.get("model_samples") or 0)} 场。\n'
             f'模型状态：{result.get("model_status", "积累样本中")}。\n'
             f'模型迭代：已审计 {int(result.get("evolution_attempts") or 0)} 次，'
             f'当前采用第 {int(result.get("champion_generation") or 0)} 代。'
         )
+        next_training = int(result.get('next_training_at') or 0)
+        model_samples = int(result.get('model_samples') or 0)
+        if next_training > model_samples:
+            message += (
+                f'\n自动训练：还需新增 {next_training - model_samples} 场有效完场样本，'
+                '达到后自动启动冠军/挑战者时间外审计。'
+            )
         selection_rows = (result.get('selection_profile') or {}).get('rows') or []
         recommended = [
             row for row in selection_rows
