@@ -132,7 +132,7 @@ def test_yesterday_score_review_compares_only_visible_priority_pick(monkeypatch,
         lambda frame, future_only=False: pd.DataFrame([{
             '赛事编号': '周六004', '联赛': '韩职',
             '对阵': '蔚山现代 vs 金泉尚武', '推荐玩法': '比分',
-            '重点选项': '★ 1-1', '模型概率': '13.4%',
+            '重点选项': '★ 1-1', '该玩法概率': '13.4%',
         }]),
     )
 
@@ -142,3 +142,23 @@ def test_yesterday_score_review_compares_only_visible_priority_pick(monkeypatch,
     assert review.loc[0, '昨日推荐'] == '★ 1-1'
     assert review.loc[0, '复盘结果'] == '1-1 → 3-1（未中）'
     assert review.loc[0, '命中状态'] == '✕ 未中'
+
+
+def test_daily_recommendation_shows_actual_kickoff_not_ticket_card_date(monkeypatch):
+    predictions = pd.DataFrame([{
+        '赛事编号': '周六018', '比赛时间': '2026-08-30 23:00',
+        '联赛': '挪威超级联赛', '主队': '维京', '客队': '奥勒松',
+        '大小球首选': '大于2.5球', '大小球首选概率': 0.749,
+    }])
+    monkeypatch.setattr(
+        sporttery_module, '_daily_priority_aspects',
+        lambda frame: pd.Series([['大小球']], index=frame.index),
+    )
+
+    result = sporttery_module.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert result.loc[0, '实际开赛时间'] == '2026-08-30 23:00'
+    assert result.loc[0, '该玩法概率'] == '74.9%'
+    assert '比赛日期' not in result.columns

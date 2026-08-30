@@ -806,7 +806,7 @@ def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
     """Build one explicit recommendation row per selected match and market."""
-    columns = ['比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项', '模型概率', '入选理由']
+    columns = ['实际开赛时间', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项', '该玩法概率', '入选理由']
     if predictions.empty:
         return pd.DataFrame(columns=columns)
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
@@ -823,7 +823,6 @@ def build_daily_recommendations(
     rows = []
     for index, labels in priorities.items():
         row = active.loc[index]
-        card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
         for market in labels:
             choice_column, probability_column = specs[market]
             choice = '平' if choice_column == '__draw__' else str(row.get(choice_column) or '').strip()
@@ -832,17 +831,17 @@ def build_daily_recommendations(
                 line_text = '' if pd.isna(line) else f'{float(line):+g}'
                 choice = f'{line_text}球 {choice}'.strip()
             probability = pd.to_numeric(row.get(probability_column), errors='coerce')
+            kickoff_text = str(row.get('比赛时间') or '').strip()
             rows.append({
-                '比赛日期': (
-                    card_day.isoformat() if card_day is not None
-                    else str(row.get('比赛时间') or '')[:10]
-                ),
+                # Ticket labels such as 周六 may include matches kicking off on
+                # Sunday in China.  Display the actual kickoff, not card date.
+                '实际开赛时间': kickoff_text[:16],
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
                 '推荐玩法': '胜平负·平局' if market == '平局' else market,
                 '重点选项': f'★ {choice}',
-                '模型概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
+                '该玩法概率': '' if pd.isna(probability) else f'{float(probability):.1%}',
                 '入选理由': (
                     '平局概率≥32%且盘口稳定'
                     if market == '平局' else f'当日{market}通过门槛且概率最高'
@@ -939,7 +938,7 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             '对阵': recommendation['对阵'],
             '推荐玩法': market,
             '昨日推荐': recommendation['重点选项'],
-            '模型概率': recommendation['模型概率'],
+            '模型概率': recommendation['该玩法概率'],
             '完场比分': detail.get('完场比分', ''),
             '复盘结果': result,
             '命中状态': '✓ 命中' if hit else '✕ 未中',
