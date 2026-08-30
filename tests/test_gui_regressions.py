@@ -355,9 +355,17 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
         '联赛': '英超', '主队': '阿森纳', '客队': '切尔西',
         '建议状态': '精选主推', '盘口门控': '稳定',
         '胜平负首选': '胜', '胜平负首选概率': 0.66,
-        '模型平局概率': 0.33,
+        '模型主胜概率': 0.66, '模型平局概率': 0.22, '模型客胜概率': 0.12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40, '首次采集负奖金': 4.20,
+        '官方胜奖金': 1.80, '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 68.0%',
         '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
+        '模型让胜概率': 0.64, '模型让平概率': 0.20, '模型让负概率': 0.16,
+        '首次采集让球数': -1,
+        '首次采集让胜奖金': 2.10, '首次采集让平奖金': 3.10,
+        '首次采集让负奖金': 3.20,
         '官方让胜奖金': 2.0, '官方让平奖金': 3.2, '官方让负奖金': 3.4,
+        '模拟让球': '让胜 65.0%',
         '让球最大概率优势': 0.05,
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.27,
@@ -379,9 +387,17 @@ def test_yesterday_recommendation_review_scores_only_the_primary_option(
         '联赛': '英超', '主队': '阿森纳', '客队': '切尔西',
         '建议状态': '精选主推', '盘口门控': '稳定',
         '胜平负首选': '胜', '胜平负首选概率': 0.66,
-        '模型平局概率': 0.33,
+        '模型主胜概率': 0.66, '模型平局概率': 0.22, '模型客胜概率': 0.12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40, '首次采集负奖金': 4.20,
+        '官方胜奖金': 1.80, '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 68.0%',
         '官方让球数': -1, '让球首选': '胜', '让球首选概率': 0.64,
+        '模型让胜概率': 0.64, '模型让平概率': 0.20, '模型让负概率': 0.16,
+        '首次采集让球数': -1,
+        '首次采集让胜奖金': 2.10, '首次采集让平奖金': 3.10,
+        '首次采集让负奖金': 3.20,
         '官方让胜奖金': 2.0, '官方让平奖金': 3.2, '官方让负奖金': 3.4,
+        '模拟让球': '让胜 65.0%',
         '让球最大概率优势': 0.05,
         '大小球首选': '大于2.5球', '大小球首选概率': 0.61,
         '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.27,
@@ -563,9 +579,12 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
     predictions = pd.DataFrame([{
         '赛事编号': '周日018', '比赛时间': '2026-08-31 01:00',
         '联赛': '荷甲', '主队': '甲', '客队': '乙',
-        '大小球首选': '大于2.5球', '大小球首选概率': .68,
-        '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': .26,
-        '竞彩总进球首选': '2球', '竞彩总进球首选概率': .24,
+        '盘口门控': '稳定', '胜平负首选': '胜', '胜平负首选概率': .68,
+        '模型主胜概率': .68, '模型平局概率': .20, '模型客胜概率': .12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
+        '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 69.0%',
     }])
     monkeypatch.setattr(
         sporttery_window, '_daily_priority_aspects',
@@ -578,23 +597,75 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
 
     assert result.loc[0, '比赛日期'] == '2026-08-30'
     assert result.loc[0, '赛事编号'] == '周日018'
-    assert result.loc[0, '推荐玩法'] == '总进球'
-    assert result.loc[0, '重点选项'] == '★ 2球'
+    assert result.loc[0, '推荐玩法'] == '胜平负'
+    assert result.loc[0, '重点选项'] == '★ 胜'
 
 
-def test_daily_recommendations_select_eight_unique_matches_with_one_play_each():
+def test_daily_recommendations_select_six_triple_confirmed_matches():
     predictions = pd.DataFrame([{
         '赛事编号': f'周日{index:03d}', '比赛时间': f'2099-08-30 {10 + index:02d}:00',
         '联赛': '测试联赛', '主队': f'主{index}', '客队': f'客{index}',
-        '半全场首选': '胜胜', '半全场首选概率': 0.40 + index / 100,
-        '模拟半全场': '胜胜 45.0% / 平胜 20.0%',
+        '盘口门控': '稳定', '胜平负首选': '胜',
+        '胜平负首选概率': 0.55 + index / 100,
+        '模型主胜概率': 0.55 + index / 100,
+        '模型平局概率': 0.27 - index / 200,
+        '模型客胜概率': 0.18 - index / 200,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
+        '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 62.0% / 平 23.0%',
     } for index in range(1, 11)])
 
     result = sporttery_window.build_daily_recommendations(
         predictions, future_only=False,
     )
 
-    assert len(result) == 8
-    assert result['赛事编号'].nunique() == 8
-    assert result['推荐玩法'].eq('半全场').all()
+    assert len(result) == 6
+    assert result['赛事编号'].nunique() == 6
+    assert result['推荐玩法'].eq('胜平负').all()
     assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
+    assert result['盘口验证'].str.startswith('同向支持').all()
+
+
+def test_daily_recommendations_reject_monte_or_market_conflict():
+    base = {
+        '比赛时间': '2099-08-30 18:00', '联赛': '测试联赛',
+        '主队': '主队', '客队': '客队', '盘口门控': '稳定',
+        '胜平负首选': '胜', '胜平负首选概率': .68,
+        '模型主胜概率': .68, '模型平局概率': .20, '模型客胜概率': .12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20,
+    }
+    predictions = pd.DataFrame([
+        {
+            **base, '赛事编号': '周日001', '模拟胜负': '负 55.0%',
+            '官方胜奖金': 1.80, '官方平奖金': 3.50, '官方负奖金': 4.40,
+        },
+        {
+            **base, '赛事编号': '周日002', '模拟胜负': '胜 65.0%',
+            '官方胜奖金': 3.20, '官方平奖金': 3.00, '官方负奖金': 2.10,
+        },
+    ])
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert result.empty
+
+
+def test_daily_recommendations_do_not_promote_score_or_half_full():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日001', '比赛时间': '2099-08-30 18:00',
+        '联赛': '测试联赛', '主队': '主队', '客队': '客队',
+        '比分推荐状态': '推荐', '首选比分': '2-1', '首选比分概率': .30,
+        '模拟Top3比分': '2-1 30.0% / 1-0 20.0%',
+        '半全场首选': '胜胜', '半全场首选概率': .70,
+        '模拟半全场': '胜胜 72.0%',
+    }])
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert result.empty

@@ -149,24 +149,22 @@ def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatc
     predictions = pd.DataFrame([{
         '赛事编号': '周六018', '比赛时间': '2026-08-30 23:00',
         '联赛': '挪威超级联赛', '主队': '维京', '客队': '奥勒松',
-        '大小球首选': '大于2.5球', '大小球首选概率': 0.749,
-        '模拟竞彩总进球': '3球', '模拟竞彩总进球概率': 0.286,
-        '竞彩总进球首选': '2球', '竞彩总进球首选概率': 0.251,
+        '盘口门控': '稳定', '胜平负首选': '胜', '胜平负首选概率': .68,
+        '模型主胜概率': .68, '模型平局概率': .20, '模型客胜概率': .12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
+        '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 69.0%',
     }])
-    monkeypatch.setattr(
-        sporttery_module, '_daily_priority_aspects',
-        lambda frame: pd.Series([['大小球']], index=frame.index),
-    )
-
     result = sporttery_module.build_daily_recommendations(
         predictions, future_only=False,
     )
 
     assert result.loc[0, '比赛日期'] == '2026-08-29'
-    assert result.loc[0, '推荐玩法'] == '总进球'
-    assert result.loc[0, '重点选项'] == '★ 2球'
-    assert result.loc[0, '正式模型概率'] == '25.1%'
-    assert result.loc[0, '蒙特卡洛是否同向'] == '反向（蒙特：3球）'
+    assert result.loc[0, '推荐玩法'] == '胜平负'
+    assert result.loc[0, '重点选项'] == '★ 胜'
+    assert result.loc[0, '正式模型概率'] == '68.0%'
+    assert result.loc[0, '蒙特卡洛是否同向'] == '同向（蒙特：胜）'
 
 
 def test_daily_recommendation_snapshot_keeps_latest_displayed_list(monkeypatch, tmp_path):

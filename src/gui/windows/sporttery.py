@@ -826,10 +826,16 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select 6-8 fixtures per card day, with one official play per fixture."""
+    """Select at most six triple-confirmed fixtures per card day.
+
+    The formal model owns the pick.  Market movement and the independent
+    Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
+    score and half/full remain visible in the main table but are deliberately
+    excluded from the high-hit-rate daily list.
+    """
     columns = [
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
-        '正式模型概率', '蒙特卡洛是否同向', '入选理由',
+        '正式模型概率', '盘口验证', '蒙特卡洛是否同向', '入选理由',
     ]
     if predictions.empty:
         return pd.DataFrame(columns=columns)
@@ -843,28 +849,82 @@ def build_daily_recommendations(
     def first_simulation_pick(row: pd.Series, market: str) -> str:
         column = {
             '胜平负': '模拟胜负', '让球胜平负': '模拟让球',
-            '总进球': '模拟竞彩总进球', '比分': '模拟Top3比分',
-            '半全场': '模拟半全场',
         }[market]
         text = str(row.get(column) or '').strip()
         return re.split(r'[\s/｜]', text, maxsplit=1)[0]
+
+    def implied(row: pd.Series, columns_: tuple[str, str, str]) -> np.ndarray | None:
+        odds = np.array([number(row, column) for column in columns_], dtype=float)
+        if not np.isfinite(odds).all() or np.any(odds <= 1.0):
+            return None
+        inverse = 1.0 / odds
+        return inverse / inverse.sum()
+
+    def formal_margin(row: pd.Series, columns_: tuple[str, str, str]) -> float:
+        values = np.array([number(row, column) for column in columns_], dtype=float)
+        values = values[np.isfinite(values)]
+        if len(values) < 2:
+            return 0.0
+        values.sort()
+        return float(values[-1] - values[-2])
+
+    def market_support(row: pd.Series, market: str, formal_pick: str) -> tuple[bool, str]:
+        gate = str(row.get('盘口门控') or '')
+        if any(word in gate for word in ('冲突', '震荡', '不稳定')):
+            return False, gate or '盘口不稳定'
+        codes = {'胜': 0, '平': 1, '负': 2}
+        pick_index = codes.get(formal_pick)
+        if pick_index is None:
+            return False, '正式方向无法核验'
+        if market == '胜平负':
+            opening_columns = ('首次采集胜奖金', '首次采集平奖金', '首次采集负奖金')
+            current_columns = ('官方胜奖金', '官方平奖金', '官方负奖金')
+        else:
+            opening_line = number(row, '首次采集让球数')
+            current_line = number(row, '官方让球数')
+            if not np.isfinite(opening_line) or not np.isfinite(current_line):
+                return False, '缺少让球线快照'
+            if not np.isclose(opening_line, current_line):
+                return False, f'让球线变化 {opening_line:+g}→{current_line:+g}'
+            opening_columns = ('首次采集让胜奖金', '首次采集让平奖金', '首次采集让负奖金')
+            current_columns = ('官方让胜奖金', '官方让平奖金', '官方让负奖金')
+        opening = implied(row, opening_columns)
+        current = implied(row, current_columns)
+        if opening is None or current is None:
+            return False, '缺少初盘或当前盘口'
+        if int(np.argmax(current)) != pick_index:
+            return False, '当前盘口首选与正式模型不同向'
+        movement = float(current[pick_index] - opening[pick_index])
+        if movement < -0.005:
+            return False, f'正式方向走弱 {movement:+.1%}'
+        return True, f'同向支持 {movement:+.1%}'
 
     candidates_by_day: dict[str, list[dict]] = {}
     for _, row in active.iterrows():
         card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
         day_text = card_day.isoformat() if card_day is not None else str(row.get('比赛时间') or '')[:10]
-        market_candidates = []
+        market_candidates: list[tuple[float, str, str, float, float]] = []
 
-        def add(market: str, choice: str, probability: float, reference: float) -> None:
+        def add(
+                market: str, choice: str, probability: float, reference: float,
+                probability_columns: tuple[str, str, str],
+        ) -> None:
             if not choice or not np.isfinite(probability) or probability <= 0:
                 return
-            market_candidates.append((probability / reference, market, choice, probability))
+            margin = formal_margin(row, probability_columns)
+            market_candidates.append((
+                probability / reference + margin, market, choice, probability, margin,
+            ))
 
         regular_offered = all(np.isfinite(number(row, column)) for column in (
             '官方胜奖金', '官方平奖金', '官方负奖金',
         ))
         if regular_offered:
-            add('胜平负', str(row.get('胜平负首选') or ''), number(row, '胜平负首选概率'), 0.625)
+            add(
+                '胜平负', str(row.get('胜平负首选') or ''),
+                number(row, '胜平负首选概率'), 0.625,
+                ('模型主胜概率', '模型平局概率', '模型客胜概率'),
+            )
         line = number(row, '官方让球数')
         handicap_offered = np.isfinite(line) and all(
             np.isfinite(number(row, column)) for column in (
@@ -873,19 +933,20 @@ def build_daily_recommendations(
         )
         if handicap_offered:
             handicap_pick = str(row.get('让球首选') or '').strip()
-            add('让球胜平负', f'{line:+g}球 {handicap_pick}', number(row, '让球首选概率'), 0.38)
-        add('总进球', str(row.get('竞彩总进球首选') or ''), number(row, '竞彩总进球首选概率'), 0.20)
-        add('比分', str(row.get('首选比分') or ''), number(row, '首选比分概率'), 0.12)
-        add('半全场', str(row.get('半全场首选') or ''), number(row, '半全场首选概率'), 0.35)
-        for quality, market, choice, probability in market_candidates:
+            add(
+                '让球胜平负', f'{line:+g}球 {handicap_pick}',
+                number(row, '让球首选概率'), 0.38,
+                ('模型让胜概率', '模型让平概率', '模型让负概率'),
+            )
+        for quality, market, choice, probability, margin in market_candidates:
             monte_pick = first_simulation_pick(row, market)
             formal_compare = choice.split()[-1] if market == '让球胜平负' else choice
             monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
-            agreement = (
-                '无独立模拟数据' if not monte_pick else
-                f'同向（蒙特：{monte_pick}）' if formal_compare == monte_compare else
-                f'反向（蒙特：{monte_pick}）'
-            )
+            if not monte_pick or formal_compare != monte_compare:
+                continue
+            supported, support_text = market_support(row, market, formal_compare)
+            if not supported:
+                continue
             candidates_by_day.setdefault(day_text, []).append({
                 '_quality': quality,
                 '比赛日期': day_text,
@@ -895,26 +956,19 @@ def build_daily_recommendations(
                 '推荐玩法': market,
                 '重点选项': f'★ {choice}',
                 '正式模型概率': f'{probability:.1%}',
-                '蒙特卡洛是否同向': agreement,
-                '入选理由': f'正式模型五玩法横向比较；本场仅保留{market}',
+                '盘口验证': support_text,
+                '蒙特卡洛是否同向': f'同向（蒙特：{monte_pick}）',
+                '入选理由': (
+                    f'正式模型定方向；领先第二方向{margin:.1%}；'
+                    '盘口与独立模拟双重同向'
+                ),
             })
     rows = []
     for day_rows in candidates_by_day.values():
         ranked = sorted(day_rows, key=lambda item: item['_quality'], reverse=True)
         selected, used_matches = [], set()
-        # Guarantee useful coverage of every official play type before filling
-        # the remaining slots by overall formal-model strength.
-        for market in ('胜平负', '让球胜平负', '总进球', '比分', '半全场'):
-            choice = next((
-                item for item in ranked
-                if item['推荐玩法'] == market
-                and str(item['赛事编号']) not in used_matches
-            ), None)
-            if choice is not None:
-                selected.append(choice)
-                used_matches.add(str(choice['赛事编号']))
         for item in ranked:
-            if len(selected) >= 8:
+            if len(selected) >= 6:
                 break
             number = str(item['赛事编号'])
             if number in used_matches:
