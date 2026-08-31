@@ -9,7 +9,8 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from src.network.fixtures.sporttery import (
-    SportteryMobileClient, latest_had_odds, latest_hhad_odds,
+    CALCULATOR_API, SELLING_API, SportteryMobileClient, SportteryScraper,
+    latest_had_odds, latest_hhad_odds,
 )
 from src.services.daily_sporttery import (
     _cached_league_model,
@@ -48,6 +49,40 @@ class DailySportteryTests(unittest.TestCase):
     def tearDown(self):
         self._state_path_patch.stop()
         self._state_directory.cleanup()
+
+    def test_browser_fetch_accepts_string_success_code(self):
+        class FakeDriver:
+            def execute_async_script(self, script, url):
+                return {
+                    'ok': True,
+                    'data': {'errorCode': '0', 'errorMessage': '处理成功', 'value': []},
+                }
+
+        scraper = object.__new__(SportteryScraper)
+        scraper._driver = FakeDriver()
+        scraper._timeout = 0.1
+        result = scraper._fetch_json(CALCULATOR_API)
+        self.assertEqual(result['errorCode'], '0')
+
+    def test_browser_selling_matches_uses_calculator_feed_without_bonus_round_trips(self):
+        scraper = object.__new__(SportteryScraper)
+        calls = []
+
+        def fetch(url):
+            calls.append(url)
+            if url == CALCULATOR_API:
+                return {'value': {'matchInfoList': [{
+                    'subMatchList': [{
+                        'matchId': '7', 'had': {'h': '1.80', 'd': '3.40', 'a': '4.20'},
+                    }],
+                }]}}
+            return {'value': [{'matchId': '7', 'homeTeamName': 'A'}]}
+
+        scraper._fetch_json = fetch
+        result = scraper.selling_matches()
+        self.assertEqual(result[0]['had']['h'], '1.80')
+        self.assertEqual(result[0]['homeTeamName'], 'A')
+        self.assertEqual(calls, [CALCULATOR_API, SELLING_API])
 
     def test_official_feeds_are_unioned_instead_of_using_calculator_subset(self):
         client = SportteryMobileClient(retries=1)

@@ -608,7 +608,7 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
     assert result.loc[0, '重点选项'] == '★ 胜'
 
 
-def test_daily_recommendations_do_not_fill_eight_with_negative_value_matches():
+def test_daily_recommendations_fill_card_with_explicit_observations():
     predictions = pd.DataFrame([{
         '赛事编号': f'周日{index:03d}', '比赛时间': f'2099-08-30 {10 + index:02d}:00',
         '联赛': '测试联赛', '主队': f'主{index}', '客队': f'客{index}',
@@ -627,15 +627,19 @@ def test_daily_recommendations_do_not_fill_eight_with_negative_value_matches():
         predictions, future_only=False,
     )
 
-    assert len(result) == 5
-    assert result['赛事编号'].nunique() == 5
+    assert len(result) == 8
+    assert result['赛事编号'].nunique() == 8
     assert result['推荐玩法'].eq('胜平负').all()
-    assert result['推荐等级'].eq('核心重点').all()
+    assert set(result['推荐等级']) <= {'核心重点', '可买优选', '综合观察'}
     assert result['赛事编号'].tolist() == [
-        '周日010', '周日009', '周日008', '周日007', '周日006',
+        '周日010', '周日009', '周日008', '周日007',
+        '周日006', '周日005', '周日004', '周日003',
     ]
     assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
-    assert result['盘口验证'].str.contains('支持').all()
+    assert result['盘口验证'].str.contains('支持|走强').all()
+    assert result.loc[
+        result['推荐等级'].eq('综合观察'), '建议仓位'
+    ].eq('不投注').all()
 
 
 def test_daily_recommendations_reject_high_lineup_warning():

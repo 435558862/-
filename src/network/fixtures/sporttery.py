@@ -295,7 +295,17 @@ class SportteryScraper:
         self._timeout = timeout
 
     def __enter__(self):
-        self._driver.get(SPORTTERY_PAGE)
+        try:
+            self._driver.get(SPORTTERY_PAGE)
+        except Exception as error:
+            # The public page can hang while its API remains reachable. Stop
+            # document loading and keep the browser context for the JSON fetch
+            # instead of turning a transient page timeout into a dead sync.
+            logging.warning('竞彩官方网页加载超时，继续尝试实时接口：%s', error)
+            try:
+                self._driver.execute_script('window.stop()')
+            except Exception:
+                pass
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -324,15 +334,41 @@ class SportteryScraper:
         if not result or not result.get('ok'):
             raise RuntimeError(f'竞彩网接口读取失败：{(result or {}).get("error", "无返回")}.')
         data = result['data']
-        if data.get('errorCode') != 0:
+        if str(data.get('errorCode')) != '0':
             raise RuntimeError(f'竞彩网接口错误：{data.get("errorCode")} {data.get("errorMessage", "")}')
         return data
 
     def selling_matches(self) -> List[dict]:
+        feeds, errors = [], []
+        for url, value_key, label in (
+                (CALCULATOR_API, 'matchInfoList', '计算器赔率'),
+                (SELLING_API, None, '全量在售')):
+            try:
+                value = self._fetch_json(url).get('value') or {}
+                if value_key is None:
+                    feed = list(value) if isinstance(value, list) else []
+                else:
+                    groups = value.get(value_key) or []
+                    feed = [dict(match) for group in groups
+                            for match in (group.get('subMatchList') or [])]
+                if feed:
+                    feeds.append(feed)
+            except Exception as error:
+                errors.append(f'{label}={error}')
+        if feeds:
+            merged = {}
+            anonymous = []
+            for feed in feeds:
+                for match in feed:
+                    match_id = str(match.get('matchId') or '')
+                    if not match_id:
+                        anonymous.append(dict(match))
+                        continue
+                    merged[match_id] = {**merged.get(match_id, {}), **dict(match)}
+            if errors:
+                logging.warning('竞彩浏览器数据源部分失败：%s', '；'.join(errors))
+            return list(merged.values()) + anonymous
         try:
-            data = self._fetch_json(SELLING_API)
-            return list(data.get('value') or [])
-        except RuntimeError:
             # The official page itself populates this select from the same API.
             WebDriverWait(self._driver, self._timeout).until(
                 lambda driver: len(driver.find_elements(By.CSS_SELECTOR, '#matchList option')) > 1,
@@ -343,6 +379,10 @@ class SportteryScraper:
                 if match_id and match_id.isdigit():
                     rows.append({'matchId': match_id, 'displayText': option.text.strip()})
             return rows
+        except Exception as error:
+            raise RuntimeError(
+                '官方实时接口和浏览器页面均不可用；为避免使用旧盘口，本次同步已停止。'
+            ) from error
 
     def fixed_bonus(self, match_id: str) -> dict:
         try:
@@ -371,7 +411,12 @@ class SportteryScraper:
             match_id = str(match.get('matchId', ''))
             item = dict(match)
             should_fetch = include_bonus(item) if include_bonus is not None else True
-            item['fixedBonus'] = self.fixed_bonus(match_id) if match_id and should_fetch else {}
+            item['fixedBonus'] = (
+                self.fixed_bonus(match_id)
+                if match_id and should_fetch and not any(
+                    item.get(key) for key in ('had', 'hhad', 'ttg', 'crs', 'hafu')
+                ) else (item.get('fixedBonus') or {})
+            )
             rows.append(item)
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps({

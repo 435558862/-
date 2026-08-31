@@ -1036,14 +1036,27 @@ def build_daily_recommendations(
                 market == '让球胜平负'
                 and probability >= 0.55 and not decision.promoted
             )
-            if not decision.promoted and not handicap_observation:
+            # Keep the three-way cross-check intact, but do not let a strict
+            # value gate reduce a usable daily card to one row. These rows
+            # are explicitly observations (no stake) and are eligible only
+            # when the formal direction, current market, and Monte Carlo are
+            # already aligned. The value gate still controls all starred
+            # picks and suggested stakes.
+            fallback_observation = (
+                not decision.promoted
+                and not handicap_observation
+                and probability >= 0.45
+                and margin >= 0.08
+            )
+            if not decision.promoted and not handicap_observation and not fallback_observation:
                 continue
             lineup_text = (
                 f'已确认·预警{lineup_warning}' if lineup_status == '已确认'
                 else '未确认·不调整模型'
             )
             display_grade = (
-                '盘口观察' if handicap_observation else decision.grade
+                '盘口观察' if handicap_observation else
+                decision.grade if decision.promoted else '综合观察'
             )
             grade_rank = 2 if display_grade == '核心重点' else (
                 1 if display_grade == '可买优选' else 0
@@ -1060,7 +1073,9 @@ def build_daily_recommendations(
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
                 '推荐玩法': market,
                 '重点选项': (
-                    f'· {choice}' if handicap_observation else f'★ {choice}'
+                    f'· {choice}'
+                    if handicap_observation or fallback_observation
+                    else f'★ {choice}'
                 ),
                 '推荐等级': display_grade,
                 '正式主模型': str(row.get('胜负模型类别') or '市场基线'),
@@ -1080,26 +1095,29 @@ def build_daily_recommendations(
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
                     (
-                        '让球三方同向但保守EV未达标，仅展示观察方向'
-                        if handicap_observation else
+                        '三方同向但保守EV未达标，仅展示观察方向'
+                        if handicap_observation or fallback_observation else
                         f'{display_grade}；正式模型定方向；领先第二方向{margin:.1%}；'
                         '保守EV达标；盘口与独立模拟双重同向'
                     )
                 ),
             })
-    rows = []
-    for day_rows in candidates_by_day.values():
-        ranked = sorted(day_rows, key=lambda item: item['_quality'], reverse=True)
-        selected, used_matches = [], set()
-        for item in ranked:
-            if len(selected) >= 8:
-                break
-            number = str(item['赛事编号'])
-            if number in used_matches:
-                continue
-            selected.append(item)
-            used_matches.add(number)
-        rows.extend(selected)
+    # Rank one recommendation per fixture across the whole daily card. The
+    # card target is 6–8 rows; if fewer than six survive the three-way gate,
+    # the honest result is fewer rows rather than inventing a direction.
+    ranked = sorted(
+        (item for day_rows in candidates_by_day.values() for item in day_rows),
+        key=lambda item: item['_quality'], reverse=True,
+    )
+    rows, used_matches = [], set()
+    for item in ranked:
+        if len(rows) >= 8:
+            break
+        number = str(item['赛事编号'])
+        if number in used_matches:
+            continue
+        rows.append(item)
+        used_matches.add(number)
     for row in rows:
         row.pop('_quality', None)
     return pd.DataFrame(rows, columns=columns)
@@ -1329,8 +1347,8 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '每天0～8场、正期望优先；核心重点与可买优选分级展示，'
-            '让球价值不足时灰色显示盘口观察且建议不投注；'
+            '每天目标6～8场、正期望优先；核心重点与可买优选分级展示，'
+            '三方同向但价值不足时灰色显示观察且建议不投注；'
             '比分Top3和半全场前两项仅供参考。'
         )
         notice.setWordWrap(True)
