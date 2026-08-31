@@ -32,6 +32,7 @@ from src.services.odds_tracking import (
     record_official_history,
 )
 from src.services.yesterday_review import _ticket_card_date, load_yesterday_hit_report
+from src.services.value_selection import evaluate_value, historical_calibration
 
 
 REPORT_ROOT = Path('storage/jingcai/reports')
@@ -672,6 +673,10 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
     if predictions.empty:
         return aspects
     recommendations = build_daily_recommendations(predictions, future_only=False)
+    if '推荐等级' in recommendations.columns:
+        recommendations = recommendations.loc[
+            recommendations['推荐等级'].eq('核心重点')
+        ].copy()
     labels = {
         '胜平负': '胜负', '让球胜平负': '让球', '总进球': '总进球',
         '比分': '比分', '半全场': '半全场',
@@ -827,7 +832,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select at most six triple-confirmed fixtures per card day.
+    """Select at most eight risk-adjusted fixtures per card day.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -836,7 +841,8 @@ def build_daily_recommendations(
     """
     columns = [
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
-        '正式主模型', '正式模型概率', '盘口验证', '蒙特卡洛是否同向', '阵容验证',
+        '推荐等级', '正式主模型', '正式模型概率', '价值评估', '建议仓位',
+        '盘口验证', '蒙特卡洛是否同向', '阵容验证',
         '比分参考', '半全场参考', '入选理由',
     ]
     if predictions.empty:
@@ -944,17 +950,24 @@ def build_daily_recommendations(
     for _, row in active.iterrows():
         card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
         day_text = card_day.isoformat() if card_day is not None else str(row.get('比赛时间') or '')[:10]
-        market_candidates: list[tuple[float, str, str, float, float]] = []
+        market_candidates: list[tuple[str, str, str, float, float, float]] = []
 
         def add(
-                market: str, choice: str, probability: float, reference: float,
+                market: str, choice: str, formal_pick: str, probability: float,
                 probability_columns: tuple[str, str, str],
+                odds_columns: tuple[str, str, str],
         ) -> None:
             if not choice or not np.isfinite(probability) or probability <= 0:
                 return
+            pick_index = {'胜': 0, '平': 1, '负': 2}.get(formal_pick)
+            if pick_index is None:
+                return
+            odds = number(row, odds_columns[pick_index])
+            if not np.isfinite(odds) or odds <= 1.0:
+                return
             margin = formal_margin(row, probability_columns)
             market_candidates.append((
-                probability / reference + margin, market, choice, probability, margin,
+                market, choice, formal_pick, probability, margin, odds,
             ))
 
         regular_offered = all(np.isfinite(number(row, column)) for column in (
@@ -963,8 +976,10 @@ def build_daily_recommendations(
         if regular_offered:
             add(
                 '胜平负', str(row.get('胜平负首选') or ''),
-                number(row, '胜平负首选概率'), 0.625,
+                str(row.get('胜平负首选') or ''),
+                number(row, '胜平负首选概率'),
                 ('模型主胜概率', '模型平局概率', '模型客胜概率'),
+                ('官方胜奖金', '官方平奖金', '官方负奖金'),
             )
         line = number(row, '官方让球数')
         handicap_offered = np.isfinite(line) and all(
@@ -975,13 +990,13 @@ def build_daily_recommendations(
         if handicap_offered:
             handicap_pick = str(row.get('让球首选') or '').strip()
             add(
-                '让球胜平负', f'{line:+g}球 {handicap_pick}',
-                number(row, '让球首选概率'), 0.38,
+                '让球胜平负', f'{line:+g}球 {handicap_pick}', handicap_pick,
+                number(row, '让球首选概率'),
                 ('模型让胜概率', '模型让平概率', '模型让负概率'),
+                ('官方让胜奖金', '官方让平奖金', '官方让负奖金'),
             )
-        for quality, market, choice, probability, margin in market_candidates:
+        for market, choice, formal_compare, probability, margin, official_odds in market_candidates:
             monte_pick = first_simulation_pick(row, market)
-            formal_compare = choice.split()[-1] if market == '让球胜平负' else choice
             monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
             if not monte_pick or formal_compare != monte_compare:
                 continue
@@ -993,9 +1008,49 @@ def build_daily_recommendations(
             lineup_warning = str(row.get('阵容预警级别') or '无')
             if lineup_conflict or lineup_warning == '高':
                 continue
+            empirical_accuracy = number(
+                row,
+                '让球历史命中率' if market == '让球胜平负' else '同阈值历史命中率',
+            )
+            empirical_samples = number(
+                row,
+                '让球回测样本数' if market == '让球胜平负' else '筛选回测样本数',
+            )
+            if not np.isfinite(empirical_accuracy) or not np.isfinite(empirical_samples):
+                learned_accuracy, learned_samples = historical_calibration(
+                    market, probability,
+                )
+                if learned_accuracy is not None:
+                    empirical_accuracy = learned_accuracy
+                    empirical_samples = float(learned_samples)
+            decision = evaluate_value(
+                market, probability, official_odds,
+                empirical_accuracy=(
+                    empirical_accuracy if np.isfinite(empirical_accuracy) else None
+                ),
+                empirical_samples=(
+                    int(empirical_samples) if np.isfinite(empirical_samples) else 0
+                ),
+            )
+            handicap_observation = (
+                market == '让球胜平负'
+                and probability >= 0.55 and not decision.promoted
+            )
+            if not decision.promoted and not handicap_observation:
+                continue
             lineup_text = (
                 f'已确认·预警{lineup_warning}' if lineup_status == '已确认'
                 else '未确认·不调整模型'
+            )
+            display_grade = (
+                '盘口观察' if handicap_observation else decision.grade
+            )
+            grade_rank = 2 if display_grade == '核心重点' else (
+                1 if display_grade == '可买优选' else 0
+            )
+            quality = (
+                grade_rank * 10.0 + decision.conservative_ev * 5.0
+                + probability + margin
             )
             candidates_by_day.setdefault(day_text, []).append({
                 '_quality': quality,
@@ -1004,17 +1059,32 @@ def build_daily_recommendations(
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
                 '推荐玩法': market,
-                '重点选项': f'★ {choice}',
+                '重点选项': (
+                    f'· {choice}' if handicap_observation else f'★ {choice}'
+                ),
+                '推荐等级': display_grade,
                 '正式主模型': str(row.get('胜负模型类别') or '市场基线'),
                 '正式模型概率': f'{probability:.1%}',
+                '价值评估': (
+                    f'SP {official_odds:.2f}｜保守概率 {decision.conservative_probability:.1%}'
+                    f'｜EV {decision.conservative_ev:+.1%}'
+                ),
+                '建议仓位': (
+                    f'≤{decision.stake_fraction:.1%}本金'
+                    if decision.stake_fraction > 0 else '不投注'
+                ),
                 '盘口验证': support_text,
                 '蒙特卡洛是否同向': f'同向（蒙特：{monte_pick}）',
                 '阵容验证': lineup_text,
                 '比分参考': score_reference(row),
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
-                    f'正式模型定方向；领先第二方向{margin:.1%}；'
-                    '盘口与独立模拟双重同向'
+                    (
+                        '让球三方同向但保守EV未达标，仅展示观察方向'
+                        if handicap_observation else
+                        f'{display_grade}；正式模型定方向；领先第二方向{margin:.1%}；'
+                        '保守EV达标；盘口与独立模拟双重同向'
+                    )
                 ),
             })
     rows = []
@@ -1091,7 +1161,8 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     """Score the frozen recommendations that were actually shown yesterday."""
     columns = [
         '赛事编号', '联赛', '对阵', '推荐玩法', '昨日推荐',
-        '正式模型概率', '蒙特卡洛是否同向', '完场比分', '复盘结果',
+        '推荐等级', '正式模型概率', '价值评估', '蒙特卡洛是否同向',
+        '完场比分', '复盘结果',
         '失败原因', '命中状态',
     ]
     details, summary = load_yesterday_hit_report()
@@ -1122,9 +1193,11 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
                 '对阵': recommendation.get('对阵', ''),
                 '推荐玩法': recommendation.get('推荐玩法', ''),
                 '昨日推荐': recommendation.get('重点选项', ''),
+                '推荐等级': recommendation.get('推荐等级', ''),
                 '正式模型概率': recommendation.get(
                     '正式模型概率', recommendation.get('模型概率', ''),
                 ),
+                '价值评估': recommendation.get('价值评估', ''),
                 '蒙特卡洛是否同向': recommendation.get('蒙特卡洛是否同向', ''),
                 '完场比分': '',
                 '复盘结果': '官方赛果未补齐（延期或未完场）',
@@ -1182,9 +1255,11 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             '对阵': recommendation['对阵'],
             '推荐玩法': market,
             '昨日推荐': recommendation['重点选项'],
+            '推荐等级': recommendation.get('推荐等级', ''),
             '正式模型概率': recommendation.get(
                 '正式模型概率', recommendation.get('模型概率', ''),
             ),
+            '价值评估': recommendation.get('价值评估', ''),
             '蒙特卡洛是否同向': recommendation.get('蒙特卡洛是否同向', ''),
             '完场比分': detail.get('完场比分', ''),
             '复盘结果': result,
@@ -1211,10 +1286,15 @@ class YesterdayRecommendationReviewDialog(QDialog):
         settled_count = int(settled.sum())
         pending_count = int((~settled).sum())
         hits = int(frame.loc[settled, '命中状态'].eq('✓ 命中').sum())
+        breakdown = []
+        for market, part in frame.loc[settled].groupby('推荐玩法', sort=False):
+            market_hits = int(part['命中状态'].eq('✓ 命中').sum())
+            breakdown.append(f'{market}{market_hits}/{len(part)}')
+        breakdown_text = '；'.join(breakdown)
         root.addWidget(QLabel(
             (
                 f'{review_date} 每日推荐：已结算 {hits}/{settled_count} 命中，'
-                f'待复盘 {pending_count} 项（按具体重点选项结算）'
+                f'待复盘 {pending_count} 项（分玩法：{breakdown_text or "暂无"}）'
             ) if settled_count else (
                 f'{review_date} 每日推荐：{pending_count} 项均为延期或未完场，待复盘'
             )
@@ -1249,8 +1329,9 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '核心重点0～8场、质量优先；比分Top3和半全场前两项仅供参考，'
-            '不占重点名额、不计入核心命中率。'
+            '每天0～8场、正期望优先；核心重点与可买优选分级展示，'
+            '让球价值不足时灰色显示盘口观察且建议不投注；'
+            '比分Top3和半全场前两项仅供参考。'
         )
         notice.setWordWrap(True)
         header.addWidget(notice, 1)
@@ -1267,10 +1348,22 @@ class DailyRecommendationsDialog(QDialog):
         table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
         if '重点选项' in frame.columns:
             column = frame.columns.get_loc('重点选项')
+            grade_column = (
+                frame.columns.get_loc('推荐等级')
+                if '推荐等级' in frame.columns else None
+            )
             for row in range(table.rowCount()):
                 item = table.item(row, column)
-                item.setForeground(QBrush(QColor('#c62828')))
-                item.setBackground(QBrush(QColor('#fff1f1')))
+                grade = (
+                    table.item(row, grade_column).text()
+                    if grade_column is not None else '核心重点'
+                )
+                core = grade == '核心重点'
+                candidate = grade == '可买优选'
+                foreground = '#c62828' if core else '#9a6700' if candidate else '#5f6368'
+                background = '#fff1f1' if core else '#fff8df' if candidate else '#f3f4f6'
+                item.setForeground(QBrush(QColor(foreground)))
+                item.setBackground(QBrush(QColor(background)))
                 font = QFont(item.font())
                 font.setBold(True)
                 item.setFont(font)

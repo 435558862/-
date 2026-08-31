@@ -381,6 +381,8 @@ def test_daily_recommendations_include_calibrated_draw_and_structural_handicap(m
     assert result.loc[0, '推荐玩法'] == '让球胜平负'
     assert result.loc[0, '重点选项'] == '★ -1球 胜'
     assert result.loc[0, '正式模型概率'] == '64.0%'
+    assert result.loc[0, '推荐等级'] == '核心重点'
+    assert result.loc[0, '价值评估'] == 'SP 2.00｜保守概率 60.0%｜EV +20.0%'
     assert result.loc[0, '比分参考'] == '2-1（16.0%） / 1-0（13.0%） / 2-0'
     assert result.loc[0, '半全场参考'] == '胜胜（36.0%） / 平胜（22.0%）'
 
@@ -606,7 +608,7 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
     assert result.loc[0, '重点选项'] == '★ 胜'
 
 
-def test_daily_recommendations_select_up_to_eight_triple_confirmed_matches():
+def test_daily_recommendations_do_not_fill_eight_with_negative_value_matches():
     predictions = pd.DataFrame([{
         '赛事编号': f'周日{index:03d}', '比赛时间': f'2099-08-30 {10 + index:02d}:00',
         '联赛': '测试联赛', '主队': f'主{index}', '客队': f'客{index}',
@@ -625,9 +627,13 @@ def test_daily_recommendations_select_up_to_eight_triple_confirmed_matches():
         predictions, future_only=False,
     )
 
-    assert len(result) == 8
-    assert result['赛事编号'].nunique() == 8
+    assert len(result) == 5
+    assert result['赛事编号'].nunique() == 5
     assert result['推荐玩法'].eq('胜平负').all()
+    assert result['推荐等级'].eq('核心重点').all()
+    assert result['赛事编号'].tolist() == [
+        '周日010', '周日009', '周日008', '周日007', '周日006',
+    ]
     assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
     assert result['盘口验证'].str.contains('支持').all()
 
@@ -691,3 +697,27 @@ def test_daily_recommendations_do_not_promote_score_or_half_full():
     )
 
     assert result.empty
+
+
+def test_daily_recommendations_keep_low_value_handicap_as_unstarred_observation():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日002', '比赛时间': '2099-08-30 19:00',
+        '联赛': '测试联赛', '主队': '主队', '客队': '客队',
+        '盘口门控': '稳定', '官方让球数': -1,
+        '让球首选': '负', '让球首选概率': .60,
+        '模型让胜概率': .18, '模型让平概率': .22, '模型让负概率': .60,
+        '首次采集让球数': -1,
+        '首次采集让胜奖金': 4.20, '首次采集让平奖金': 3.40,
+        '首次采集让负奖金': 1.50,
+        '官方让胜奖金': 4.20, '官方让平奖金': 3.40,
+        '官方让负奖金': 1.50, '模拟让球': '让负 61.0%',
+    }])
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert len(result) == 1
+    assert result.loc[0, '推荐等级'] == '盘口观察'
+    assert result.loc[0, '重点选项'] == '· -1球 负'
+    assert result.loc[0, '建议仓位'] == '不投注'
