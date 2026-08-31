@@ -725,3 +725,26 @@ def test_daily_recommendations_keep_low_value_handicap_as_unstarred_observation(
     assert result.loc[0, '推荐等级'] == '盘口观察'
     assert result.loc[0, '重点选项'] == '· -1球 负'
     assert result.loc[0, '建议仓位'] == '不投注'
+
+
+def test_daily_recommendations_show_best_score_and_qualified_high_odds_candidate():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日003', '比赛时间': '2099-08-30 20:00',
+        '联赛': '测试联赛', '主队': '主队', '客队': '客队',
+        '盘口门控': '稳定', '胜平负首选': '胜', '胜平负首选概率': .62,
+        '模型主胜概率': .62, '模型平局概率': .15, '模型客胜概率': .23,
+        '首次采集胜奖金': 1.80, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.70, '官方胜奖金': 1.80,
+        '官方平奖金': 3.40, '官方负奖金': 4.70,
+        '模拟胜负': '胜 63.0%', '首选比分': '2-1', '首选比分概率': .16,
+        '次选比分': '1-0', '次选比分概率': .13,
+    }])
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert len(result) == 1
+    assert result.loc[0, '最佳比分'] == '◎ 2-1（16.0%）'
+    assert result.loc[0, '高倍候选'].startswith('◆ 胜平负·负（SP 4.70')
+    assert '高风险' in result.loc[0, '高倍候选']

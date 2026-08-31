@@ -841,6 +841,7 @@ def build_daily_recommendations(
     """
     columns = [
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
+        '最佳比分', '高倍候选',
         '推荐等级', '正式主模型', '正式模型概率', '价值评估', '建议仓位',
         '盘口验证', '蒙特卡洛是否同向', '阵容验证',
         '比分参考', '半全场参考', '入选理由',
@@ -894,6 +895,68 @@ def build_daily_recommendations(
             probability = probability_text(row, probability_column)
             picks.append(f'{pick}（{probability}）' if probability else pick)
         return ' / '.join(picks[:3]) or '暂无可靠比分'
+
+    def best_score(row: pd.Series) -> str:
+        pick = str(row.get('首选比分') or '').strip()
+        if not pick or pick.lower() == 'nan':
+            return '—'
+        probability = number(row, '首选比分概率')
+        return (
+            f'◎ {pick}（{probability:.1%}）'
+            if np.isfinite(probability) else f'◎ {pick}'
+        )
+
+    def high_odds_reference(row: pd.Series) -> str:
+        """Return one auditable high-price candidate, never a core pick.
+
+        A high SP alone is not enough. The formal probability must leave at
+        least a small raw edge, while a conservative probability haircut may
+        not make the candidate severely negative. This intentionally yields
+        no candidate on many fixtures rather than manufacturing a long shot.
+        """
+        candidates = []
+
+        def consider(
+                market: str, label: str, probability_column: str,
+                odds_column: str, haircut: float,
+        ) -> None:
+            probability = number(row, probability_column)
+            odds = number(row, odds_column)
+            if (
+                not np.isfinite(probability) or not np.isfinite(odds)
+                or probability < 0.18 or odds < 2.80
+            ):
+                return
+            raw_ev = probability * odds - 1.0
+            conservative_ev = max(0.01, probability - haircut) * odds - 1.0
+            if raw_ev < 0.05 or conservative_ev < -0.08:
+                return
+            candidates.append((
+                conservative_ev, raw_ev, probability, odds, market, label,
+            ))
+
+        for label, probability_column, odds_column in zip(
+                ('胜', '平', '负'),
+                ('模型主胜概率', '模型平局概率', '模型客胜概率'),
+                ('官方胜奖金', '官方平奖金', '官方负奖金')):
+            consider('胜平负', label, probability_column, odds_column, 0.025)
+        line = number(row, '官方让球数')
+        if np.isfinite(line):
+            for label, probability_column, odds_column in zip(
+                    ('让胜', '让平', '让负'),
+                    ('模型让胜概率', '模型让平概率', '模型让负概率'),
+                    ('官方让胜奖金', '官方让平奖金', '官方让负奖金')):
+                consider(
+                    '让球', f'{line:+g}球 {label}',
+                    probability_column, odds_column, 0.040,
+                )
+        if not candidates:
+            return '—'
+        _, raw_ev, probability, odds, market, label = max(candidates)
+        return (
+            f'◆ {market}·{label}（SP {odds:.2f}｜模型{probability:.1%}｜'
+            f'优势{raw_ev:+.1%}｜高风险）'
+        )
 
     def half_full_reference(row: pd.Series) -> str:
         picks = []
@@ -1095,6 +1158,8 @@ def build_daily_recommendations(
                     if handicap_observation or fallback_observation or monte_observation
                     else f'★ {choice}'
                 ),
+                '最佳比分': best_score(row),
+                '高倍候选': high_odds_reference(row),
                 '推荐等级': display_grade,
                 '正式主模型': str(row.get('胜负模型类别') or '市场基线'),
                 '正式模型概率': f'{probability:.1%}',
@@ -1372,6 +1437,7 @@ class DailyRecommendationsDialog(QDialog):
         notice = QLabel(
             '每天目标6～8场、正期望优先；核心重点与可买优选分级展示，'
             '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
+            '◎最佳比分和◆高倍候选为醒目参考，高倍项不等于重点；'
             '比分Top3和半全场前两项仅供参考。'
         )
         notice.setWordWrap(True)
@@ -1403,6 +1469,21 @@ class DailyRecommendationsDialog(QDialog):
                 candidate = grade == '可买优选'
                 foreground = '#c62828' if core else '#9a6700' if candidate else '#5f6368'
                 background = '#fff1f1' if core else '#fff8df' if candidate else '#f3f4f6'
+                item.setForeground(QBrush(QColor(foreground)))
+                item.setBackground(QBrush(QColor(background)))
+                font = QFont(item.font())
+                font.setBold(True)
+                item.setFont(font)
+        for column_name, foreground, background in (
+                ('最佳比分', '#1565c0', '#eef5ff'),
+                ('高倍候选', '#7b1fa2', '#f7efff')):
+            if column_name not in frame.columns:
+                continue
+            column = frame.columns.get_loc(column_name)
+            for row in range(table.rowCount()):
+                item = table.item(row, column)
+                if item is None or item.text().strip() in ('', '—'):
+                    continue
                 item.setForeground(QBrush(QColor(foreground)))
                 item.setBackground(QBrush(QColor(background)))
                 font = QFont(item.font())
