@@ -849,6 +849,7 @@ def build_daily_recommendations(
         return pd.DataFrame(columns=columns)
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
     active = _sort_by_match_number(source).reset_index(drop=True)
+    allow_observation_conflicts = len(active) >= 6
 
     def number(row: pd.Series, column: str) -> float:
         value = pd.to_numeric(row.get(column), errors='coerce')
@@ -998,8 +999,10 @@ def build_daily_recommendations(
         for market, choice, formal_compare, probability, margin, official_odds in market_candidates:
             monte_pick = first_simulation_pick(row, market)
             monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
-            if not monte_pick or formal_compare != monte_compare:
+            if not monte_pick:
                 continue
+            monte_aligned = formal_compare == monte_compare
+            monte_conflict = not monte_aligned
             supported, support_text = market_support(row, market, formal_compare)
             if not supported:
                 continue
@@ -1048,7 +1051,21 @@ def build_daily_recommendations(
                 and probability >= 0.45
                 and margin >= 0.08
             )
-            if not decision.promoted and not handicap_observation and not fallback_observation:
+            # A Monte Carlo disagreement must never become a starred pick or
+            # a suggested stake. When the daily card would otherwise be too
+            # sparse, retain it as a clearly labelled observation so the user
+            # can see the conflict and decide independently.
+            monte_observation = (
+                allow_observation_conflicts
+                and monte_conflict
+                and not decision.promoted
+                and not handicap_observation
+                and probability >= 0.45
+                and margin >= 0.08
+            )
+            if not monte_aligned and not monte_observation:
+                continue
+            if not decision.promoted and not handicap_observation and not fallback_observation and not monte_observation:
                 continue
             lineup_text = (
                 f'已确认·预警{lineup_warning}' if lineup_status == '已确认'
@@ -1056,7 +1073,8 @@ def build_daily_recommendations(
             )
             display_grade = (
                 '盘口观察' if handicap_observation else
-                decision.grade if decision.promoted else '综合观察'
+                decision.grade if decision.promoted else
+                '蒙特反向观察' if monte_observation else '综合观察'
             )
             grade_rank = 2 if display_grade == '核心重点' else (
                 1 if display_grade == '可买优选' else 0
@@ -1074,7 +1092,7 @@ def build_daily_recommendations(
                 '推荐玩法': market,
                 '重点选项': (
                     f'· {choice}'
-                    if handicap_observation or fallback_observation
+                    if handicap_observation or fallback_observation or monte_observation
                     else f'★ {choice}'
                 ),
                 '推荐等级': display_grade,
@@ -1089,12 +1107,17 @@ def build_daily_recommendations(
                     if decision.stake_fraction > 0 else '不投注'
                 ),
                 '盘口验证': support_text,
-                '蒙特卡洛是否同向': f'同向（蒙特：{monte_pick}）',
+                '蒙特卡洛是否同向': (
+                    f'同向（蒙特：{monte_pick}）'
+                    if monte_aligned else f'反向观察（蒙特：{monte_pick}）'
+                ),
                 '阵容验证': lineup_text,
                 '比分参考': score_reference(row),
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
                     (
+                        '正式模型与盘口同向，但蒙特反向，仅展示观察方向'
+                        if monte_observation else
                         '三方同向但保守EV未达标，仅展示观察方向'
                         if handicap_observation or fallback_observation else
                         f'{display_grade}；正式模型定方向；领先第二方向{margin:.1%}；'
@@ -1348,7 +1371,7 @@ class DailyRecommendationsDialog(QDialog):
         header = QHBoxLayout()
         notice = QLabel(
             '每天目标6～8场、正期望优先；核心重点与可买优选分级展示，'
-            '三方同向但价值不足时灰色显示观察且建议不投注；'
+            '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
             '比分Top3和半全场前两项仅供参考。'
         )
         notice.setWordWrap(True)
