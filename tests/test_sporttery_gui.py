@@ -337,6 +337,34 @@ def test_half_time_combination_rejects_market_derived_model():
     assert sporttery_module.build_half_time_combinations(
         prediction, future_only=False,
     ).empty
+    observation = sporttery_module.build_half_time_observations(
+        prediction, future_only=False,
+    )
+    assert len(observation) == 1
+    assert observation.loc[0, '赛事编号'] == '周日001'
+    assert '缺独立验证' in observation.loc[0, '观察结论']
+
+
+def test_half_time_observation_keeps_only_relative_best_per_card_day():
+    prediction = _half_time_combination_prediction()
+    weaker = prediction.iloc[0].copy()
+    weaker['比赛ID'] = 8
+    weaker['赛事编号'] = '周日002'
+    weaker['正式半场胜概率'] = .33
+    weaker['正式半场平概率'] = .36
+    weaker['正式半场负概率'] = .31
+    weaker['模拟半场胜概率'] = .33
+    weaker['模拟半场平概率'] = .37
+    weaker['模拟半场负概率'] = .30
+    frame = pd.concat([prediction, weaker.to_frame().T], ignore_index=True)
+
+    observation = sporttery_module.build_half_time_observations(
+        frame, future_only=False,
+    )
+
+    assert len(observation) == 1
+    assert observation.loc[0, '赛事编号'] == '周日001'
+    assert observation.loc[0, '相对含金量'].endswith('/100')
 
 
 def test_half_time_combination_ledger_freezes_first_pick_and_settles_profit(

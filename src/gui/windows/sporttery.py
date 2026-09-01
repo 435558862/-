@@ -1234,6 +1234,144 @@ def _match_identity(value) -> str:
         return text
 
 
+def _half_time_combination_evaluation(
+        row: pd.Series,
+        example_stake: float,
+) -> dict | None:
+    """Evaluate one three-way half/full cover without deciding whether to bet."""
+    conflict = str(row.get('阵容方向冲突') or '').strip().lower()
+    if conflict in {'true', '1', 'yes', '是'}:
+        return None
+    if str(row.get('阵容预警级别') or '').strip() == '高':
+        return None
+    directions = ('胜', '平', '负')
+    formal = np.array([
+        _combination_number(row, f'正式半场{direction}概率')
+        for direction in directions
+    ], dtype=float)
+    monte = np.array([
+        _combination_number(row, f'模拟半场{direction}概率')
+        for direction in directions
+    ], dtype=float)
+    if (
+            not np.isfinite(formal).all() or not np.isfinite(monte).all()
+            or formal.sum() <= 0 or monte.sum() <= 0
+    ):
+        return None
+    formal /= formal.sum()
+    monte /= monte.sum()
+    target_index = int(np.argmax(formal))
+    if int(np.argmax(monte)) != target_index:
+        return None
+
+    group_odds = {}
+    group_inverse = []
+    for direction in directions:
+        odds = np.array([
+            _combination_number(row, f'官方半全场{label}奖金')
+            for label in HALF_TIME_COMBINATION_GROUPS[direction]
+        ], dtype=float)
+        if not np.isfinite(odds).all() or np.any(odds <= 1.0):
+            return None
+        group_odds[direction] = odds
+        group_inverse.append(float((1.0 / odds).sum()))
+    market_half = np.asarray(group_inverse, dtype=float)
+    market_half /= market_half.sum()
+    if int(np.argmax(market_half)) != target_index:
+        return None
+
+    target = directions[target_index]
+    labels = HALF_TIME_COMBINATION_GROUPS[target]
+    odds = group_odds[target]
+    inverse_sum = float((1.0 / odds).sum())
+    combined_odds = 1.0 / inverse_sum
+    break_even = inverse_sum
+    formal_probability = float(formal[target_index])
+    monte_probability = float(monte[target_index])
+    formal_sorted = np.sort(formal)
+    formal_margin = float(formal_sorted[-1] - formal_sorted[-2])
+    agreement_gap = abs(formal_probability - monte_probability)
+    conservative_probability = min(formal_probability, monte_probability) - 0.03
+    model_edge = conservative_probability - break_even
+    raw_ev = conservative_probability * combined_odds - 1.0
+    formal_ev = formal_probability * combined_odds - 1.0
+    monte_ev = monte_probability * combined_odds - 1.0
+    relative_score = min(100.0, max(
+        0.0,
+        35.0
+        + formal_probability * 30.0
+        + monte_probability * 20.0
+        + min(25.0, formal_margin * 150.0)
+        + max(0.0, 10.0 - agreement_gap * 100.0),
+    ))
+    strict_score = min(100.0, max(
+        0.0,
+        50.0
+        + min(25.0, max(0.0, model_edge) * 250.0)
+        + min(15.0, formal_margin * 150.0)
+        + max(0.0, 10.0 - agreement_gap * 100.0),
+    ))
+    model_source = str(row.get('半全场模型来源') or '').strip()
+    verified = model_source.endswith('专用半全场模型（已验证）')
+    strict_reasons = []
+    if not verified:
+        strict_reasons.append('缺独立验证')
+    if formal_margin < 0.04:
+        strict_reasons.append('方向领先不足4pp')
+    if combined_odds < 1.45 or combined_odds > 2.20:
+        strict_reasons.append('组合赔率超出1.45～2.20')
+    if model_edge < 0.02:
+        strict_reasons.append(f'低于正式门槛{model_edge:+.1%}')
+    if formal_ev < 0.06 or monte_ev < 0.02:
+        strict_reasons.append('模型收益验证不足')
+    if strict_score < 72.0:
+        strict_reasons.append('正式含金量不足72')
+
+    weights = (1.0 / odds) / inverse_sum
+    allocations = weights * float(example_stake)
+    card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
+    day_text = (
+        card_day.isoformat() if card_day is not None
+        else str(row.get('比赛时间') or '')[:10]
+    )
+    return {
+        '_strict': not strict_reasons,
+        '_strict_reasons': strict_reasons,
+        '_strict_score': strict_score,
+        '_relative_score': relative_score,
+        '_observation_rank': (
+            formal_probability + monte_probability + formal_margin - agreement_gap
+        ),
+        '_raw_ev': raw_ev,
+        '比赛日期': day_text,
+        '比赛ID': _match_identity(row.get('比赛ID')),
+        '赛事编号': row.get('赛事编号', ''),
+        '联赛': row.get('联赛', ''),
+        '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
+        '目标半场': target,
+        '组合玩法': ' / '.join(
+            f'{label}@{odd:.2f}' for label, odd in zip(labels, odds)
+        ),
+        '组合赔率': round(combined_odds, 3),
+        '半场含金量': f'{relative_score:.0f}/100',
+        '正式半场概率': f'{formal_probability:.1%}',
+        '蒙特半场概率': f'{monte_probability:.1%}',
+        '市场半场概率': f'{float(market_half[target_index]):.1%}',
+        '保本命中率': f'{break_even:.1%}',
+        '模型优势': f'{model_edge:+.1%}｜EV {raw_ev:+.1%}',
+        '示例本金': round(float(example_stake), 2),
+        '等回报分配': ' / '.join(
+            f'{label}¥{amount:.0f}' for label, amount in zip(labels, allocations)
+        ),
+        '策略状态': (
+            '达到正式门槛，将进入真实账本'
+            if not strict_reasons else '仅观察｜' + '；'.join(strict_reasons)
+        ),
+        '模型来源': model_source,
+        '冻结时间': datetime.now().isoformat(timespec='seconds'),
+    }
+
+
 def build_half_time_combinations(
         predictions: pd.DataFrame,
         future_only: bool = True,
@@ -1257,131 +1395,72 @@ def build_half_time_combinations(
         return pd.DataFrame(columns=columns)
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
     active = _sort_by_match_number(source).reset_index(drop=True)
-    formal_columns = ('正式半场胜概率', '正式半场平概率', '正式半场负概率')
-    monte_columns = ('模拟半场胜概率', '模拟半场平概率', '模拟半场负概率')
-    directions = ('胜', '平', '负')
     candidates_by_day: dict[str, list[dict]] = {}
 
     for _, row in active.iterrows():
-        model_source = str(row.get('半全场模型来源') or '').strip()
-        if not model_source.endswith('专用半全场模型（已验证）'):
-            # A market-derived HAFU probability cannot be compared back to the
-            # same market and presented as an independent value signal.
+        item = _half_time_combination_evaluation(row, example_stake)
+        if item is None or not item['_strict']:
             continue
-        if bool(row.get('阵容方向冲突')) or str(row.get('阵容预警级别') or '') == '高':
-            continue
-        formal = np.array([
-            _combination_number(row, column) for column in formal_columns
-        ], dtype=float)
-        monte = np.array([
-            _combination_number(row, column) for column in monte_columns
-        ], dtype=float)
-        if (
-                not np.isfinite(formal).all() or not np.isfinite(monte).all()
-                or formal.sum() <= 0 or monte.sum() <= 0
-        ):
-            continue
-        formal /= formal.sum()
-        monte /= monte.sum()
-        target_index = int(np.argmax(formal))
-        if int(np.argmax(monte)) != target_index:
-            continue
-        formal_sorted = np.sort(formal)
-        if float(formal_sorted[-1] - formal_sorted[-2]) < 0.04:
-            continue
-
-        target = directions[target_index]
-        labels = HALF_TIME_COMBINATION_GROUPS[target]
-        odds = np.array([
-            _combination_number(row, f'官方半全场{label}奖金')
-            for label in labels
-        ], dtype=float)
-        if not np.isfinite(odds).all() or np.any(odds <= 1.0):
-            continue
-        group_inverse = []
-        for direction in directions:
-            direction_odds = np.array([
-                _combination_number(row, f'官方半全场{label}奖金')
-                for label in HALF_TIME_COMBINATION_GROUPS[direction]
-            ], dtype=float)
-            if not np.isfinite(direction_odds).all() or np.any(direction_odds <= 1.0):
-                group_inverse = []
-                break
-            group_inverse.append(float((1.0 / direction_odds).sum()))
-        if not group_inverse:
-            continue
-        market_half = np.asarray(group_inverse, dtype=float)
-        market_half /= market_half.sum()
-        if int(np.argmax(market_half)) != target_index:
-            continue
-
-        inverse_sum = float((1.0 / odds).sum())
-        combined_odds = 1.0 / inverse_sum
-        break_even = inverse_sum
-        formal_probability = float(formal[target_index])
-        monte_probability = float(monte[target_index])
-        conservative_probability = min(formal_probability, monte_probability) - 0.03
-        if (
-                combined_odds < 1.45 or combined_odds > 2.20
-                or conservative_probability < break_even + 0.02
-                or formal_probability * combined_odds - 1.0 < 0.06
-                or monte_probability * combined_odds - 1.0 < 0.02
-        ):
-            continue
-
-        weights = (1.0 / odds) / inverse_sum
-        allocations = weights * float(example_stake)
-        card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
-        day_text = (
-            card_day.isoformat() if card_day is not None
-            else str(row.get('比赛时间') or '')[:10]
-        )
-        raw_ev = conservative_probability * combined_odds - 1.0
-        formal_margin = float(formal_sorted[-1] - formal_sorted[-2])
-        agreement_gap = abs(formal_probability - monte_probability)
-        model_edge = conservative_probability - break_even
-        quality_score = min(100.0, max(
-            0.0,
-            50.0
-            + min(25.0, max(0.0, model_edge) * 250.0)
-            + min(15.0, formal_margin * 150.0)
-            + max(0.0, 10.0 - agreement_gap * 100.0),
-        ))
-        if quality_score < 72.0:
-            continue
-        item = {
-            '_quality': quality_score + raw_ev,
-            '比赛日期': day_text,
-            '比赛ID': _match_identity(row.get('比赛ID')),
-            '赛事编号': row.get('赛事编号', ''),
-            '联赛': row.get('联赛', ''),
-            '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
-            '目标半场': target,
-            '组合玩法': ' / '.join(
-                f'{label}@{odd:.2f}' for label, odd in zip(labels, odds)
-            ),
-            '组合赔率': round(combined_odds, 3),
-            '半场含金量': f'{quality_score:.0f}/100',
-            '正式半场概率': f'{formal_probability:.1%}',
-            '蒙特半场概率': f'{monte_probability:.1%}',
-            '市场半场概率': f'{float(market_half[target_index]):.1%}',
-            '保本命中率': f'{break_even:.1%}',
-            '模型优势': f'{conservative_probability - break_even:+.1%}｜EV {raw_ev:+.1%}',
-            '示例本金': round(float(example_stake), 2),
-            '等回报分配': ' / '.join(
-                f'{label}¥{amount:.0f}' for label, amount in zip(labels, allocations)
-            ),
-            '策略状态': '三方同向候选｜高方差｜先记账验证',
-            '模型来源': model_source,
-            '冻结时间': datetime.now().isoformat(timespec='seconds'),
-        }
-        candidates_by_day.setdefault(day_text, []).append(item)
+        item['半场含金量'] = f'{item["_strict_score"]:.0f}/100'
+        item['策略状态'] = '三方同向候选｜高方差｜先记账验证'
+        item['_quality'] = item['_strict_score'] + item['_raw_ev']
+        candidates_by_day.setdefault(item['比赛日期'], []).append(item)
 
     rows = []
     for day in sorted(candidates_by_day):
         rows.append(max(candidates_by_day[day], key=lambda item: item['_quality']))
     for row in rows:
-        row.pop('_quality', None)
+        for key in tuple(row):
+            if key.startswith('_'):
+                row.pop(key, None)
+    return pd.DataFrame(rows, columns=columns)
+
+
+def build_half_time_observations(
+        predictions: pd.DataFrame,
+        future_only: bool = True,
+        example_stake: float = HALF_TIME_COMBINATION_STAKE,
+) -> pd.DataFrame:
+    """Show the strongest three-way-aligned row per card day without betting it."""
+    columns = [
+        '比赛日期', '赛事编号', '联赛', '对阵', '目标半场', '组合玩法',
+        '组合赔率', '相对含金量', '正式半场概率', '蒙特半场概率',
+        '市场半场概率', '保本命中率', '模型优势', '观察结论', '模型来源',
+    ]
+    if predictions.empty:
+        return pd.DataFrame(columns=columns)
+    source = _upcoming_predictions(predictions) if future_only else predictions.copy()
+    active = _sort_by_match_number(source).reset_index(drop=True)
+    observations_by_day: dict[str, list[dict]] = {}
+    for _, row in active.iterrows():
+        item = _half_time_combination_evaluation(row, example_stake)
+        if item is None:
+            continue
+        observations_by_day.setdefault(item['比赛日期'], []).append(item)
+
+    rows = []
+    for day in sorted(observations_by_day):
+        item = max(
+            observations_by_day[day],
+            key=lambda candidate: candidate['_observation_rank'],
+        )
+        rows.append({
+            '比赛日期': item['比赛日期'],
+            '赛事编号': item['赛事编号'],
+            '联赛': item['联赛'],
+            '对阵': item['对阵'],
+            '目标半场': item['目标半场'],
+            '组合玩法': item['组合玩法'],
+            '组合赔率': item['组合赔率'],
+            '相对含金量': item['半场含金量'],
+            '正式半场概率': item['正式半场概率'],
+            '蒙特半场概率': item['蒙特半场概率'],
+            '市场半场概率': item['市场半场概率'],
+            '保本命中率': item['保本命中率'],
+            '模型优势': item['模型优势'],
+            '观察结论': item['策略状态'],
+            '模型来源': item['模型来源'],
+        })
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -1756,11 +1835,44 @@ class HalfTimeCombinationLedgerDialog(QDialog):
             Qt.WindowType.Window | Qt.WindowType.WindowMinimizeButtonHint
             | Qt.WindowType.WindowMaximizeButtonHint | Qt.WindowType.WindowCloseButtonHint
         )
-        self.resize(1440, 640)
+        self.resize(1500, 760)
         root = QVBoxLayout(self)
+        observations = build_half_time_observations(predictions)
         candidates = build_half_time_combinations(predictions)
         _save_half_time_combination_snapshot(candidates)
         ledger, summary = build_half_time_combination_ledger()
+        observation_title = QLabel(
+            '今日相对最优观察（只比较方向稳定性，不计入命中率与ROI）'
+        )
+        observation_title.setStyleSheet(
+            'color:#8a4b08;background:#fff8df;border:1px solid #eed28a;'
+            'padding:5px;font-size:13px;font-weight:600;'
+        )
+        root.addWidget(observation_title)
+        if observations.empty:
+            root.addWidget(QLabel(
+                '当前没有正式模型、蒙特和官方半全场盘口三方同向的观察项。'
+            ))
+        else:
+            observation_table = ExcelTable(
+                self, observations, readonly=True, supports_sorting=True,
+            )
+            conclusion_column = observations.columns.get_loc('观察结论')
+            for row in range(observation_table.rowCount()):
+                item = observation_table.item(row, conclusion_column)
+                if item is None:
+                    continue
+                formal = item.text().startswith('达到正式门槛')
+                item.setForeground(QBrush(QColor('#137333' if formal else '#9a6700')))
+                item.setBackground(QBrush(QColor('#eef8f0' if formal else '#fff8df')))
+                font = QFont(item.font())
+                font.setBold(True)
+                item.setFont(font)
+            root.addWidget(observation_table)
+
+        ledger_title = QLabel('正式组合推荐与冻结真实盈亏账本')
+        ledger_title.setStyleSheet('font-size:13px;font-weight:600;padding-top:4px;')
+        root.addWidget(ledger_title)
         roi = summary.get('roi')
         hit_rate = summary.get('hit_rate')
         summary_text = (
@@ -1784,6 +1896,7 @@ class HalfTimeCombinationLedgerDialog(QDialog):
             '组合规则：同一半场方向的三项半全场用反赔率分配，命中目标半场即可获得近似等额回报。'
             '仅收录正式专用模型、官方半全场市场和独立蒙特同向，且模型概率高于保本线的场次；'
             '“半场含金量”综合模型优势、方向领先幅度和蒙特一致度，只是筛选分而非命中概率；'
+            '上方“相对最优观察”只比较当日方向稳定性，即使未过收益线也显示，但绝不进入正式账本；'
             '首次出现即冻结，输单不删除，延期不算输。金额为每场1000元演示账本，不代表投注指令。'
         )
         note.setWordWrap(True)
