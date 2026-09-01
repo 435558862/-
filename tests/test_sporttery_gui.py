@@ -295,3 +295,108 @@ def test_official_total_goals_replaces_same_match_legacy_over_under(
 
     assert frozen['推荐玩法'].tolist() == ['总进球']
     assert frozen['重点选项'].tolist() == ['★ 3球']
+
+
+def _half_time_combination_prediction():
+    return pd.DataFrame([{
+        '比赛ID': 7, '赛事编号': '周日001',
+        '比赛时间': '2099-08-30 18:00', '联赛': '测试联赛',
+        '主队': '主队', '客队': '客队',
+        '半全场模型来源': '测试联赛专用半全场模型（已验证）',
+        '正式半场胜概率': .25, '正式半场平概率': .65,
+        '正式半场负概率': .10,
+        '模拟半场胜概率': .28, '模拟半场平概率': .62,
+        '模拟半场负概率': .10,
+        '官方半全场胜胜奖金': 4.00, '官方半全场胜平奖金': 10.00,
+        '官方半全场胜负奖金': 20.00,
+        '官方半全场平胜奖金': 5.20, '官方半全场平平奖金': 5.30,
+        '官方半全场平负奖金': 7.00,
+        '官方半全场负胜奖金': 8.00, '官方半全场负平奖金': 12.00,
+        '官方半全场负负奖金': 3.50,
+        '阵容方向冲突': False, '阵容预警级别': '无',
+    }])
+
+
+def test_half_time_combination_uses_inverse_odds_equal_return_math():
+    result = sporttery_module.build_half_time_combinations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+
+    assert len(result) == 1
+    assert result.loc[0, '目标半场'] == '平'
+    expected = 1.0 / (1.0 / 5.20 + 1.0 / 5.30 + 1.0 / 7.00)
+    assert abs(result.loc[0, '组合赔率'] - expected) < .001
+    assert result.loc[0, '组合玩法'] == '平胜@5.20 / 平平@5.30 / 平负@7.00'
+    assert result.loc[0, '半场含金量'].endswith('/100')
+    assert 'EV +' in result.loc[0, '模型优势']
+
+
+def test_half_time_combination_rejects_market_derived_model():
+    prediction = _half_time_combination_prediction()
+    prediction.loc[0, '半全场模型来源'] = '官方半全场市场基线'
+    assert sporttery_module.build_half_time_combinations(
+        prediction, future_only=False,
+    ).empty
+
+
+def test_half_time_combination_ledger_freezes_first_pick_and_settles_profit(
+        monkeypatch, tmp_path):
+    combination_root = tmp_path / 'combinations'
+    settled_path = tmp_path / 'settled.csv'
+    monkeypatch.setattr(
+        sporttery_module, 'HALF_TIME_COMBINATION_ROOT', combination_root,
+    )
+    monkeypatch.setattr(
+        sporttery_module, 'SETTLED_PREDICTIONS_PATH', settled_path,
+    )
+    first = sporttery_module.build_half_time_combinations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    sporttery_module._save_half_time_combination_snapshot(first)
+    changed = first.copy()
+    changed.loc[0, '组合赔率'] = 9.99
+    sporttery_module._save_half_time_combination_snapshot(changed)
+    frozen = sporttery_module._load_half_time_combination_snapshot(
+        first.loc[0, '比赛日期'],
+    )
+    assert abs(float(frozen.loc[0, '组合赔率']) - float(first.loc[0, '组合赔率'])) < .001
+
+    pd.DataFrame([{
+        'match_id': 7, 'match_number': '周日001',
+        'match_date': '2099-08-30 18:00',
+        'actual_half_full': '平负', 'official_status': 'Payout',
+    }]).to_csv(settled_path, index=False)
+    ledger, summary = sporttery_module.build_half_time_combination_ledger()
+
+    assert ledger.loc[0, '结算状态'] == '✓ 命中'
+    assert summary['settled'] == 1
+    assert summary['hits'] == 1
+    assert abs(summary['profit'] - 1000 * (float(first.loc[0, '组合赔率']) - 1)) < 1
+    assert abs(summary['roi'] - (float(first.loc[0, '组合赔率']) - 1)) < .001
+
+
+def test_half_time_ledger_never_matches_same_number_from_another_day(
+        monkeypatch, tmp_path):
+    combination_root = tmp_path / 'combinations'
+    settled_path = tmp_path / 'settled.csv'
+    monkeypatch.setattr(
+        sporttery_module, 'HALF_TIME_COMBINATION_ROOT', combination_root,
+    )
+    monkeypatch.setattr(
+        sporttery_module, 'SETTLED_PREDICTIONS_PATH', settled_path,
+    )
+    candidate = sporttery_module.build_half_time_combinations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    candidate.loc[0, '比赛ID'] = ''
+    sporttery_module._save_half_time_combination_snapshot(candidate)
+    pd.DataFrame([{
+        'match_id': 99, 'match_number': '周日001',
+        'match_date': '2099-08-23 18:00',
+        'actual_half_full': '平负', 'official_status': 'Payout',
+    }]).to_csv(settled_path, index=False)
+
+    ledger, summary = sporttery_module.build_half_time_combination_ledger()
+
+    assert ledger.loc[0, '结算状态'] == '○ 延期/待定'
+    assert summary['settled'] == 0

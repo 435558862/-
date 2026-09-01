@@ -62,6 +62,11 @@ OUTCOME_LABELS = np.array(['胜', '平', '负'])
 HALF_FULL_LABELS = np.array([
     '胜胜', '胜平', '胜负', '平胜', '平平', '平负', '负胜', '负平', '负负',
 ])
+HAFU_ODD_KEYS = (
+    ('胜胜', 'hh'), ('胜平', 'hd'), ('胜负', 'ha'),
+    ('平胜', 'dh'), ('平平', 'dd'), ('平负', 'da'),
+    ('负胜', 'ah'), ('负平', 'ad'), ('负负', 'aa'),
+)
 # Chronological audit: 4,816 official Sporttery matches through 2026-08-14.
 # Recent 962-match confirmation was 76.1% at 0.70, 71.1% at 0.625 and 65.1%
 # at 0.55.  Only the first two tiers are recommendations; lower-confidence
@@ -931,6 +936,31 @@ def _over_under_model_is_reliable(config: Optional[dict]) -> bool:
     return float(accuracy) > float(baseline)
 
 
+def _half_full_model_is_reliable(config: Optional[dict]) -> bool:
+    """Admit a half/full model to value screening only after a sealed audit.
+
+    Half-time dutching is a new, high-variance strategy, so legacy checkpoints
+    without comparable holdout metadata remain visible as references but may
+    not be labelled as independently verified combination signals.
+    """
+    if not config:
+        return False
+    tuning = config.get('train', {}).get('tuning', {})
+    accuracy = tuning.get('test_accuracy')
+    baseline = tuning.get('majority_baseline')
+    if accuracy is None or baseline is None:
+        return False
+    sample_count = tuning.get('test_samples', tuning.get('test_sample_count'))
+    if sample_count is not None and int(sample_count) < 100:
+        return False
+    if float(accuracy) <= float(baseline):
+        return False
+    p_value = tuning.get('mcnemar_p_value_vs_baseline')
+    if p_value is not None and float(p_value) > 0.10:
+        return False
+    return True
+
+
 def _handicap_probabilities(
         score_probabilities: np.ndarray,
         score_classes: np.ndarray,
@@ -1282,6 +1312,9 @@ def _monte_carlo_summary(
                 '模拟总进球': '', '模拟竞彩总进球': '',
                 '模拟竞彩总进球概率': float('nan'),
                 '模拟半全场': '', '模拟可信度': '',
+                '模拟半场胜概率': float('nan'),
+                '模拟半场平概率': float('nan'),
+                '模拟半场负概率': float('nan'),
                 '模拟最高赛果概率': float('nan'),
                 '模拟模型来源': '历史攻防样本不足（未使用赔率/模型兜底）',
             }
@@ -1346,6 +1379,9 @@ def _monte_carlo_summary(
     half_probability = np.bincount(
         half_full_index, weights=sample_weights, minlength=len(HALF_FULL_LABELS),
     ) / weight_total
+    half_result_probability = np.bincount(
+        half_result, weights=sample_weights, minlength=3,
+    ) / weight_total
     half_top = np.argsort(half_probability)[::-1][:2]
 
     handicap_text = ''
@@ -1391,6 +1427,9 @@ def _monte_carlo_summary(
             f'{HALF_FULL_LABELS[index]} {half_probability[index]:.1%}'
             for index in half_top
         ),
+        '模拟半场胜概率': float(half_result_probability[0]),
+        '模拟半场平概率': float(half_result_probability[1]),
+        '模拟半场负概率': float(half_result_probability[2]),
         '模拟可信度': '★' * confidence_score + '☆' * (5 - confidence_score),
         '模拟最高赛果概率': maximum_result,
         '模拟模型来源': (
@@ -1413,7 +1452,8 @@ def backfill_missing_simulations(predictions: pd.DataFrame) -> pd.DataFrame:
     simulation_columns = (
         '模拟次数', '模拟Top3比分', '模拟胜负', '模拟让球', '模拟总进球',
         '模拟竞彩总进球', '模拟竞彩总进球概率',
-        '模拟半全场', '模拟可信度', '模拟最高赛果概率', '模拟模型来源',
+        '模拟半全场', '模拟半场胜概率', '模拟半场平概率',
+        '模拟半场负概率', '模拟可信度', '模拟最高赛果概率', '模拟模型来源',
     )
     for column in simulation_columns:
         if column not in result.columns:
@@ -1531,6 +1571,11 @@ def _predict_supported_match(
     trained_result_active = False
     dedicated_model_league = ''
     result_model_category = '市场基线'
+    half_full_source = (
+        '官方半全场市场基线'
+        if _official_hafu_half_full(raw.get('hafu')) is not None
+        else '泊松市场拟合'
+    )
     if league is None:
         baseline = _market_baseline_probabilities(
             odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
@@ -1610,8 +1655,13 @@ def _predict_supported_match(
                     odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
                 )['over_under']
             score_prob, _ = _model_probabilities(model_db, f'{league}比分模型', fixture)
-            half_full_prob, _ = _model_probabilities(
+            half_full_prob, half_full_config = _model_probabilities(
                 model_db, f'{league}半全场模型', fixture,
+            )
+            half_full_source = (
+                f'{league}专用半全场模型（已验证）'
+                if _half_full_model_is_reliable(half_full_config)
+                else f'{league}专用半全场模型（未通过组合验证）'
             )
             # Only mark a row as dedicated after every required league model
             # loaded successfully.  Recognized-but-unmapped/new-team rows use
@@ -1700,6 +1750,9 @@ def _predict_supported_match(
     lottery_total_labels = ('0球', '1球', '2球', '3球', '4球', '5球', '6球', '7+球')
     top_half_full = np.argsort(half_full_prob)[-3:][::-1]
     ranked_half_full = [HALF_FULL_LABELS[i] for i in top_half_full]
+    half_result_probability = np.asarray(
+        half_full_prob, dtype=np.float64,
+    ).reshape(3, 3).sum(axis=1)
     result_index = select_result_index(result_prob)
     result_pick = OUTCOME_LABELS[result_index]
     draw_gate_pick = result_pick == '平' and draw_gate_applies(result_prob)
@@ -1847,6 +1900,16 @@ def _predict_supported_match(
         monte_carlo['模拟模型来源'] = (
             f'{simulation_source}｜{monte_carlo["模拟模型来源"]}'
         )
+    official_hafu_odds = {}
+    raw_hafu = raw.get('hafu') or {}
+    for label, key in HAFU_ODD_KEYS:
+        try:
+            odd = float(raw_hafu[key])
+        except (KeyError, TypeError, ValueError):
+            odd = float('nan')
+        official_hafu_odds[f'官方半全场{label}奖金'] = (
+            odd if np.isfinite(odd) and odd > 1.0 else float('nan')
+        )
     monte_risks = []
     if monte_carlo['模拟最高赛果概率'] < 0.50:
         monte_risks.append('胜负分散')
@@ -1980,6 +2043,11 @@ def _predict_supported_match(
         '半全场Top3': ' / '.join(
             f'{HALF_FULL_LABELS[i]} {half_full_prob[i]:.1%}' for i in top_half_full
         ),
+        '半全场模型来源': half_full_source,
+        '正式半场胜概率': float(half_result_probability[0]),
+        '正式半场平概率': float(half_result_probability[1]),
+        '正式半场负概率': float(half_result_probability[2]),
+        **official_hafu_odds,
         '首选比分': ranked_scores[0],
         '比分推荐状态': '推荐' if score_recommendation_active else '可信度不足',
         '比分推荐阈值': 0.12,

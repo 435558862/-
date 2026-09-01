@@ -22,6 +22,7 @@ from src.services.daily_sporttery import (
     _aggressive_upset_score,
     _implied_had_from_handicap_market,
     _implied_had_without_result_market,
+    _half_full_model_is_reliable,
     _market_baseline_probabilities,
     _monte_carlo_summary,
     _market_selection,
@@ -149,6 +150,25 @@ class DailySportteryTests(unittest.TestCase):
         }}}
         self.assertFalse(_over_under_model_is_reliable(weak))
         self.assertTrue(_over_under_model_is_reliable(useful))
+
+    def test_half_full_combination_requires_a_proven_sealed_model(self):
+        missing_audit = {'train': {'tuning': {'test_accuracy': 0.40}}}
+        weak = {'train': {'tuning': {
+            'test_accuracy': 0.31, 'majority_baseline': 0.32,
+            'test_samples': 500, 'mcnemar_p_value_vs_baseline': 0.04,
+        }}}
+        inconclusive = {'train': {'tuning': {
+            'test_accuracy': 0.34, 'majority_baseline': 0.30,
+            'test_samples': 500, 'mcnemar_p_value_vs_baseline': 0.40,
+        }}}
+        proven = {'train': {'tuning': {
+            'test_accuracy': 0.34, 'majority_baseline': 0.25,
+            'test_samples': 500, 'mcnemar_p_value_vs_baseline': 0.03,
+        }}}
+        self.assertFalse(_half_full_model_is_reliable(missing_audit))
+        self.assertFalse(_half_full_model_is_reliable(weak))
+        self.assertFalse(_half_full_model_is_reliable(inconclusive))
+        self.assertTrue(_half_full_model_is_reliable(proven))
 
     @patch('src.services.daily_sporttery._cached_model_database')
     def test_dedicated_model_is_loaded_once_per_prediction_batch(self, database):
@@ -368,6 +388,12 @@ class DailySportteryTests(unittest.TestCase):
         )
         self.assertGreater(first['模拟竞彩总进球概率'], 0)
         self.assertLessEqual(first['模拟竞彩总进球概率'], 1)
+        half_result_probability = sum(
+            first[column] for column in (
+                '模拟半场胜概率', '模拟半场平概率', '模拟半场负概率',
+            )
+        )
+        self.assertAlmostEqual(half_result_probability, 1.0)
         self.assertTrue(first['模拟模型来源'].startswith('历史攻防双泊松蒙特卡洛'))
         self.assertIn('未使用赔率/正式模型/首发校正', first['模拟模型来源'])
 
