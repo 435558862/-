@@ -33,7 +33,9 @@ from src.services.odds_tracking import (
     record_odds_snapshots,
 )
 from src.services.lineups import fetch_lineup_analysis
-from src.services.draw_calibration import calibrate_draw, select_result_index
+from src.services.draw_calibration import (
+    calibrate_draw, draw_gate_applies, select_result_index,
+)
 from src.services.team_names import resolve_model_team
 from src.network.fixtures.sporttery import (
     SportteryMobileClient,
@@ -1629,22 +1631,28 @@ def _predict_supported_match(
             else:
                 category = f'{league}专用模型'
                 blend_weight = model_result_blend_weight(category)
-                result_prob = (
-                    blend_weight * np.asarray(result_prob, dtype=np.float64)
-                    + (1.0 - blend_weight) * market_prob
-                )
-                result_prob = _calibrate_draw_probability(
-                    result_prob, market_prob, history,
-                    league=selection_league, home=home_cn, away=away_cn,
-                    draw_flow=preliminary_flow.get('draw_change') or 0.0,
-                    hhad_line_change=market_quality.get('hhad_line_change') or 0.0,
-                    ttg_expected_change=market_quality.get('ttg_expected_change') or 0.0,
-                )
-                prediction_basis = (
-                    f'{category}{blend_weight:.0%} + 官方赔率{1.0-blend_weight:.0%}'
-                    '，含联赛平局校准'
-                )
-                trained_result_active = True
+                if blend_weight <= 0.0:
+                    result_prob = market_prob
+                    result_model_category = '市场基线'
+                    prediction_basis = '专用模型尚未证明高于市场，使用官方赔率市场基线'
+                    confidence = '正常'
+                else:
+                    result_prob = (
+                        blend_weight * np.asarray(result_prob, dtype=np.float64)
+                        + (1.0 - blend_weight) * market_prob
+                    )
+                    result_prob = _calibrate_draw_probability(
+                        result_prob, market_prob, history,
+                        league=selection_league, home=home_cn, away=away_cn,
+                        draw_flow=preliminary_flow.get('draw_change') or 0.0,
+                        hhad_line_change=market_quality.get('hhad_line_change') or 0.0,
+                        ttg_expected_change=market_quality.get('ttg_expected_change') or 0.0,
+                    )
+                    prediction_basis = (
+                        f'{category}{blend_weight:.0%} + 官方赔率{1.0-blend_weight:.0%}'
+                        '，含联赛平局校准'
+                    )
+                    trained_result_active = True
 
     lineup_analysis = lineup_analysis or {}
     lineup_shift = float(lineup_analysis.get('probability_shift') or 0.0)
@@ -1694,6 +1702,7 @@ def _predict_supported_match(
     ranked_half_full = [HALF_FULL_LABELS[i] for i in top_half_full]
     result_index = select_result_index(result_prob)
     result_pick = OUTCOME_LABELS[result_index]
+    draw_gate_pick = result_pick == '平' and draw_gate_applies(result_prob)
     final_selection = _market_selection(
         float(np.max(result_prob)), selection_league,
     )
@@ -1706,10 +1715,17 @@ def _predict_supported_match(
         advice = '观察' if advice == '观察' else '跳过'
     if flow_gate['state'] in ('conflict', 'unstable'):
         advice = '跳过'
-    # A draw can only be recommended when recorded market flow also points to
-    # the draw. Calibration may rank it first, but never forces it into a pick.
-    if result_pick == '平' and flow_gate['state'] != 'agree':
-        advice = '跳过'
+    # The draw gate already passed a sealed chronological test. Do not require
+    # a second positive flow signal: stable or sparse snapshots are neutral,
+    # while genuine conflict/instability is still rejected above. Because the
+    # sealed draw precision is lower than the main-pick tiers, neutral-flow
+    # draws remain observations rather than being mislabeled as strong picks.
+    if (
+            draw_gate_pick
+            and advice == '跳过'
+            and flow_gate['state'] in ('agree', 'stable', 'insufficient')
+    ):
+        advice = '观察'
     lineup_conflict = bool(
         abs(lineup_shift) >= 0.016
         and (

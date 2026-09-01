@@ -212,13 +212,9 @@ def model_result_is_allowed(model_category: str) -> bool:
 
 
 def model_result_blend_weight(model_category: str) -> float:
-    """Return a conservative live-audit weight for a dedicated model.
-
-    New or tied models are blended with the market instead of replacing it;
-    only a sufficiently sampled model with positive live edge earns more weight.
-    """
+    """Use the live winner: unproven, tied or weaker models get zero weight."""
     if not STATUS_PATH.exists():
-        return 0.35
+        return 0.0
     try:
         status = json.loads(STATUS_PATH.read_text(encoding='utf-8'))
         audit = status.get('accuracy_by_model', {}).get(model_category, {})
@@ -226,18 +222,19 @@ def model_result_blend_weight(model_category: str) -> float:
         edge = float(audit.get('edge_vs_market') or 0.0)
         if audit.get('action') == 'fallback_market':
             return 0.0
-        # Before 30 settled live predictions the dedicated model is shadowed:
-        # it contributes only 10%, so it can accumulate an audit without being
-        # allowed to dominate a recommendation. Between 30 and 49 it earns a
-        # cautious weight only with a positive edge; 50+ samples unlock the
-        # normal dynamic blend.
+        # The market has thousands of observations behind it. A dedicated
+        # model cannot displace it on a tiny sample or a tie.
         if samples < MODEL_GUARD_MIN_SAMPLES:
-            return 0.10
-        if samples < 50:
-            return 0.25 if edge > 0.0 else 0.10
-        return min(0.70, max(0.10, 0.35 + edge * 4.0))
+            return 0.0
+        if edge <= 0.0:
+            return 0.0
+        # A small positive audit edge earns a cautious share; stronger and
+        # better-sampled evidence may progressively take over the prediction.
+        sample_factor = min(1.0, samples / MODEL_GUARD_WINDOW)
+        edge_factor = min(1.0, edge / 0.05)
+        return float(sample_factor * edge_factor)
     except (OSError, ValueError, TypeError):
-        return 0.35
+        return 0.0
 
 
 def _prediction_reports(today: date) -> pd.DataFrame:

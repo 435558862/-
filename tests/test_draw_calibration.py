@@ -3,7 +3,8 @@ import pandas as pd
 
 from src.services import draw_calibration
 from src.services.draw_calibration import (
-    _apply, _draw_gate_metrics, _metrics, _prepare, select_result_index,
+    _apply, _draw_gate_metrics, _metrics, _prepare, draw_gate_applies,
+    select_result_index,
 )
 
 
@@ -44,7 +45,9 @@ def test_draw_gate_selects_draw_only_for_close_sides(monkeypatch):
         lambda: {'enabled': True, 'threshold': 0.30, 'side_gap': 0.08},
     )
     assert select_result_index(np.array([0.35, 0.30, 0.35])) == 1
+    assert draw_gate_applies(np.array([0.35, 0.30, 0.35]))
     assert select_result_index(np.array([0.48, 0.31, 0.21])) == 0
+    assert not draw_gate_applies(np.array([0.48, 0.31, 0.21]))
     assert select_result_index(np.array([0.37, 0.29, 0.34])) == 0
 
 

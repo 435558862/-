@@ -355,19 +355,22 @@ def load_draw_gate() -> dict:
         return {}
 
 
+def draw_gate_applies(probability) -> bool:
+    """Return whether the sealed, time-tested draw decision gate is met."""
+    values = np.asarray(probability, dtype=float)
+    gate = load_draw_gate()
+    if not gate:
+        return False
+    return bool(
+            values[1] >= float(gate['threshold'])
+            and abs(values[0] - values[2]) <= float(gate['side_gap'])
+    )
+
+
 def select_result_index(probability) -> int:
     """Select H/D/A using a sealed draw gate when it passed time testing."""
     values = np.asarray(probability, dtype=float)
-    default = int(np.argmax(values))
-    gate = load_draw_gate()
-    if not gate:
-        return default
-    if (
-            values[1] >= float(gate['threshold'])
-            and abs(values[0] - values[2]) <= float(gate['side_gap'])
-    ):
-        return 1
-    return default
+    return 1 if draw_gate_applies(values) else int(np.argmax(values))
 
 
 def calibrate_draw(base_probability, league, home, away, market_probability,
