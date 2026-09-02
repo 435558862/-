@@ -2068,6 +2068,64 @@ class YesterdayRecommendationReviewDialog(QDialog):
             root.addWidget(observation_table, 1)
 
 
+class HalfTimeRecommendationReviewDialog(QDialog):
+    """Dedicated audit view for the frozen half-time recommendations."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        _, review_date = build_yesterday_recommendation_review()
+        observation_day = review_date or _latest_half_time_observation_day()
+        observation_frame, observation_summary = (
+            build_half_time_observation_review(observation_day)
+            if observation_day else
+            build_half_time_observation_review('0000-00-00')
+        )
+        self.setWindowTitle(f'{observation_day or "昨日"} 半场推荐复核')
+        self.resize(1320, 640)
+        root = QVBoxLayout(self)
+
+        title = QLabel('半场推荐复核（冻结记录，与正式每日推荐分开统计）')
+        title.setStyleSheet(
+            'color:#8a4b08;background:#fff8df;border:1px solid #eed28a;'
+            'padding:6px;font-size:13px;font-weight:600;'
+        )
+        root.addWidget(title)
+        if observation_frame.empty:
+            message = QLabel(
+                '该日期没有冻结的半场推荐记录。这里只复核当时在“每日推荐”中'
+                '实际显示并冻结的半场方向，不会根据完场赛果倒推选择。'
+            )
+            message.setWordWrap(True)
+            root.addWidget(message)
+            return
+
+        settled_count = int(observation_summary['settled'])
+        pending_count = int(observation_summary['pending'])
+        hits = int(observation_summary['hits'])
+        directions = []
+        for direction, values in observation_summary['directions'].items():
+            if values['settled']:
+                directions.append(
+                    f'半场{direction}{values["hits"]}/{values["settled"]}'
+                )
+        summary_text = (
+            f'{observation_day} 半场推荐：已结算 {hits}/{settled_count} 命中，'
+            f'待定 {pending_count} 场（分方向：{"；".join(directions) or "暂无"}）。'
+            if settled_count else
+            f'{observation_day} 半场推荐：{pending_count} 场延期或待官方半场赛果。'
+        )
+        summary = QLabel(
+            summary_text + ' 延期保持待定；本表不计入正式每日推荐命中率和ROI。'
+        )
+        summary.setWordWrap(True)
+        root.addWidget(summary)
+        table = ExcelTable(
+            self, observation_frame, readonly=True, supports_sorting=True,
+        )
+        _style_review_status(table, observation_frame)
+        root.addWidget(table, 1)
+
+
 class HalfTimeCombinationLedgerDialog(QDialog):
     """Frozen, no-cherry-picking audit of half-time dutching candidates."""
 
@@ -2196,15 +2254,19 @@ class DailyRecommendationsDialog(QDialog):
         )
         notice.setWordWrap(True)
         header.addWidget(notice, 1)
-        review_button = QPushButton('昨日推荐/半场复核')
-        review_button.setToolTip('查看正式每日推荐与冻结的半场观察复核；两者分开统计')
+        review_button = QPushButton('昨日推荐复盘')
         review_button.clicked.connect(self._open_yesterday_review)
         header.addWidget(review_button)
+        half_time_review_button = QPushButton('半场推荐复核')
+        half_time_review_button.setToolTip('复核冻结的半场推荐、官方半场赛果及命中状态')
+        half_time_review_button.clicked.connect(self._open_half_time_review)
+        header.addWidget(half_time_review_button)
         combination_button = QPushButton('半场组合账本')
         combination_button.clicked.connect(self._open_half_time_combinations)
         header.addWidget(combination_button)
         root.addLayout(header)
         self._review_dialog = None
+        self._half_time_review_dialog = None
         self._combination_dialog = None
         frame = build_daily_recommendations(predictions)
         _save_daily_recommendation_snapshot(frame)
@@ -2273,6 +2335,15 @@ class DailyRecommendationsDialog(QDialog):
         self._combination_dialog.raise_()
         self._combination_dialog.activateWindow()
 
+    def _open_half_time_review(self):
+        if self._half_time_review_dialog is not None:
+            self._half_time_review_dialog.close()
+            self._half_time_review_dialog.deleteLater()
+        self._half_time_review_dialog = HalfTimeRecommendationReviewDialog(self)
+        self._half_time_review_dialog.show()
+        self._half_time_review_dialog.raise_()
+        self._half_time_review_dialog.activateWindow()
+
 
 def filter_predictions_by_model(df: pd.DataFrame, model_key: str) -> pd.DataFrame:
     """Strictly isolate one dedicated league or the generic/market rows."""
@@ -2322,7 +2393,6 @@ class SportteryPredictionsDialog(QDialog):
         self._date_selector = QComboBox()
         self._advice_selector = QComboBox()
         self._yesterday_dialog = None
-        self._half_time_review_dialog = None
         self._market_dialog = None
         self._daily_recommendations_dialog = None
         self._table = None
@@ -2458,9 +2528,6 @@ class SportteryPredictionsDialog(QDialog):
         yesterday_button = QPushButton('昨日命中复盘')
         yesterday_button.setToolTip('查看昨日已结算场次的逐项命中明细和简短规律')
         yesterday_button.clicked.connect(self._show_yesterday_hits)
-        half_time_review_button = QPushButton('半场复核')
-        half_time_review_button.setToolTip('直接查看昨日正式推荐及冻结半场观察的独立复核')
-        half_time_review_button.clicked.connect(self._show_half_time_review)
         market_button = QPushButton('市场走势')
         market_button.setObjectName('marketTrendButton')
         market_button.setToolTip('查看欧赔概率、让球和大小球的初盘到临盘走势')
@@ -2472,8 +2539,7 @@ class SportteryPredictionsDialog(QDialog):
         export_button.clicked.connect(self._export)
         for button, width in (
                 (sync_button, 136), (review_button, 102),
-                (yesterday_button, 100), (half_time_review_button, 80),
-                (market_button, 80), (daily_button, 80),
+                (yesterday_button, 100), (market_button, 80), (daily_button, 80),
                 (export_button, 78)):
             button.setFixedSize(width, 25)
             action_bar.addWidget(button)
@@ -3241,20 +3307,6 @@ class SportteryPredictionsDialog(QDialog):
         self._yesterday_dialog.show()
         self._yesterday_dialog.raise_()
         self._yesterday_dialog.activateWindow()
-
-    def _show_half_time_review(self):
-        """Open the frozen half-time observation review from the main toolbar."""
-        if (
-                self._half_time_review_dialog is not None
-                and self._half_time_review_dialog.isVisible()
-        ):
-            self._half_time_review_dialog.raise_()
-            self._half_time_review_dialog.activateWindow()
-            return
-        self._half_time_review_dialog = YesterdayRecommendationReviewDialog(self)
-        self._half_time_review_dialog.show()
-        self._half_time_review_dialog.raise_()
-        self._half_time_review_dialog.activateWindow()
 
     def _show_market_trends(self):
         visible = self._visible_predictions()

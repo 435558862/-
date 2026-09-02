@@ -1,5 +1,5 @@
 import pandas as pd
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QPushButton
 
 from src.gui.i18n import translate_widget
 from src.gui import main as main_window
@@ -22,6 +22,31 @@ def _app():
     global _APP
     _APP = QApplication.instance() or QApplication([])
     return _APP
+
+
+def test_daily_recommendations_exposes_separate_half_time_review(monkeypatch):
+    _app()
+    monkeypatch.setattr(
+        sporttery_window, 'build_daily_recommendations',
+        lambda predictions: pd.DataFrame(),
+    )
+    monkeypatch.setattr(
+        sporttery_window, '_save_daily_recommendation_snapshot', lambda frame: None,
+    )
+    monkeypatch.setattr(
+        sporttery_window, 'build_half_time_observations',
+        lambda predictions: pd.DataFrame(),
+    )
+    monkeypatch.setattr(
+        sporttery_window, '_save_half_time_observation_snapshot', lambda frame: None,
+    )
+
+    dialog = sporttery_window.DailyRecommendationsDialog(pd.DataFrame())
+    labels = {button.text() for button in dialog.findChildren(QPushButton)}
+
+    assert '昨日推荐复盘' in labels
+    assert '半场推荐复核' in labels
+    assert '半场组合账本' in labels
 
 
 def test_core_prediction_window_is_reused_without_resurfacing_main(monkeypatch):
