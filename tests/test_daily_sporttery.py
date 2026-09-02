@@ -14,6 +14,7 @@ from src.network.fixtures.sporttery import (
 )
 from src.services.daily_sporttery import (
     _cached_league_model,
+    _calibrate_score_probabilities,
     _calibrate_draw_probability,
     _clear_prediction_model_cache,
     _cup_market_features,
@@ -348,6 +349,21 @@ class DailySportteryTests(unittest.TestCase):
         probabilities = np.array([0.20, 0.18, 0.12, 0.19])
         ranking = np.argsort(probabilities)[::-1][:3]
         self.assertEqual(divmod(int(classes[ranking[0]]), 7), (2, 0))
+
+    def test_score_calibration_matches_result_and_total_views(self):
+        classes = np.array([7, 15, 8, 16, 1, 9])
+        raw = np.array([0.30, 0.24, 0.16, 0.12, 0.10, 0.08])
+        calibrated = _calibrate_score_probabilities(
+            raw, classes, np.array([0.30, 0.40, 0.30]), np.array([0.70, 0.30]),
+        )
+        homes, aways = classes // 7, classes % 7
+        outcomes = np.where(homes > aways, 0, np.where(homes == aways, 1, 2))
+        self.assertAlmostEqual(calibrated.sum(), 1.0)
+        self.assertTrue(np.allclose(
+            [calibrated[outcomes == index].sum() for index in range(3)],
+            [0.30, 0.40, 0.30], atol=1e-5,
+        ))
+        self.assertAlmostEqual(calibrated[(homes + aways) <= 2].sum(), 0.70, places=5)
 
     def test_score_shortlist_covers_a_different_match_script(self):
         classes = np.array([15, 7, 14, 8, 1])  # 2-1, 1-0, 2-0, 1-1, 0-1

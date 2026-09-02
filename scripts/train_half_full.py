@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from src.database.league import LeagueDatabase
@@ -9,10 +10,10 @@ from src.database.model import ModelDatabase
 from src.models.classifiers.randomforest import RandomForest
 from src.models.evaluation import probability_metrics
 from src.preprocessing.selection import train_test_split
-from src.preprocessing.utils.target import TargetType
+from src.preprocessing.utils.target import TargetType, construct_targets
 
 
-LEAGUES = ('英超', '西甲', '德甲', '意甲', '法甲', '葡超', '瑞超', '日职', '韩职')
+LEAGUES = ('英超', '英冠', '西甲', '德甲', '意甲', '法甲', '葡超', '瑞超', '日职', '韩职')
 PARAM_GRID = (
     {'max_depth': 7, 'min_samples_leaf': 12, 'min_samples_split': 24, 'max_features': 'sqrt'},
     {'max_depth': 10, 'min_samples_leaf': 8, 'min_samples_split': 16, 'max_features': 'sqrt'},
@@ -47,9 +48,19 @@ def train_one(league: str):
     params, validation_metrics = max(
         candidates, key=lambda item: (item[1]['accuracy'], -item[1]['log_loss']),
     )
-    model = build_model(league, params, estimators=1000)
+    # Keep dedicated artifacts publishable on GitHub while retaining a large
+    # ensemble for established leagues. Championship's wider feature history
+    # otherwise produces a single pickle above GitHub's 100 MB file limit.
+    final_estimators = 300 if league == '英冠' else 1000
+    model = build_model(league, params, estimators=final_estimators)
     model.fit(train_validation)
     test_metrics = probability_metrics(model, test, TargetType.HALF_FULL)
+    train_targets = construct_targets(train_validation, TargetType.HALF_FULL)
+    test_targets = construct_targets(test, TargetType.HALF_FULL)
+    values, counts = np.unique(train_targets, return_counts=True)
+    test_metrics['majority_baseline'] = float(np.mean(
+        test_targets == values[counts.argmax()],
+    ))
     config = model.get_default_model_config()
     config['train'] = {
         'method': '70%训练 / 15%时间验证选参 / 15%最近比赛独立测试',

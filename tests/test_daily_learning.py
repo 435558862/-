@@ -103,7 +103,10 @@ def test_daily_review_settles_once_and_builds_truth_dataset(tmp_path, monkeypatc
     assert settled.loc[0, 'monte_carlo_half_full'].startswith('负负')
     assert settled.loc[0, 'monte_carlo_source'] == '独立历史攻防蒙特卡洛'
     assert settled.loc[0, 'score_hit_any'] == 1
+    assert settled.loc[0, 'score_hit_top3'] == 1
     assert settled.loc[0, 'score_hit_source'] == '首'
+    assert first['score_top1_accuracy'] == 1.0
+    assert first['score_top3_accuracy'] == 1.0
 
 
 def test_suspended_result_is_not_used_as_training_truth():

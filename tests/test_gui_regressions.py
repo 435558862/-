@@ -517,11 +517,15 @@ def test_sporttery_table_keeps_only_compact_decision_columns():
     display = sporttery_window.SportteryPredictionsDialog._display_predictions(predictions)
 
     assert display.columns.tolist() == [
-        '赛事编号', '联赛', '对阵', '距参考截止', '综合方向', '盘口流向',
+        '赛事编号', '联赛', '对阵', '距参考截止',
+        '推荐性质', '胜负模型', '数据状态',
+        '综合方向', '盘口流向',
         '让球', '总进球', '半全场', '比分', '风险提示',
     ]
     assert display.loc[0, '对阵'] == '主队 vs 客队'
     assert display.loc[0, '综合方向'] == '胜负 胜（70.0%）'
+    assert display.loc[0, '推荐性质'] == '正式主推'
+    assert display.loc[0, '数据状态'] == '历史报告未标记来源'
     assert display.loc[0, '风险提示'] == '正常'
 
 
@@ -606,6 +610,27 @@ def test_daily_recommendation_displays_lottery_card_day_after_midnight(monkeypat
     assert result.loc[0, '赛事编号'] == '周日018'
     assert result.loc[0, '推荐玩法'] == '胜平负'
     assert result.loc[0, '重点选项'] == '★ 胜'
+
+
+def test_daily_recommendation_uses_dual_pick_only_when_draw_protection_triggered():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周三001', '比赛时间': '2099-09-02 19:00',
+        '联赛': '测试联赛', '主队': '甲', '客队': '乙',
+        '盘口门控': '稳定', '胜平负首选': '胜', '胜平负首选概率': .36,
+        '平局双选保护': '胜平',
+        '模型主胜概率': .36, '模型平局概率': .30, '模型客胜概率': .34,
+        '首次采集胜奖金': 2.70, '首次采集平奖金': 3.20,
+        '首次采集负奖金': 2.90, '官方胜奖金': 2.65,
+        '官方平奖金': 3.20, '官方负奖金': 3.00,
+        '模拟胜负': '平 35.0%',
+    }])
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+    assert result.loc[0, '推荐玩法'] == '胜平负双选'
+    assert result.loc[0, '重点选项'] == '· 胜平'
+    assert result.loc[0, '推荐等级'] == '平局双选保护'
+    assert result.loc[0, '建议仓位'] == '仅作平局保护，不计单选仓位'
 
 
 def test_daily_recommendations_fill_card_with_explicit_observations():

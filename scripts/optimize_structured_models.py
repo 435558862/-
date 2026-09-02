@@ -27,7 +27,7 @@ from src.preprocessing.utils.target import TargetType, construct_targets
 
 warnings.filterwarnings('ignore')
 
-LEAGUES = ['英超', '西甲', '德甲', '意甲', '法甲', '葡超', '瑞超', '日职', '韩职']
+LEAGUES = ['英超', '英冠', '西甲', '德甲', '意甲', '法甲', '葡超', '瑞超', '日职', '韩职']
 TASKS = [
     ('胜平负', TargetType.RESULT),
     ('大小球', TargetType.OVER_UNDER),

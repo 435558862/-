@@ -395,6 +395,9 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
     score_hit_source = next(
         (label for label, value in score_candidates if _parse_score(value) == score), '',
     )
+    score_hit_top3 = any(
+        _parse_score(value) == score for _, value in score_candidates[:3]
+    )
     predicted_ou = _first_text(prediction.get('大小球首选'))
     actual_over = home_goals + away_goals > 2
 
@@ -479,6 +482,7 @@ def _settled_record(prediction: pd.Series, result: dict) -> Optional[dict]:
         'actual_half_full': actual_half_full,
         'result_hit': int(str(prediction.get('胜平负首选') or '') == labels[actual_result]),
         'score_hit': int(_parse_score(predicted_score) == score),
+        'score_hit_top3': int(score_hit_top3),
         'score_hit_any': int(bool(score_hit_source)),
         'score_hit_source': score_hit_source,
         'handicap_hit': (
@@ -1375,7 +1379,9 @@ def review_and_learn(
         '胜平负': settled_accuracy('result_hit'),
         '让球胜平负': settled_accuracy('handicap_hit'),
         '总进球': settled_accuracy('over_under_hit'),
-        '比分': settled_accuracy('score_hit_any', 'score_hit'),
+        '比分': settled_accuracy('score_hit_top3', 'score_hit_any', 'score_hit'),
+        '比分首选': settled_accuracy('score_hit'),
+        '比分Top3': settled_accuracy('score_hit_top3', 'score_hit_any'),
         '半全场': settled_accuracy('half_full_hit'),
     }
     try:
@@ -1400,6 +1406,8 @@ def review_and_learn(
         'score_accuracy': (
             float(settled['score_hit'].mean()) if not settled.empty else None
         ),
+        'score_top1_accuracy': settled_accuracy('score_hit'),
+        'score_top3_accuracy': settled_accuracy('score_hit_top3', 'score_hit_any'),
         'over_under_accuracy': (
             float(settled['over_under_hit'].mean()) if not settled.empty else None
         ),

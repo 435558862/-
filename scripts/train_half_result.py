@@ -12,7 +12,7 @@ from src.preprocessing.utils.normalization import NormalizerType
 from src.preprocessing.utils.target import TargetType, construct_targets
 
 
-LEAGUES = ['英超', '西甲', '德甲', '意甲', '法甲']
+LEAGUES = ['英超', '英冠', '西甲', '德甲', '意甲', '法甲', '葡超', '瑞超', '日职', '韩职']
 CS = [0.01, 0.03, 0.1, 0.3, 1.0]
 THRESHOLDS = np.arange(0.40, 0.66, 0.01)
 

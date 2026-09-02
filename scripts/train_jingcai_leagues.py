@@ -15,18 +15,19 @@ from src.models.classifiers.football import (
 from src.models.evaluation import probability_metrics
 from src.preprocessing.selection import train_test_split
 from src.preprocessing.statistics import StatisticsEngine
-from src.preprocessing.utils.target import TargetType
+from src.preprocessing.utils.target import TargetType, construct_targets
 from src.network.leagues.league import League
 from src.services.league_sync import KOREA_MATCH_HISTORY_WINDOW, _korean_feature_dataset
 
 
 LEAGUES = {
+    ('England', 'Championship'): '英冠',
     ('Sweden', 'Allsvenskan'): '瑞超',
     ('Portugal', 'Liga-1'): '葡超',
     ('Japan', 'J-1'): '日职',
 }
 KOREA_SOURCE = Path('storage/network/k_league_sgodds.csv')
-MODEL_LEAGUES = ('英超', '西甲', '德甲', '意甲', '法甲', '瑞超', '葡超', '日职', '韩职')
+MODEL_LEAGUES = ('英超', '英冠', '西甲', '德甲', '意甲', '法甲', '瑞超', '葡超', '日职', '韩职')
 REPORT = Path('storage/reports/全部联赛核心模型选优报告.csv')
 
 
@@ -137,6 +138,11 @@ def train_one(league: str, target: TargetType):
     final_model = factory()
     final_model.fit(train_validation)
     test_metrics = probability_metrics(final_model, test, target)
+    train_targets = construct_targets(train_validation, target)
+    test_targets = construct_targets(test, target)
+    values, counts = np.unique(train_targets, return_counts=True)
+    majority = values[counts.argmax()]
+    test_metrics['majority_baseline'] = float(np.mean(test_targets == majority))
     config = final_model.get_default_model_config()
     config['train'] = {
         'method': '70%历史训练 / 15%时间验证选型 / 15%最近比赛独立测试',

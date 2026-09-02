@@ -34,7 +34,7 @@ from src.services.odds_tracking import (
 )
 from src.services.lineups import fetch_lineup_analysis
 from src.services.draw_calibration import (
-    calibrate_draw, draw_gate_applies, select_result_index,
+    calibrate_draw, draw_gate_applies, draw_protection_pick, select_result_index,
 )
 from src.services.team_names import resolve_model_team
 from src.network.fixtures.sporttery import (
@@ -49,6 +49,7 @@ from src.preprocessing.utils.target import TargetType, class_to_score
 
 LEAGUE_ALIASES = {
     '英超': ('英超', '英格兰超级联赛', '英格兰足球超级联赛'),
+    '英冠': ('英冠', '英格兰冠军联赛', '英格兰足球冠军联赛'),
     '西甲': ('西甲', '西班牙甲级联赛', '西班牙足球甲级联赛'),
     '德甲': ('德甲', '德国甲级联赛', '德国足球甲级联赛'),
     '意甲': ('意甲', '意大利甲级联赛', '意大利足球甲级联赛'),
@@ -908,32 +909,57 @@ def _clear_prediction_model_cache():
     _cached_model_database.cache_clear()
 
 
+def _holdout_audit(config: Optional[dict]) -> dict:
+    """Normalize legacy tuning metadata and newer train/test reports."""
+    if not config:
+        return {}
+    train = config.get('train', {}) or {}
+    tuning = train.get('tuning', {}) or {}
+    test = train.get('test', {}) or {}
+    return {
+        'accuracy': tuning.get('test_accuracy', test.get('accuracy')),
+        'baseline': tuning.get(
+            'majority_baseline', test.get('majority_baseline'),
+        ),
+        'samples': tuning.get(
+            'test_samples', tuning.get('test_sample_count', test.get('samples')),
+        ),
+        'p_value': tuning.get('mcnemar_p_value_vs_baseline'),
+    }
+
+
 def _result_model_is_reliable(config: Optional[dict]) -> bool:
     """Reject a saved 1X2 model only when its own holdout audit is clearly weak."""
-    if not config:
-        return False
-    tuning = config.get('train', {}).get('tuning', {})
-    accuracy = tuning.get('test_accuracy')
+    audit = _holdout_audit(config)
+    accuracy = audit.get('accuracy')
     if accuracy is None:
-        # Older models have no comparable holdout metadata. Preserve their
-        # behavior until they are retrained rather than inventing a score.
-        return True
-    sample_count = tuning.get('test_samples', tuning.get('test_sample_count'))
+        return False
+    sample_count = audit.get('samples')
     if sample_count is not None and int(sample_count) < 100:
         return False
-    return float(accuracy) >= 0.50
+    baseline = audit.get('baseline')
+    return bool(
+        float(accuracy) >= 0.50
+        and (baseline is None or float(accuracy) > float(baseline))
+    )
 
 
 def _over_under_model_is_reliable(config: Optional[dict]) -> bool:
     """Use a trained O/U model only when its sealed test beats its baseline."""
-    if not config:
-        return True
-    tuning = config.get('train', {}).get('tuning', {})
-    accuracy = tuning.get('test_accuracy')
-    baseline = tuning.get('majority_baseline')
+    audit = _holdout_audit(config)
+    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
     if accuracy is None or baseline is None:
-        return True
-    return float(accuracy) > float(baseline)
+        return False
+    return float(accuracy) >= float(baseline) + 0.005
+
+
+def _score_model_is_reliable(config: Optional[dict]) -> bool:
+    """Exact-score models must beat their sealed modal-score baseline."""
+    audit = _holdout_audit(config)
+    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
+    if accuracy is None or baseline is None:
+        return False
+    return float(accuracy) >= float(baseline) + 0.005
 
 
 def _half_full_model_is_reliable(config: Optional[dict]) -> bool:
@@ -945,17 +971,16 @@ def _half_full_model_is_reliable(config: Optional[dict]) -> bool:
     """
     if not config:
         return False
-    tuning = config.get('train', {}).get('tuning', {})
-    accuracy = tuning.get('test_accuracy')
-    baseline = tuning.get('majority_baseline')
+    audit = _holdout_audit(config)
+    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
     if accuracy is None or baseline is None:
         return False
-    sample_count = tuning.get('test_samples', tuning.get('test_sample_count'))
+    sample_count = audit.get('samples')
     if sample_count is not None and int(sample_count) < 100:
         return False
     if float(accuracy) <= float(baseline):
         return False
-    p_value = tuning.get('mcnemar_p_value_vs_baseline')
+    p_value = audit.get('p_value')
     if p_value is not None and float(p_value) > 0.10:
         return False
     return True
@@ -1509,6 +1534,44 @@ def _diverse_score_ranking(
     return np.asarray([first, second, third], dtype=np.int32)
 
 
+def _calibrate_score_probabilities(
+        score_probabilities: np.ndarray,
+        score_classes: np.ndarray,
+        result_probabilities: np.ndarray,
+        over_under_probabilities: np.ndarray,
+) -> np.ndarray:
+    """Align exact scores with the independently calibrated 1X2 and O/U views.
+
+    Iterative proportional fitting preserves the model's within-group score
+    ordering while preventing a generic modal score from ignoring the match's
+    result and goal-total evidence.
+    """
+    values = np.asarray(score_probabilities, dtype=np.float64).copy()
+    classes = np.asarray(score_classes, dtype=np.int32)
+    result_target = np.asarray(result_probabilities, dtype=np.float64)
+    total_target = np.asarray(over_under_probabilities, dtype=np.float64)
+    if (
+        values.ndim != 1 or values.size != classes.size or values.size == 0
+        or result_target.shape != (3,) or total_target.shape != (2,)
+        or not np.isfinite(values).all() or values.sum() <= 0
+    ):
+        return values
+    values = np.maximum(values, 1e-12)
+    values /= values.sum()
+    homes, aways = classes // 7, classes % 7
+    outcomes = np.where(homes > aways, 0, np.where(homes == aways, 1, 2))
+    totals = (homes + aways > 2).astype(int)
+    for _ in range(20):
+        for group, targets in ((outcomes, result_target), (totals, total_target)):
+            for index, target in enumerate(targets):
+                mask = group == index
+                current = float(values[mask].sum())
+                if current > 0 and np.isfinite(target) and target >= 0:
+                    values[mask] *= float(target) / current
+        values /= values.sum()
+    return values
+
+
 def _score_ranking_consistent_with_total(
         score_probabilities: np.ndarray,
         score_classes: np.ndarray,
@@ -1549,6 +1612,7 @@ def _predict_supported_match(
         odds_series: Optional[dict] = None,
         lineup_analysis: Optional[dict] = None,
         regular_market_offered: bool = True,
+        data_feed_source: str = '官方实时接口',
 ) -> dict:
     market_prob = _devig(odds)
     preliminary_flow = market_flow_gate(
@@ -1571,6 +1635,10 @@ def _predict_supported_match(
     trained_result_active = False
     dedicated_model_league = ''
     result_model_category = '市场基线'
+    result_model_status = '市场基线'
+    over_under_model_status = '市场基线'
+    score_model_status = '市场基线'
+    half_full_model_status = '市场基线'
     half_full_source = (
         '官方半全场市场基线'
         if _official_hafu_half_full(raw.get('hafu')) is not None
@@ -1600,6 +1668,7 @@ def _predict_supported_match(
                 if elo_complete else '官方赔率80% + 欧战历史校准20%（Elo缺失）'
             )
             confidence = '中' if elo_complete else '较低'
+            result_model_status = '欧战校准模型启用'
         else:
             generic = predict_generic_probabilities(
                 display_league or '', odds,
@@ -1612,6 +1681,7 @@ def _predict_supported_match(
                 result_model_category = '通用模型'
                 prediction_basis = '每日官方赛果复盘通用模型 + 市场基线'
                 confidence = '中'
+                result_model_status = '通用模型启用'
     else:
         raw_history = LeagueDatabase().load_league(league)
         simulation_history = raw_history
@@ -1636,6 +1706,9 @@ def _predict_supported_match(
             prediction_basis = '官方赔率市场基线（球队历史不足）'
             confidence = '低'
         else:
+            baseline = _market_baseline_probabilities(
+                odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
+            )
             fixture = construct_inputs_by_fixture(
                 history,
                 pd.DataFrame([{
@@ -1651,18 +1724,29 @@ def _predict_supported_match(
                 model_db, f'{league}大小球模型', fixture,
             )
             if not _over_under_model_is_reliable(ou_config):
-                ou_prob = _market_baseline_probabilities(
-                    odds, raw.get('ttg'), raw.get('crs'), raw.get('hafu'),
-                )['over_under']
-            score_prob, _ = _model_probabilities(model_db, f'{league}比分模型', fixture)
+                ou_prob = baseline['over_under']
+                over_under_model_status = '弱模型已禁用，回退市场基线'
+            else:
+                over_under_model_status = f'{league}专用模型启用'
+            score_prob, score_config = _model_probabilities(
+                model_db, f'{league}比分模型', fixture,
+            )
+            if not _score_model_is_reliable(score_config):
+                score_prob = baseline['score']
+                score_classes = baseline['score_classes']
+                score_model_status = '弱模型已禁用，回退市场基线'
+            else:
+                score_model_status = f'{league}专用模型启用'
             half_full_prob, half_full_config = _model_probabilities(
                 model_db, f'{league}半全场模型', fixture,
             )
-            half_full_source = (
-                f'{league}专用半全场模型（已验证）'
-                if _half_full_model_is_reliable(half_full_config)
-                else f'{league}专用半全场模型（未通过组合验证）'
-            )
+            if _half_full_model_is_reliable(half_full_config):
+                half_full_source = f'{league}专用半全场模型（已验证）'
+                half_full_model_status = f'{league}专用模型启用'
+            else:
+                half_full_prob = baseline['half_full']
+                half_full_source = '市场半全场基线（弱模型已禁用）'
+                half_full_model_status = '弱模型已禁用，回退市场基线'
             # Only mark a row as dedicated after every required league model
             # loaded successfully.  Recognized-but-unmapped/new-team rows use
             # the generic/market view and must not leak into a league picker.
@@ -1673,11 +1757,13 @@ def _predict_supported_match(
                 result_model_category = '市场基线'
                 prediction_basis = '历史模型独立测试未达50%，自动回退官方赔率'
                 confidence = '较低'
+                result_model_status = '弱模型/审计缺失，回退市场基线'
             elif not model_result_is_allowed(f'{league}专用模型'):
                 result_prob = market_prob
                 result_model_category = '市场基线'
                 prediction_basis = '专用模型近期实战低于市场，自动回退官方赔率'
                 confidence = '较低'
+                result_model_status = '近期实战治理禁用，回退市场基线'
             else:
                 category = f'{league}专用模型'
                 blend_weight = model_result_blend_weight(category)
@@ -1686,6 +1772,7 @@ def _predict_supported_match(
                     result_model_category = '市场基线'
                     prediction_basis = '专用模型尚未证明高于市场，使用官方赔率市场基线'
                     confidence = '正常'
+                    result_model_status = '尚未证明优势，回退市场基线'
                 else:
                     result_prob = (
                         blend_weight * np.asarray(result_prob, dtype=np.float64)
@@ -1703,6 +1790,7 @@ def _predict_supported_match(
                         '，含联赛平局校准'
                     )
                     trained_result_active = True
+                    result_model_status = f'{league}专用模型启用'
 
     lineup_analysis = lineup_analysis or {}
     lineup_shift = float(lineup_analysis.get('probability_shift') or 0.0)
@@ -1723,6 +1811,9 @@ def _predict_supported_match(
             _cached_league_model(league, f'{league}比分模型')[0].classifier.classes_,
             dtype=np.int32,
         )
+    score_prob = _calibrate_score_probabilities(
+        score_prob, score_classes, result_prob, ou_prob,
+    )
     raw_top_score_column = int(np.argmax(score_prob))
     score_recommendation_active = bool(
         float(score_prob[raw_top_score_column]) >= 0.12
@@ -1753,9 +1844,12 @@ def _predict_supported_match(
     half_result_probability = np.asarray(
         half_full_prob, dtype=np.float64,
     ).reshape(3, 3).sum(axis=1)
-    result_index = select_result_index(result_prob)
+    result_index = select_result_index(result_prob, market_prob, ou_prob[0])
     result_pick = OUTCOME_LABELS[result_index]
-    draw_gate_pick = result_pick == '平' and draw_gate_applies(result_prob)
+    draw_gate_pick = result_pick == '平' and draw_gate_applies(
+        result_prob, market_prob, ou_prob[0],
+    )
+    draw_protection = draw_protection_pick(result_prob, market_prob, ou_prob[0])
     final_selection = _market_selection(
         float(np.max(result_prob)), selection_league,
     )
@@ -1947,6 +2041,8 @@ def _predict_supported_match(
         '模型客胜概率': result_prob[2],
         '胜平负首选': result_pick,
         '胜平负首选概率': float(result_prob[result_index]),
+        '平局双选保护': draw_protection,
+        '平局保护触发': bool(draw_protection),
         '最终结论': '｜'.join(conclusion_parts),
         '市场去水主胜概率': market_prob[0],
         '市场去水平局概率': market_prob[1],
@@ -1998,6 +2094,14 @@ def _predict_supported_match(
             if dedicated_model_league else '通用/市场模型'
         ),
         '胜负模型类别': result_model_category,
+        '胜负模型状态': result_model_status,
+        '大小球模型状态': over_under_model_status,
+        '比分模型状态': score_model_status,
+        '半全场模型状态': half_full_model_status,
+        '模型治理状态': '；'.join(dict.fromkeys((
+            result_model_status, over_under_model_status,
+            score_model_status, half_full_model_status,
+        ))),
         '置信等级': confidence,
         '估算球队': '、'.join(estimated_teams),
         '市场最高概率': float(market_prob.max()),
@@ -2069,6 +2173,8 @@ def _predict_supported_match(
         '爆冷比分': upset_score,
         '比分爆冷': upset_score,
         '爆冷比分概率': upset_score_probability,
+        '数据采集来源': data_feed_source,
+        '数据完整性': '完整' if regular_market_offered else '胜平负赔率缺失/推导',
         '数据来源': 'https://m.sporttery.cn/mjc/jsq/zqspf/',
     }
 
@@ -2084,12 +2190,14 @@ def run_daily_sporttery(
     # sync wait through several unavailable network requests before today's
     # fixtures were even loaded.
     raw_path = output_root / 'raw' / f'{today}.json'
+    data_feed_source = '官方实时接口'
     try:
         matches = SportteryMobileClient().snapshot(raw_path)
     except RuntimeError as api_error:
         logging.exception('官方移动端接口失败，切换浏览器备用方案。')
         try:
             with SportteryScraper(headless=headless, timeout=12.0) as scraper:
+                data_feed_source = '浏览器实时备用源'
                 matches = scraper.snapshot(
                     raw_path,
                     include_bonus=lambda row: identify_league(
@@ -2169,6 +2277,7 @@ def run_daily_sporttery(
                 odds_series=odds_series,
                 lineup_analysis=lineup_analysis.get(str(raw.get('matchId') or ''), {}),
                 regular_market_offered=regular_market_offered,
+                data_feed_source=data_feed_source,
             ))
         except Exception as error:
             logging.exception('竞彩场次预测失败：%s', raw.get('matchId'))
@@ -2201,6 +2310,39 @@ def run_daily_sporttery(
             prediction_df = pd.concat([previous, prediction_df], ignore_index=True)
             identity = '比赛ID' if '比赛ID' in prediction_df.columns else '赛事编号'
             prediction_df = prediction_df.drop_duplicates(identity, keep='last')
+    # Same-day rows retained after the selling cutoff may predate governance
+    # columns. Label them honestly instead of leaving blank cells that look
+    # like a broken audit trail.
+    if not prediction_df.empty:
+        if '数据采集来源' not in prediction_df:
+            prediction_df['数据采集来源'] = ''
+        prediction_df['数据采集来源'] = prediction_df['数据采集来源'].fillna('').replace(
+            '', '本日早前快照（来源字段未记录）',
+        )
+        complete_odds = prediction_df.reindex(columns=(
+            '官方胜奖金', '官方平奖金', '官方负奖金',
+        )).notna().all(axis=1)
+        if '数据完整性' not in prediction_df:
+            prediction_df['数据完整性'] = ''
+        missing_integrity = prediction_df['数据完整性'].fillna('').eq('')
+        prediction_df.loc[missing_integrity, '数据完整性'] = np.where(
+            complete_odds[missing_integrity], '完整', '胜平负赔率缺失/推导',
+        )
+        for column in (
+            '胜负模型状态', '大小球模型状态', '比分模型状态', '半全场模型状态',
+        ):
+            if column not in prediction_df:
+                prediction_df[column] = ''
+            prediction_df[column] = prediction_df[column].fillna('').replace(
+                '', '历史快照未记录治理状态',
+            )
+        if '模型治理状态' not in prediction_df:
+            prediction_df['模型治理状态'] = ''
+        missing_governance = prediction_df['模型治理状态'].fillna('').eq('')
+        prediction_df.loc[missing_governance, '模型治理状态'] = prediction_df.loc[
+            missing_governance,
+            ['胜负模型状态', '大小球模型状态', '比分模型状态', '半全场模型状态'],
+        ].apply(lambda row: '；'.join(dict.fromkeys(row.astype(str))), axis=1)
     prediction_df = _sort_by_match_number(prediction_df.reset_index(drop=True))
     prediction_df.to_csv(report_dir / f'{today}-竞彩预测.csv', index=False)
     prediction_df.to_csv(latest_path, index=False)

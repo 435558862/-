@@ -686,7 +686,8 @@ def _daily_priority_aspects(predictions: pd.DataFrame) -> pd.Series:
             recommendations['推荐等级'].eq('核心重点')
         ].copy()
     labels = {
-        '胜平负': '胜负', '让球胜平负': '让球', '总进球': '总进球',
+        '胜平负': '胜负', '胜平负双选': '胜负',
+        '让球胜平负': '让球', '总进球': '总进球',
         '比分': '比分', '半全场': '半全场',
     }
     for index, row in predictions.iterrows():
@@ -850,7 +851,8 @@ def build_daily_recommendations(
     columns = [
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
         '最佳比分', '高倍候选',
-        '推荐等级', '正式主模型', '正式模型概率', '价值评估', '建议仓位',
+        '推荐等级', '推荐性质', '正式主模型', '数据状态',
+        '正式模型概率', '价值评估', '建议仓位',
         '盘口验证', '蒙特卡洛是否同向', '阵容验证',
         '比分参考', '半全场参考', '入选理由',
     ]
@@ -1068,11 +1070,20 @@ def build_daily_recommendations(
                 ('官方让胜奖金', '官方让平奖金', '官方让负奖金'),
             )
         for market, choice, formal_compare, probability, margin, official_odds in market_candidates:
+            draw_protection = (
+                str(row.get('平局双选保护') or '').strip()
+                if market == '胜平负' else ''
+            )
+            if draw_protection not in ('胜平', '平负'):
+                draw_protection = ''
             monte_pick = first_simulation_pick(row, market)
             monte_compare = monte_pick.removeprefix('让') if market == '让球胜平负' else monte_pick
             if not monte_pick:
                 continue
-            monte_aligned = formal_compare == monte_compare
+            monte_aligned = (
+                formal_compare == monte_compare
+                or bool(draw_protection and monte_compare in draw_protection)
+            )
             monte_conflict = not monte_aligned
             supported, support_text = market_support(row, market, formal_compare)
             if not supported:
@@ -1136,13 +1147,18 @@ def build_daily_recommendations(
             )
             if not monte_aligned and not monte_observation:
                 continue
-            if not decision.promoted and not handicap_observation and not fallback_observation and not monte_observation:
+            if (
+                not decision.promoted and not draw_protection
+                and not handicap_observation and not fallback_observation
+                and not monte_observation
+            ):
                 continue
             lineup_text = (
                 f'已确认·预警{lineup_warning}' if lineup_status == '已确认'
                 else '未确认·不调整模型'
             )
             display_grade = (
+                '平局双选保护' if draw_protection else
                 '盘口观察' if handicap_observation else
                 decision.grade if decision.promoted else
                 '蒙特反向观察' if monte_observation else '综合观察'
@@ -1160,23 +1176,32 @@ def build_daily_recommendations(
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
-                '推荐玩法': market,
+                '推荐玩法': '胜平负双选' if draw_protection else market,
                 '重点选项': (
-                    f'· {choice}'
-                    if handicap_observation or fallback_observation or monte_observation
+                    f'· {draw_protection or choice}'
+                    if draw_protection or handicap_observation or fallback_observation or monte_observation
                     else f'★ {choice}'
                 ),
                 '最佳比分': best_score(row),
                 '高倍候选': high_odds_reference(row),
                 '推荐等级': display_grade,
+                '推荐性质': (
+                    '正式主推' if display_grade in ('核心重点', '可买优选')
+                    else '平局保护双选' if draw_protection else '观察/不投注'
+                ),
                 '正式主模型': str(row.get('胜负模型类别') or '市场基线'),
+                '数据状态': '｜'.join(filter(None, (
+                    str(row.get('数据采集来源') or ''),
+                    str(row.get('数据完整性') or ''),
+                ))),
                 '正式模型概率': f'{probability:.1%}',
                 '价值评估': (
                     f'SP {official_odds:.2f}｜保守概率 {decision.conservative_probability:.1%}'
                     f'｜EV {decision.conservative_ev:+.1%}'
                 ),
                 '建议仓位': (
-                    f'≤{decision.stake_fraction:.1%}本金'
+                    '仅作平局保护，不计单选仓位'
+                    if draw_protection else f'≤{decision.stake_fraction:.1%}本金'
                     if decision.stake_fraction > 0 else '不投注'
                 ),
                 '盘口验证': support_text,
@@ -1688,7 +1713,8 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
         if not details.empty else pd.DataFrame()
     )
     result_columns = {
-        '胜负': '胜负', '胜平负': '胜负', '胜平负·平局': '胜负',
+        '胜负': '胜负', '胜平负': '胜负', '胜平负双选': '胜负',
+        '胜平负·平局': '胜负',
         '让球': '让球（首/次）', '让球胜平负': '让球（首/次）', '大小球': '大小球',
         '半全场': '半全场（首/次）', '比分': '比分（首/次1/次2/冷/进）',
     }
@@ -1745,6 +1771,12 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
                 f'{selected or "—"} → 让{actual}（{"命中" if hit else "未中"}）'
                 if actual else '未开盘'
             )
+        elif market == '胜平负双选':
+            actual_match = re.search(r'→\s*([胜平负])', result)
+            actual = actual_match.group(1) if actual_match else ''
+            choices = set(selected) & set('胜平负')
+            hit = bool(actual and actual in choices)
+            result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
         elif market == '胜平负·平局':
             hit = '→ 平（命中）' in result
         else:
@@ -2507,6 +2539,22 @@ class SportteryPredictionsDialog(QDialog):
                 '模型类别', pd.Series('', index=display.index),
             ),
         ).fillna('').astype(str)
+        advice = display.get(
+            '建议状态', pd.Series('', index=display.index),
+        ).fillna('').astype(str)
+        display['推荐性质'] = np.where(
+            advice.isin(('精选主推', '高置信主推')), '正式主推',
+            np.where(advice.eq('观察'), '观察方向', '不投注'),
+        )
+        def data_status(row: pd.Series) -> str:
+            values = []
+            for column in ('数据采集来源', '数据完整性'):
+                value = row.get(column)
+                if pd.notna(value) and str(value).strip():
+                    values.append(str(value).strip())
+            return '｜'.join(values) or '历史报告未标记来源'
+
+        display['数据状态'] = display.apply(data_status, axis=1)
         display['模拟半全场'] = display.get(
             '模拟半全场', pd.Series('', index=display.index),
         ).fillna('').astype(str).map(
@@ -2611,6 +2659,7 @@ class SportteryPredictionsDialog(QDialog):
         display['比分'] = display['比分情景（Top3/反向/高进球）']
         preferred = [
             '赛事编号', '比赛时间', '联赛', '对阵', '距参考截止',
+            '推荐性质', '胜负模型', '数据状态',
             '综合方向', '盘口流向', '让球', '总进球', '半全场', '比分',
             '风险提示',
         ]

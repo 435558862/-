@@ -56,9 +56,21 @@ DISPLAY_OVERRIDES = {
 # maintained alias file. Keep these explicit: an incorrect fuzzy match would
 # silently feed the wrong club into a dedicated model.
 INPUT_OVERRIDES = {
+    '英冠': {
+        '伯明翰': 'Birmingham', '博尔顿': 'Bolton', '布莱克本': 'Blackburn',
+        '布里斯托尔城': 'Bristol City', '德比郡': 'Derby', '林肯城': 'Lincoln',
+        '诺维奇': 'Norwich', '朴次茅斯': 'Portsmouth', '普雷斯顿': 'Preston',
+        '谢菲尔德联': 'Sheffield United', '南安普敦': 'Southampton',
+        '斯托克城': 'Stoke', '斯旺西': 'Swansea', '沃特福德': 'Watford',
+        '西汉姆联': 'West Ham', '伍尔弗汉普顿': 'Wolves',
+    },
     '意甲': {
         '弗洛西诺内': 'Frosinone',
         '弗洛西诺': 'Frosinone',
+    },
+    '日职': {
+        '水户蜀葵': 'Mito',
+        '水户蜀葵FC': 'Mito',
     },
 }
 

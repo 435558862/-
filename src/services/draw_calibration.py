@@ -33,7 +33,12 @@ OPTIONAL_SOURCE_COLUMNS = {
 }
 SEALED_DRAW_GATE = {
     'enabled': True, 'threshold': 0.30, 'side_gap': 0.08,
+    'market_threshold': 0.27, 'under_threshold': 0.50,
     'source': '5028场滚动验证/最后500场封闭测试',
+}
+DRAW_PROTECTION_GATE = {
+    'threshold': 0.29, 'side_gap': 0.12,
+    'market_threshold': 0.25, 'under_threshold': 0.46,
 }
 
 
@@ -355,22 +360,71 @@ def load_draw_gate() -> dict:
         return {}
 
 
-def draw_gate_applies(probability) -> bool:
-    """Return whether the sealed, time-tested draw decision gate is met."""
+def draw_gate_applies(probability, market_probability=None,
+                      under_probability=None) -> bool:
+    """Return whether independent model, market, total and parity signals agree.
+
+    Older callers may omit market/total inputs; in that case the original
+    sealed two-factor gate remains available for report compatibility.  Live
+    predictions pass all inputs and therefore require all four draw signals.
+    """
     values = np.asarray(probability, dtype=float)
     gate = load_draw_gate()
     if not gate:
         return False
-    return bool(
-            values[1] >= float(gate['threshold'])
-            and abs(values[0] - values[2]) <= float(gate['side_gap'])
+    base_applies = bool(
+        values[1] >= float(gate['threshold'])
+        and abs(values[0] - values[2]) <= float(gate['side_gap'])
     )
+    if not base_applies:
+        return False
+    if market_probability is not None:
+        market = np.asarray(market_probability, dtype=float)
+        if market.shape != (3,) or not np.isfinite(market).all():
+            return False
+        if market[1] < float(gate.get('market_threshold', 0.27)):
+            return False
+    if under_probability is not None:
+        try:
+            under = float(under_probability)
+        except (TypeError, ValueError):
+            return False
+        if not np.isfinite(under) or under < float(gate.get('under_threshold', 0.50)):
+            return False
+    return True
 
 
-def select_result_index(probability) -> int:
-    """Select H/D/A using a sealed draw gate when it passed time testing."""
+def select_result_index(probability, market_probability=None,
+                        under_probability=None) -> int:
+    """Select H/D/A with a dedicated, multi-signal draw decision gate."""
     values = np.asarray(probability, dtype=float)
-    return 1 if draw_gate_applies(values) else int(np.argmax(values))
+    return 1 if draw_gate_applies(
+        values, market_probability, under_probability,
+    ) else int(np.argmax(values))
+
+
+def draw_protection_pick(probability, market_probability,
+                         under_probability) -> str:
+    """Return 胜平/平负 only for a medium draw signal below the strict gate."""
+    values = np.asarray(probability, dtype=float)
+    market = np.asarray(market_probability, dtype=float)
+    try:
+        under = float(under_probability)
+    except (TypeError, ValueError):
+        return ''
+    if (
+        values.shape != (3,) or market.shape != (3,)
+        or not np.isfinite(values).all() or not np.isfinite(market).all()
+        or not np.isfinite(under)
+        or draw_gate_applies(values, market, under)
+        or values[1] < DRAW_PROTECTION_GATE['threshold']
+        or abs(values[0] - values[2]) > DRAW_PROTECTION_GATE['side_gap']
+        or market[1] < DRAW_PROTECTION_GATE['market_threshold']
+        or under < DRAW_PROTECTION_GATE['under_threshold']
+    ):
+        return ''
+    side = 0 if values[0] >= values[2] else 2
+    return '胜平' if side == 0 else '平负'
 
 
 def calibrate_draw(base_probability, league, home, away, market_probability,

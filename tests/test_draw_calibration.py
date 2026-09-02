@@ -4,6 +4,7 @@ import pandas as pd
 from src.services import draw_calibration
 from src.services.draw_calibration import (
     _apply, _draw_gate_metrics, _metrics, _prepare, draw_gate_applies,
+    draw_protection_pick,
     select_result_index,
 )
 
@@ -49,6 +50,32 @@ def test_draw_gate_selects_draw_only_for_close_sides(monkeypatch):
     assert select_result_index(np.array([0.48, 0.31, 0.21])) == 0
     assert not draw_gate_applies(np.array([0.48, 0.31, 0.21]))
     assert select_result_index(np.array([0.37, 0.29, 0.34])) == 0
+
+
+def test_live_draw_gate_requires_market_and_low_total_confirmation(monkeypatch):
+    monkeypatch.setattr(
+        draw_calibration, 'load_draw_gate',
+        lambda: {
+            'enabled': True, 'threshold': 0.30, 'side_gap': 0.08,
+            'market_threshold': 0.27, 'under_threshold': 0.50,
+        },
+    )
+    model = np.array([0.35, 0.30, 0.35])
+    market = np.array([0.36, 0.28, 0.36])
+    assert select_result_index(model, market, 0.58) == 1
+    assert select_result_index(model, np.array([0.40, 0.24, 0.36]), 0.58) == 0
+    assert select_result_index(model, market, 0.44) == 0
+
+
+def test_medium_draw_signal_returns_only_a_side_plus_draw_protection(monkeypatch):
+    monkeypatch.setattr(
+        draw_calibration, 'load_draw_gate',
+        lambda: {'enabled': True, 'threshold': 0.305, 'side_gap': 0.08},
+    )
+    market = np.array([0.38, 0.27, 0.35])
+    assert draw_protection_pick(np.array([0.36, 0.30, 0.34]), market, 0.52) == '胜平'
+    assert draw_protection_pick(np.array([0.34, 0.30, 0.36]), market, 0.52) == '平负'
+    assert draw_protection_pick(np.array([0.50, 0.27, 0.23]), market, 0.52) == ''
 
 
 def test_draw_gate_metrics_report_decision_quality():
