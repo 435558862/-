@@ -2196,7 +2196,8 @@ class DailyRecommendationsDialog(QDialog):
         )
         notice.setWordWrap(True)
         header.addWidget(notice, 1)
-        review_button = QPushButton('昨日推荐复盘')
+        review_button = QPushButton('昨日推荐/半场复核')
+        review_button.setToolTip('查看正式每日推荐与冻结的半场观察复核；两者分开统计')
         review_button.clicked.connect(self._open_yesterday_review)
         header.addWidget(review_button)
         combination_button = QPushButton('半场组合账本')
@@ -2321,6 +2322,7 @@ class SportteryPredictionsDialog(QDialog):
         self._date_selector = QComboBox()
         self._advice_selector = QComboBox()
         self._yesterday_dialog = None
+        self._half_time_review_dialog = None
         self._market_dialog = None
         self._daily_recommendations_dialog = None
         self._table = None
@@ -2456,6 +2458,9 @@ class SportteryPredictionsDialog(QDialog):
         yesterday_button = QPushButton('昨日命中复盘')
         yesterday_button.setToolTip('查看昨日已结算场次的逐项命中明细和简短规律')
         yesterday_button.clicked.connect(self._show_yesterday_hits)
+        half_time_review_button = QPushButton('半场复核')
+        half_time_review_button.setToolTip('直接查看昨日正式推荐及冻结半场观察的独立复核')
+        half_time_review_button.clicked.connect(self._show_half_time_review)
         market_button = QPushButton('市场走势')
         market_button.setObjectName('marketTrendButton')
         market_button.setToolTip('查看欧赔概率、让球和大小球的初盘到临盘走势')
@@ -2467,7 +2472,8 @@ class SportteryPredictionsDialog(QDialog):
         export_button.clicked.connect(self._export)
         for button, width in (
                 (sync_button, 136), (review_button, 102),
-                (yesterday_button, 100), (market_button, 80), (daily_button, 80),
+                (yesterday_button, 100), (half_time_review_button, 80),
+                (market_button, 80), (daily_button, 80),
                 (export_button, 78)):
             button.setFixedSize(width, 25)
             action_bar.addWidget(button)
@@ -3235,6 +3241,20 @@ class SportteryPredictionsDialog(QDialog):
         self._yesterday_dialog.show()
         self._yesterday_dialog.raise_()
         self._yesterday_dialog.activateWindow()
+
+    def _show_half_time_review(self):
+        """Open the frozen half-time observation review from the main toolbar."""
+        if (
+                self._half_time_review_dialog is not None
+                and self._half_time_review_dialog.isVisible()
+        ):
+            self._half_time_review_dialog.raise_()
+            self._half_time_review_dialog.activateWindow()
+            return
+        self._half_time_review_dialog = YesterdayRecommendationReviewDialog(self)
+        self._half_time_review_dialog.show()
+        self._half_time_review_dialog.raise_()
+        self._half_time_review_dialog.activateWindow()
 
     def _show_market_trends(self):
         visible = self._visible_predictions()
