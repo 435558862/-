@@ -367,6 +367,93 @@ def test_half_time_observation_keeps_only_relative_best_per_card_day():
     assert observation.loc[0, '相对含金量'].endswith('/100')
 
 
+def test_half_time_observation_snapshot_never_rewrites_first_pick(
+        monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        sporttery_module, 'HALF_TIME_OBSERVATION_ROOT', tmp_path,
+    )
+    first = sporttery_module.build_half_time_observations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    sporttery_module._save_half_time_observation_snapshot(first)
+    changed = first.copy()
+    changed.loc[0, '赛事编号'] = '周日002'
+    changed.loc[0, '目标半场'] = '胜'
+    sporttery_module._save_half_time_observation_snapshot(changed)
+
+    frozen = sporttery_module._load_half_time_observation_snapshot(
+        first.loc[0, '比赛日期'],
+    )
+
+    assert frozen.loc[0, '赛事编号'] == '周日001'
+    assert frozen.loc[0, '目标半场'] == '平'
+
+
+def test_half_time_observation_review_matches_after_midnight_ticket_card(
+        monkeypatch, tmp_path):
+    observation_root = tmp_path / 'observations'
+    settled_path = tmp_path / 'settled.csv'
+    monkeypatch.setattr(
+        sporttery_module, 'HALF_TIME_OBSERVATION_ROOT', observation_root,
+    )
+    monkeypatch.setattr(
+        sporttery_module, 'SETTLED_PREDICTIONS_PATH', settled_path,
+    )
+    observation = sporttery_module.build_half_time_observations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    observation['比赛ID'] = observation['比赛ID'].astype(str)
+    observation.loc[0, '比赛ID'] = ''
+    sporttery_module._save_half_time_observation_snapshot(observation)
+    pd.DataFrame([{
+        'match_id': 70, 'match_number': '周日001',
+        'match_date': '2099-08-31 00:30',
+        'actual_half_full': '平负', 'official_status': 'Payout',
+    }]).to_csv(settled_path, index=False)
+
+    review, summary = sporttery_module.build_half_time_observation_review(
+        '2099-08-30',
+    )
+
+    assert review.loc[0, '半场赛果'] == '半场平'
+    assert review.loc[0, '命中状态'] == '✓ 命中'
+    assert summary['settled'] == 1
+    assert summary['hits'] == 1
+    assert summary['hit_rate'] == 1.0
+
+
+def test_half_time_observation_review_never_uses_same_number_from_other_day(
+        monkeypatch, tmp_path):
+    observation_root = tmp_path / 'observations'
+    settled_path = tmp_path / 'settled.csv'
+    monkeypatch.setattr(
+        sporttery_module, 'HALF_TIME_OBSERVATION_ROOT', observation_root,
+    )
+    monkeypatch.setattr(
+        sporttery_module, 'SETTLED_PREDICTIONS_PATH', settled_path,
+    )
+    observation = sporttery_module.build_half_time_observations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    observation['比赛ID'] = observation['比赛ID'].astype(str)
+    observation.loc[0, '比赛ID'] = ''
+    sporttery_module._save_half_time_observation_snapshot(observation)
+    pd.DataFrame([{
+        'match_id': 99, 'match_number': '周日001',
+        'match_date': '2099-08-23 18:00',
+        'actual_half_full': '平负', 'official_status': 'Payout',
+    }]).to_csv(settled_path, index=False)
+
+    review, summary = sporttery_module.build_half_time_observation_review(
+        '2099-08-30',
+    )
+
+    assert review.loc[0, '命中状态'] == '○ 延期/待定'
+    assert '不计失败' in review.loc[0, '复盘结果']
+    assert summary['settled'] == 0
+    assert summary['pending'] == 1
+
+
 def test_half_time_combination_ledger_freezes_first_pick_and_settles_profit(
         monkeypatch, tmp_path):
     combination_root = tmp_path / 'combinations'

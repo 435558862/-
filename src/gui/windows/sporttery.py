@@ -40,6 +40,7 @@ PREDICTION_PATH = REPORT_ROOT / '最新竞彩预测.csv'
 LEARNING_STATUS_PATH = Path('storage/jingcai/learning/status.json')
 DAILY_RECOMMENDATION_ROOT = Path('storage/jingcai/daily_recommendations')
 HALF_TIME_COMBINATION_ROOT = Path('storage/jingcai/half_time_combinations')
+HALF_TIME_OBSERVATION_ROOT = Path('storage/jingcai/half_time_observations')
 SETTLED_PREDICTIONS_PATH = Path('storage/jingcai/learning/settled_predictions.csv')
 HALF_TIME_COMBINATION_STAKE = 1000.0
 HALF_TIME_COMBINATION_GROUPS = {
@@ -1448,7 +1449,7 @@ def build_half_time_observations(
 ) -> pd.DataFrame:
     """Show the strongest three-way-aligned row per card day without betting it."""
     columns = [
-        '比赛日期', '赛事编号', '联赛', '对阵', '目标半场', '组合玩法',
+        '比赛日期', '比赛ID', '赛事编号', '联赛', '对阵', '目标半场', '组合玩法',
         '组合赔率', '相对含金量', '正式半场概率', '蒙特半场概率',
         '市场半场概率', '保本命中率', '模型优势', '观察结论', '模型来源',
     ]
@@ -1471,6 +1472,7 @@ def build_half_time_observations(
         )
         rows.append({
             '比赛日期': item['比赛日期'],
+            '比赛ID': item['比赛ID'],
             '赛事编号': item['赛事编号'],
             '联赛': item['联赛'],
             '对阵': item['对阵'],
@@ -1487,6 +1489,173 @@ def build_half_time_observations(
             '模型来源': item['模型来源'],
         })
     return pd.DataFrame(rows, columns=columns)
+
+
+def _load_half_time_observation_snapshot(day: str) -> pd.DataFrame:
+    path = HALF_TIME_OBSERVATION_ROOT / f'{day}.csv'
+    if not path.exists():
+        return pd.DataFrame()
+    try:
+        return pd.read_csv(path)
+    except (
+            OSError, UnicodeError, pd.errors.EmptyDataError,
+            pd.errors.ParserError):
+        return pd.DataFrame()
+
+
+def _save_half_time_observation_snapshot(frame: pd.DataFrame) -> None:
+    """Freeze the first observation published for each lottery-card day."""
+    if frame.empty or '比赛日期' not in frame.columns:
+        return
+    HALF_TIME_OBSERVATION_ROOT.mkdir(parents=True, exist_ok=True)
+    for day, rows in frame.groupby('比赛日期', sort=False):
+        day_text = str(day or '').strip()
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', day_text):
+            continue
+        path = HALF_TIME_OBSERVATION_ROOT / f'{day_text}.csv'
+        if path.exists() and path.stat().st_size > 0:
+            # An observation is an audit record. Later odds or model changes
+            # must not rewrite a future hit or loss.
+            continue
+        frozen = rows.head(1).copy().reset_index(drop=True)
+        temporary = path.with_suffix('.tmp')
+        frozen.to_csv(temporary, index=False, encoding='utf-8-sig')
+        temporary.replace(path)
+
+
+def _settled_half_time_indexes() -> tuple[dict, dict]:
+    """Index official results by ID and by lottery-card date plus number."""
+    by_id, by_card_number = {}, {}
+    if not SETTLED_PREDICTIONS_PATH.exists():
+        return by_id, by_card_number
+    try:
+        settled = pd.read_csv(SETTLED_PREDICTIONS_PATH)
+    except (
+            OSError, UnicodeError, pd.errors.EmptyDataError,
+            pd.errors.ParserError):
+        return by_id, by_card_number
+    for _, result in settled.iterrows():
+        match_id = _match_identity(result.get('match_id'))
+        if match_id:
+            by_id[match_id] = result
+        number = str(result.get('match_number') or '').strip()
+        card_day = _ticket_card_date(result.get('match_date'), number)
+        if number and card_day is not None:
+            by_card_number[(card_day.isoformat(), number)] = result
+    return by_id, by_card_number
+
+
+def _latest_half_time_observation_day() -> str:
+    """Return the latest frozen card before today for the yesterday dialog."""
+    if not HALF_TIME_OBSERVATION_ROOT.exists():
+        return ''
+    today_text = date.today().isoformat()
+    days = [
+        path.stem for path in HALF_TIME_OBSERVATION_ROOT.glob('*.csv')
+        if re.fullmatch(r'\d{4}-\d{2}-\d{2}', path.stem)
+        and path.stem < today_text
+    ]
+    return max(days, default='')
+
+
+def build_half_time_observation_review(
+        review_day: str | None = None,
+) -> tuple[pd.DataFrame, dict]:
+    """Settle frozen observations by the official half-time result."""
+    columns = [
+        '日期', '赛事编号', '对阵', '目标半场', '相对含金量', '组合赔率',
+        '正式半场概率', '蒙特半场概率', '保本命中率', '半场赛果',
+        '复盘结果', '命中状态',
+    ]
+    snapshots = []
+    if review_day:
+        snapshot = _load_half_time_observation_snapshot(review_day)
+        if not snapshot.empty:
+            snapshots.append(snapshot)
+    elif HALF_TIME_OBSERVATION_ROOT.exists():
+        for path in sorted(HALF_TIME_OBSERVATION_ROOT.glob('*.csv')):
+            try:
+                snapshot = pd.read_csv(path)
+            except (
+                    OSError, UnicodeError, pd.errors.EmptyDataError,
+                    pd.errors.ParserError):
+                continue
+            if not snapshot.empty:
+                snapshots.append(snapshot)
+    empty_summary = {
+        'total': 0, 'settled': 0, 'pending': 0, 'hits': 0,
+        'hit_rate': None, 'directions': {},
+    }
+    if not snapshots:
+        return pd.DataFrame(columns=columns), empty_summary
+
+    frozen = pd.concat(snapshots, ignore_index=True, sort=False)
+    frozen = frozen.drop_duplicates(['比赛日期', '赛事编号'], keep='first')
+    by_id, by_card_number = _settled_half_time_indexes()
+    rows = []
+    direction_summary = {
+        direction: {'settled': 0, 'hits': 0, 'pending': 0}
+        for direction in '胜平负'
+    }
+    settled_count = hits = 0
+    for _, item in frozen.sort_values(['比赛日期', '赛事编号']).iterrows():
+        match_id = _match_identity(item.get('比赛ID'))
+        number = str(item.get('赛事编号') or '').strip()
+        day_text = str(item.get('比赛日期') or '').strip()
+        result = by_id.get(match_id) if match_id else None
+        if result is None:
+            result = by_card_number.get((day_text, number))
+        actual_half_full = str(
+            result.get('actual_half_full') if result is not None else ''
+        ).strip()
+        if actual_half_full.casefold() == 'nan':
+            actual_half_full = ''
+        actual_half = (
+            actual_half_full[:1] if actual_half_full[:1] in '胜平负' else ''
+        )
+        target = str(item.get('目标半场') or '').strip()
+        if actual_half:
+            hit = actual_half == target
+            settled_count += 1
+            hits += int(hit)
+            if target in direction_summary:
+                direction_summary[target]['settled'] += 1
+                direction_summary[target]['hits'] += int(hit)
+            status = '✓ 命中' if hit else '✕ 未中'
+            result_text = (
+                f'半场{target} → 半场{actual_half}'
+                f'（{"命中" if hit else "未中"}）'
+            )
+            actual_text = f'半场{actual_half}'
+        else:
+            if target in direction_summary:
+                direction_summary[target]['pending'] += 1
+            status = '○ 延期/待定'
+            result_text = '官方半场赛果未补齐，不计失败'
+            actual_text = '待官方赛果'
+        rows.append({
+            '日期': day_text,
+            '赛事编号': number,
+            '对阵': item.get('对阵', ''),
+            '目标半场': target,
+            '相对含金量': item.get('相对含金量', ''),
+            '组合赔率': item.get('组合赔率', ''),
+            '正式半场概率': item.get('正式半场概率', ''),
+            '蒙特半场概率': item.get('蒙特半场概率', ''),
+            '保本命中率': item.get('保本命中率', ''),
+            '半场赛果': actual_text,
+            '复盘结果': result_text,
+            '命中状态': status,
+        })
+    summary = {
+        'total': len(rows),
+        'settled': settled_count,
+        'pending': len(rows) - settled_count,
+        'hits': hits,
+        'hit_rate': hits / settled_count if settled_count else None,
+        'directions': direction_summary,
+    }
+    return pd.DataFrame(rows, columns=columns), summary
 
 
 def _load_half_time_combination_snapshot(day: str) -> pd.DataFrame:
@@ -1557,23 +1726,7 @@ def build_half_time_combination_ledger(
         }
     frozen = pd.concat(snapshots, ignore_index=True, sort=False)
     frozen = frozen.drop_duplicates(['比赛日期', '赛事编号'], keep='first')
-    settled = pd.DataFrame()
-    if SETTLED_PREDICTIONS_PATH.exists():
-        try:
-            settled = pd.read_csv(SETTLED_PREDICTIONS_PATH)
-        except (OSError, pd.errors.EmptyDataError, UnicodeError):
-            settled = pd.DataFrame()
-    by_id = {}
-    by_date_number = {}
-    if not settled.empty:
-        for _, result in settled.iterrows():
-            match_id = _match_identity(result.get('match_id'))
-            if match_id:
-                by_id[match_id] = result
-            number = str(result.get('match_number') or '').strip()
-            match_day = str(result.get('match_date') or '')[:10]
-            if number and re.fullmatch(r'\d{4}-\d{2}-\d{2}', match_day):
-                by_date_number[(match_day, number)] = result
+    by_id, by_date_number = _settled_half_time_indexes()
 
     rows = []
     cumulative = 0.0
@@ -1810,50 +1963,109 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     return pd.DataFrame(rows, columns=columns), review_date
 
 
+def _style_review_status(table: ExcelTable, frame: pd.DataFrame) -> None:
+    if '命中状态' not in frame.columns:
+        return
+    status_column = frame.columns.get_loc('命中状态')
+    for row in range(table.rowCount()):
+        item = table.item(row, status_column)
+        if item is None:
+            continue
+        hit = item.text().startswith('✓')
+        pending = item.text().startswith('○')
+        foreground = '#9a6700' if pending else ('#137333' if hit else '#c62828')
+        background = '#fff8df' if pending else ('#eef8f0' if hit else '#fff1f1')
+        item.setForeground(QBrush(QColor(foreground)))
+        item.setBackground(QBrush(QColor(background)))
+        font = QFont(item.font())
+        font.setBold(True)
+        item.setFont(font)
+
+
 class YesterdayRecommendationReviewDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         frame, review_date = build_yesterday_recommendation_review()
-        self.setWindowTitle(f'{review_date or "昨日"} 每日推荐复盘')
-        self.resize(1180, 560)
+        observation_day = review_date or _latest_half_time_observation_day()
+        observation_frame, observation_summary = (
+            build_half_time_observation_review(observation_day)
+            if observation_day else
+            build_half_time_observation_review('0000-00-00')
+        )
+        display_day = review_date or observation_day
+        self.setWindowTitle(f'{display_day or "昨日"} 每日推荐复盘')
+        self.resize(1320, 760)
         root = QVBoxLayout(self)
+
+        daily_title = QLabel('每日重点推荐复盘')
+        daily_title.setStyleSheet('font-size:13px;font-weight:600;')
+        root.addWidget(daily_title)
         if frame.empty:
             root.addWidget(QLabel(
-                '昨日重点推荐快照未保存，或官方赛果尚未补齐。\n'
+                '昨日重点推荐快照未保存，或官方赛果尚未补齐。'
                 '为保证准确，本页不会使用今天的门槛倒推昨日推荐。'
             ))
-            return
-        settled = frame['命中状态'].ne('○ 待复盘')
-        settled_count = int(settled.sum())
-        pending_count = int((~settled).sum())
-        hits = int(frame.loc[settled, '命中状态'].eq('✓ 命中').sum())
-        breakdown = []
-        for market, part in frame.loc[settled].groupby('推荐玩法', sort=False):
-            market_hits = int(part['命中状态'].eq('✓ 命中').sum())
-            breakdown.append(f'{market}{market_hits}/{len(part)}')
-        breakdown_text = '；'.join(breakdown)
-        root.addWidget(QLabel(
-            (
-                f'{review_date} 每日推荐：已结算 {hits}/{settled_count} 命中，'
-                f'待复盘 {pending_count} 项（分玩法：{breakdown_text or "暂无"}）'
-            ) if settled_count else (
-                f'{review_date} 每日推荐：{pending_count} 项均为延期或未完场，待复盘'
+        else:
+            settled = ~frame['命中状态'].astype(str).str.startswith('○')
+            settled_count = int(settled.sum())
+            pending_count = int((~settled).sum())
+            hits = int(frame.loc[settled, '命中状态'].eq('✓ 命中').sum())
+            breakdown = []
+            for market, part in frame.loc[settled].groupby('推荐玩法', sort=False):
+                market_hits = int(part['命中状态'].eq('✓ 命中').sum())
+                breakdown.append(f'{market}{market_hits}/{len(part)}')
+            breakdown_text = '；'.join(breakdown)
+            root.addWidget(QLabel(
+                (
+                    f'{review_date} 每日推荐：已结算 {hits}/{settled_count} 命中，'
+                    f'待复盘 {pending_count} 项（分玩法：{breakdown_text or "暂无"}）'
+                ) if settled_count else (
+                    f'{review_date} 每日推荐：{pending_count} 项均为延期或未完场，待复盘'
+                )
+            ))
+            table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
+            _style_review_status(table, frame)
+            root.addWidget(table, 1)
+
+        observation_title = QLabel(
+            '半场相对最优观察复盘（与正式每日推荐分开统计）'
+        )
+        observation_title.setStyleSheet(
+            'color:#8a4b08;background:#fff8df;border:1px solid #eed28a;'
+            'padding:5px;font-size:13px;font-weight:600;'
+        )
+        root.addWidget(observation_title)
+        if observation_frame.empty:
+            root.addWidget(QLabel(
+                '该日期没有冻结的半场观察记录。新功能只复盘当时实际显示并冻结的观察项，'
+                '不会事后使用赛果倒推历史选择。'
+            ))
+        else:
+            settled_count = int(observation_summary['settled'])
+            pending_count = int(observation_summary['pending'])
+            hits = int(observation_summary['hits'])
+            directions = []
+            for direction, values in observation_summary['directions'].items():
+                if values['settled']:
+                    directions.append(
+                        f'半场{direction}{values["hits"]}/{values["settled"]}'
+                    )
+            summary_text = (
+                f'{observation_day} 半场观察：已结算 {hits}/{settled_count} 命中，'
+                f'待定 {pending_count} 场（分方向：{"；".join(directions) or "暂无"}）。'
+                if settled_count else
+                f'{observation_day} 半场观察：{pending_count} 场延期或待官方半场赛果。'
             )
-        ))
-        table = ExcelTable(self, frame, readonly=True, supports_sorting=True)
-        status_column = frame.columns.get_loc('命中状态')
-        for row in range(table.rowCount()):
-            item = table.item(row, status_column)
-            hit = item.text().startswith('✓')
-            pending = item.text().startswith('○')
-            foreground = '#9a6700' if pending else ('#137333' if hit else '#c62828')
-            background = '#fff8df' if pending else ('#eef8f0' if hit else '#fff1f1')
-            item.setForeground(QBrush(QColor(foreground)))
-            item.setBackground(QBrush(QColor(background)))
-            font = QFont(item.font())
-            font.setBold(True)
-            item.setFont(font)
-        root.addWidget(table)
+            summary_label = QLabel(
+                summary_text + ' 此处只验证筛选规律，不计入正式推荐命中率和ROI。'
+            )
+            summary_label.setWordWrap(True)
+            root.addWidget(summary_label)
+            observation_table = ExcelTable(
+                self, observation_frame, readonly=True, supports_sorting=True,
+            )
+            _style_review_status(observation_table, observation_frame)
+            root.addWidget(observation_table, 1)
 
 
 class HalfTimeCombinationLedgerDialog(QDialog):
@@ -1870,6 +2082,7 @@ class HalfTimeCombinationLedgerDialog(QDialog):
         self.resize(1500, 760)
         root = QVBoxLayout(self)
         observations = build_half_time_observations(predictions)
+        _save_half_time_observation_snapshot(observations)
         candidates = build_half_time_combinations(predictions)
         _save_half_time_combination_snapshot(candidates)
         ledger, summary = build_half_time_combination_ledger()
@@ -1886,10 +2099,13 @@ class HalfTimeCombinationLedgerDialog(QDialog):
                 '当前没有正式模型、蒙特和官方半全场盘口三方同向的观察项。'
             ))
         else:
-            observation_table = ExcelTable(
-                self, observations, readonly=True, supports_sorting=True,
+            observation_display = observations.drop(
+                columns=['比赛ID'], errors='ignore',
             )
-            conclusion_column = observations.columns.get_loc('观察结论')
+            observation_table = ExcelTable(
+                self, observation_display, readonly=True, supports_sorting=True,
+            )
+            conclusion_column = observation_display.columns.get_loc('观察结论')
             for row in range(observation_table.rowCount()):
                 item = observation_table.item(row, conclusion_column)
                 if item is None:
@@ -1991,6 +2207,9 @@ class DailyRecommendationsDialog(QDialog):
         self._combination_dialog = None
         frame = build_daily_recommendations(predictions)
         _save_daily_recommendation_snapshot(frame)
+        _save_half_time_observation_snapshot(
+            build_half_time_observations(predictions),
+        )
         if frame.empty:
             root.addWidget(QLabel('当前没有达到推荐门槛的选项。'))
             return
