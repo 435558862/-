@@ -985,7 +985,11 @@ def build_daily_recommendations(
 
     def market_support(row: pd.Series, market: str, formal_pick: str) -> tuple[bool, str]:
         gate = str(row.get('盘口门控') or '')
-        if any(word in gate for word in ('冲突', '震荡', '不稳定')):
+        # Respect the short-wave market state produced by market_flow_gate.
+        # A reversal, oscillation, or unconfirmed rapid move is not a usable
+        # confirmation signal for the daily card.
+        if any(word in gate for word in (
+                '冲突', '震荡', '不稳定', '反复', '过快', '等待确认', '暂不主推')):
             return False, gate or '盘口不稳定'
         codes = {'胜': 0, '平': 1, '负': 2}
         pick_index = codes.get(formal_pick)
