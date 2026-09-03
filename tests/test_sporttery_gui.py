@@ -167,7 +167,7 @@ def test_daily_recommendation_keeps_delayed_match_on_ticket_card_date(monkeypatc
     assert result.loc[0, '蒙特卡洛是否同向'] == '同向（蒙特：胜）'
 
 
-def test_daily_recommendation_snapshot_keeps_latest_displayed_list(monkeypatch, tmp_path):
+def test_daily_recommendation_snapshot_preserves_every_displayed_list(monkeypatch, tmp_path):
     monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
     first = pd.DataFrame([{
         '比赛日期': '2099-08-29', '赛事编号': '周六001',
@@ -182,7 +182,8 @@ def test_daily_recommendation_snapshot_keeps_latest_displayed_list(monkeypatch, 
 
     frozen = sporttery_module._load_daily_recommendation_snapshot('2099-08-29')
 
-    assert frozen['赛事编号'].tolist() == ['周六002']
+    assert frozen['赛事编号'].tolist() == ['周六001', '周六002']
+    assert frozen['首次展示时间'].notna().all()
 
 
 def test_previous_card_merges_still_visible_after_midnight_matches(monkeypatch, tmp_path):
@@ -228,7 +229,7 @@ def test_previous_card_never_collapses_legacy_multi_play_rows(monkeypatch, tmp_p
     sporttery_module._save_daily_recommendation_snapshot(today_rule_for_same_delayed_match)
     frozen = sporttery_module._load_daily_recommendation_snapshot(card_day)
 
-    assert frozen['推荐玩法'].tolist() == ['大小球', '半全场']
+    assert frozen['推荐玩法'].tolist() == ['大小球', '半全场', '胜平负']
 
 
 def test_yesterday_review_keeps_postponed_recommendation_pending(monkeypatch):
@@ -277,7 +278,7 @@ def test_yesterday_review_lists_frozen_rows_when_no_result_is_settled(monkeypatc
     assert review.loc[0, '失败原因'] == '待官方赛果，不计失败'
 
 
-def test_official_total_goals_replaces_same_match_legacy_over_under(
+def test_official_total_goals_preserves_earlier_displayed_over_under_audit(
         monkeypatch, tmp_path):
     monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
     legacy = pd.DataFrame([{
@@ -293,8 +294,8 @@ def test_official_total_goals_replaces_same_match_legacy_over_under(
 
     frozen = sporttery_module._load_daily_recommendation_snapshot('2099-08-30')
 
-    assert frozen['推荐玩法'].tolist() == ['总进球']
-    assert frozen['重点选项'].tolist() == ['★ 3球']
+    assert frozen['推荐玩法'].tolist() == ['大小球', '总进球']
+    assert frozen['重点选项'].tolist() == ['★ 大于2.5球', '★ 3球']
 
 
 def _half_time_combination_prediction():
@@ -303,6 +304,9 @@ def _half_time_combination_prediction():
         '比赛时间': '2099-08-30 18:00', '联赛': '测试联赛',
         '主队': '主队', '客队': '客队',
         '半全场模型来源': '测试联赛专用半全场模型（已验证）',
+        '半场模型来源': '测试联赛专用半场胜平负模型（已验证）',
+        '半场模型高置信门槛': .55,
+        '半场模型当前置信度': .65,
         '正式半场胜概率': .25, '正式半场平概率': .65,
         '正式半场负概率': .10,
         '模拟半场胜概率': .28, '模拟半场平概率': .62,
@@ -333,7 +337,7 @@ def test_half_time_combination_uses_inverse_odds_equal_return_math():
 
 def test_half_time_combination_rejects_market_derived_model():
     prediction = _half_time_combination_prediction()
-    prediction.loc[0, '半全场模型来源'] = '官方半全场市场基线'
+    prediction.loc[0, '半场模型来源'] = '半全场概率聚合（非独立半场模型）'
     assert sporttery_module.build_half_time_combinations(
         prediction, future_only=False,
     ).empty
@@ -343,6 +347,19 @@ def test_half_time_combination_rejects_market_derived_model():
     assert len(observation) == 1
     assert observation.loc[0, '赛事编号'] == '周日001'
     assert '缺独立验证' in observation.loc[0, '观察结论']
+
+
+def test_half_time_combination_requires_direct_model_confidence_threshold():
+    prediction = _half_time_combination_prediction()
+    prediction.loc[0, '半场模型高置信门槛'] = .70
+
+    assert sporttery_module.build_half_time_combinations(
+        prediction, future_only=False,
+    ).empty
+    observation = sporttery_module.build_half_time_observations(
+        prediction, future_only=False,
+    )
+    assert '未达到半场模型高置信门槛' in observation.loc[0, '观察结论']
 
 
 def test_half_time_observation_keeps_only_relative_best_per_card_day():

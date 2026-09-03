@@ -928,38 +928,43 @@ def _holdout_audit(config: Optional[dict]) -> dict:
     }
 
 
+def _sealed_audit_is_reliable(
+        config: Optional[dict], *, minimum_accuracy: float | None = None,
+        minimum_edge: float = 0.005,
+) -> bool:
+    """Apply one chronological holdout standard to every model family."""
+    audit = _holdout_audit(config)
+    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
+    if accuracy is None or baseline is None:
+        return False
+    if minimum_accuracy is not None and float(accuracy) < minimum_accuracy:
+        return False
+    if float(accuracy) < float(baseline) + minimum_edge:
+        return False
+    samples = audit.get('samples')
+    if samples is not None and int(samples) < 100:
+        return False
+    p_value = audit.get('p_value')
+    if p_value is not None and float(p_value) > 0.10:
+        return False
+    return True
+
+
 def _result_model_is_reliable(config: Optional[dict]) -> bool:
     """Reject a saved 1X2 model only when its own holdout audit is clearly weak."""
-    audit = _holdout_audit(config)
-    accuracy = audit.get('accuracy')
-    if accuracy is None:
-        return False
-    sample_count = audit.get('samples')
-    if sample_count is not None and int(sample_count) < 100:
-        return False
-    baseline = audit.get('baseline')
-    return bool(
-        float(accuracy) >= 0.50
-        and (baseline is None or float(accuracy) > float(baseline))
+    return _sealed_audit_is_reliable(
+        config, minimum_accuracy=0.50,
     )
 
 
 def _over_under_model_is_reliable(config: Optional[dict]) -> bool:
     """Use a trained O/U model only when its sealed test beats its baseline."""
-    audit = _holdout_audit(config)
-    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
-    if accuracy is None or baseline is None:
-        return False
-    return float(accuracy) >= float(baseline) + 0.005
+    return _sealed_audit_is_reliable(config)
 
 
 def _score_model_is_reliable(config: Optional[dict]) -> bool:
     """Exact-score models must beat their sealed modal-score baseline."""
-    audit = _holdout_audit(config)
-    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
-    if accuracy is None or baseline is None:
-        return False
-    return float(accuracy) >= float(baseline) + 0.005
+    return _sealed_audit_is_reliable(config)
 
 
 def _half_full_model_is_reliable(config: Optional[dict]) -> bool:
@@ -969,21 +974,22 @@ def _half_full_model_is_reliable(config: Optional[dict]) -> bool:
     without comparable holdout metadata remain visible as references but may
     not be labelled as independently verified combination signals.
     """
-    if not config:
+    return _sealed_audit_is_reliable(config)
+
+
+def _half_result_model_is_reliable(config: Optional[dict]) -> bool:
+    """Enable a direct half-time model only after chronological validation."""
+    if not _sealed_audit_is_reliable(config):
         return False
-    audit = _holdout_audit(config)
-    accuracy, baseline = audit.get('accuracy'), audit.get('baseline')
-    if accuracy is None or baseline is None:
+    samples = _holdout_audit(config).get('samples')
+    if samples is None:
         return False
-    sample_count = audit.get('samples')
-    if sample_count is not None and int(sample_count) < 100:
-        return False
-    if float(accuracy) <= float(baseline):
-        return False
-    p_value = audit.get('p_value')
-    if p_value is not None and float(p_value) > 0.10:
-        return False
-    return True
+    tuning = (config or {}).get('train', {}).get('tuning', {})
+    return bool(
+        tuning.get('selective_validated', False)
+        and int(tuning.get('selective_samples') or 0) >= 30
+        and float(tuning.get('selective_accuracy') or 0.0) >= 0.55
+    )
 
 
 def _handicap_probabilities(
@@ -1639,6 +1645,10 @@ def _predict_supported_match(
     over_under_model_status = '市场基线'
     score_model_status = '市场基线'
     half_full_model_status = '市场基线'
+    half_result_model_status = '未启用，使用半全场聚合概率'
+    half_result_source = '半全场概率聚合（非独立半场模型）'
+    direct_half_result_probability = None
+    half_result_threshold = float('nan')
     half_full_source = (
         '官方半全场市场基线'
         if _official_hafu_half_full(raw.get('hafu')) is not None
@@ -1747,6 +1757,24 @@ def _predict_supported_match(
                 half_full_prob = baseline['half_full']
                 half_full_source = '市场半全场基线（弱模型已禁用）'
                 half_full_model_status = '弱模型已禁用，回退市场基线'
+            try:
+                candidate_half_result, half_result_config = _model_probabilities(
+                    model_db, f'{league}半场胜平负模型', fixture,
+                )
+            except (KeyError, OSError, RuntimeError, TypeError, ValueError):
+                half_result_config = None
+            if _half_result_model_is_reliable(half_result_config):
+                direct_half_result_probability = np.asarray(
+                    candidate_half_result, dtype=np.float64,
+                )
+                direct_half_result_probability /= direct_half_result_probability.sum()
+                half_result_source = f'{league}专用半场胜平负模型（已验证）'
+                half_result_model_status = f'{league}专用半场模型启用'
+                half_result_threshold = float(
+                    half_result_config['train']['tuning']['selective_threshold']
+                )
+            elif half_result_config:
+                half_result_model_status = '半场模型未通过独立测试，使用半全场聚合概率'
             # Only mark a row as dedicated after every required league model
             # loaded successfully.  Recognized-but-unmapped/new-team rows use
             # the generic/market view and must not leak into a league picker.
@@ -1841,9 +1869,14 @@ def _predict_supported_match(
     lottery_total_labels = ('0球', '1球', '2球', '3球', '4球', '5球', '6球', '7+球')
     top_half_full = np.argsort(half_full_prob)[-3:][::-1]
     ranked_half_full = [HALF_FULL_LABELS[i] for i in top_half_full]
-    half_result_probability = np.asarray(
+    aggregated_half_result_probability = np.asarray(
         half_full_prob, dtype=np.float64,
     ).reshape(3, 3).sum(axis=1)
+    half_result_probability = (
+        direct_half_result_probability
+        if direct_half_result_probability is not None
+        else aggregated_half_result_probability
+    )
     result_index = select_result_index(result_prob, market_prob, ou_prob[0])
     result_pick = OUTCOME_LABELS[result_index]
     draw_gate_pick = result_pick == '平' and draw_gate_applies(
@@ -2098,9 +2131,10 @@ def _predict_supported_match(
         '大小球模型状态': over_under_model_status,
         '比分模型状态': score_model_status,
         '半全场模型状态': half_full_model_status,
+        '半场模型状态': half_result_model_status,
         '模型治理状态': '；'.join(dict.fromkeys((
             result_model_status, over_under_model_status,
-            score_model_status, half_full_model_status,
+            score_model_status, half_full_model_status, half_result_model_status,
         ))),
         '置信等级': confidence,
         '估算球队': '、'.join(estimated_teams),
@@ -2148,6 +2182,9 @@ def _predict_supported_match(
             f'{HALF_FULL_LABELS[i]} {half_full_prob[i]:.1%}' for i in top_half_full
         ),
         '半全场模型来源': half_full_source,
+        '半场模型来源': half_result_source,
+        '半场模型高置信门槛': half_result_threshold,
+        '半场模型当前置信度': float(np.max(half_result_probability)),
         '正式半场胜概率': float(half_result_probability[0]),
         '正式半场平概率': float(half_result_probability[1]),
         '正式半场负概率': float(half_result_probability[2]),
@@ -2306,6 +2343,19 @@ def run_daily_sporttery(
         if not previous.empty and '比赛时间' in previous.columns:
             previous_dates = previous['比赛时间'].fillna('').astype(str).str[:10]
             previous = previous.loc[previous_dates.ge(today)].copy()
+        if not previous.empty:
+            identity = '比赛ID' if '比赛ID' in previous.columns else '赛事编号'
+            current_ids = (
+                set(prediction_df[identity].fillna('').astype(str))
+                if identity in prediction_df.columns else set()
+            )
+            retained_only = ~previous[identity].fillna('').astype(str).isin(current_ids)
+            previous.loc[retained_only, '官方销售状态'] = '已退出当前在售列表'
+            previous.loc[retained_only, '同步时段'] = '停止推荐'
+            previous.loc[retained_only, '投注时间提示'] = (
+                '本场仅保留供复盘；已不在当前官方在售列表，请勿下单'
+            )
+            previous.loc[retained_only, '数据采集来源'] = '本日早前快照（已退出在售）'
         if not previous.empty:
             prediction_df = pd.concat([previous, prediction_df], ignore_index=True)
             identity = '比赛ID' if '比赛ID' in prediction_df.columns else '赛事编号'

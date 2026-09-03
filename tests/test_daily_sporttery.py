@@ -24,6 +24,7 @@ from src.services.daily_sporttery import (
     _implied_had_from_handicap_market,
     _implied_had_without_result_market,
     _half_full_model_is_reliable,
+    _half_result_model_is_reliable,
     _market_baseline_probabilities,
     _monte_carlo_summary,
     _market_selection,
@@ -170,6 +171,23 @@ class DailySportteryTests(unittest.TestCase):
         self.assertFalse(_half_full_model_is_reliable(weak))
         self.assertFalse(_half_full_model_is_reliable(inconclusive))
         self.assertTrue(_half_full_model_is_reliable(proven))
+
+    def test_direct_half_result_model_requires_selective_holdout_proof(self):
+        proven = {'train': {'tuning': {
+            'test_accuracy': .48, 'majority_baseline': .40,
+            'test_samples': 500, 'mcnemar_p_value_vs_baseline': .03,
+            'selective_validated': True, 'selective_accuracy': .61,
+            'selective_samples': 55,
+        }}}
+        too_small = {'train': {'tuning': {
+            **proven['train']['tuning'], 'selective_samples': 12,
+        }}}
+        weak_selection = {'train': {'tuning': {
+            **proven['train']['tuning'], 'selective_accuracy': .52,
+        }}}
+        self.assertTrue(_half_result_model_is_reliable(proven))
+        self.assertFalse(_half_result_model_is_reliable(too_small))
+        self.assertFalse(_half_result_model_is_reliable(weak_selection))
 
     @patch('src.services.daily_sporttery._cached_model_database')
     def test_dedicated_model_is_loaded_once_per_prediction_batch(self, database):
@@ -516,9 +534,18 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(_market_selection(0.72)['samples'], 4816)
 
     def test_weak_or_tiny_result_model_fails_reliability_gate(self):
-        weak = {'train': {'tuning': {'test_accuracy': 0.49, 'test_samples': 500}}}
-        tiny = {'train': {'tuning': {'test_accuracy': 0.60, 'test_samples': 50}}}
-        stable = {'train': {'tuning': {'test_accuracy': 0.54, 'test_samples': 500}}}
+        weak = {'train': {'tuning': {
+            'test_accuracy': 0.49, 'majority_baseline': 0.48,
+            'test_samples': 500,
+        }}}
+        tiny = {'train': {'tuning': {
+            'test_accuracy': 0.60, 'majority_baseline': 0.45,
+            'test_samples': 50,
+        }}}
+        stable = {'train': {'tuning': {
+            'test_accuracy': 0.54, 'majority_baseline': 0.45,
+            'test_samples': 500, 'mcnemar_p_value_vs_baseline': .04,
+        }}}
         self.assertFalse(_result_model_is_reliable(weak))
         self.assertFalse(_result_model_is_reliable(tiny))
         self.assertTrue(_result_model_is_reliable(stable))

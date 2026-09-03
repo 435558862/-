@@ -33,6 +33,7 @@ TASKS = [
     ('大小球', TargetType.OVER_UNDER),
     ('准确比分', TargetType.SCORE),
     ('半全场', TargetType.HALF_FULL),
+    ('半场胜平负', TargetType.HALF_RESULT),
 ]
 REPORT_PATH = 'storage/reports/全部模型深度调优报告.csv'
 
@@ -314,7 +315,7 @@ def tune_one(league_id, task_name, target_type):
     model_db = ModelDatabase(league_id)
     incumbent_config = model_db.load_model_config(model_id)
     raw_dataset = LeagueDatabase().load_league(league_id)
-    if target_type == TargetType.HALF_FULL and (
+    if target_type in {TargetType.HALF_FULL, TargetType.HALF_RESULT} and (
             'HTR' not in raw_dataset.columns
             or raw_dataset['HTR'].notna().sum() < 100
     ):
@@ -322,7 +323,7 @@ def tune_one(league_id, task_name, target_type):
             '联赛': league_id, '预测类型': task_name,
             '模型': model_id, '状态': '真实半场数据不足',
         }
-    if target_type == TargetType.HALF_FULL:
+    if target_type in {TargetType.HALF_FULL, TargetType.HALF_RESULT}:
         dataset = raw_dataset.dropna().reset_index(drop=True)
     else:
         dataset = raw_dataset.drop(columns=['HTR'], errors='ignore')
@@ -373,6 +374,7 @@ def tune_one(league_id, task_name, target_type):
         'test_log_loss': final['log_loss'],
         'majority_baseline': baseline,
         'mcnemar_p_value_vs_baseline': p_value,
+        'test_samples': len(test_df),
     }
 
     if target_type == TargetType.HALF_RESULT:
@@ -380,16 +382,23 @@ def tune_one(league_id, task_name, target_type):
             best['metrics'],
         )
         mask = final['probabilities'].max(axis=1) >= threshold
+        selective_accuracy = (
+            float(np.mean(final['y_pred'][mask] == final['y_true'][mask]))
+            if mask.any() else 0.0
+        )
+        selective_samples = int(mask.sum())
+        validation_passed = val_acc >= 0.55
+        test_passed = selective_accuracy >= 0.55 and selective_samples >= 30
         tuning.update({
             'selective_threshold': float(threshold),
             'validation_selective_accuracy': val_acc,
             'validation_coverage': val_coverage,
-            'selective_accuracy': (
-                float(np.mean(final['y_pred'][mask] == final['y_true'][mask]))
-                if mask.any() else 0.0
-            ),
+            'selective_accuracy': selective_accuracy,
             'coverage': float(mask.mean()),
-            'selective_samples': int(mask.sum()),
+            'selective_samples': selective_samples,
+            'selective_validation_passed': validation_passed,
+            'selective_test_passed': test_passed,
+            'selective_validated': bool(validation_passed and test_passed),
         })
 
     config = final_model.get_default_model_config()

@@ -678,6 +678,11 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     )
 
     assert len(result) == 8
+    assert result['当日顺位'].tolist() == list(range(1, 9))
+    assert result['相对安全等级'].str.match(r'[A-E]｜').all()
+    assert result.loc[
+        result['推荐性质'].eq('观察/不投注'), '行动结论'
+    ].eq('不建议投注').all()
     assert result['赛事编号'].nunique() == 8
     assert result['推荐玩法'].eq('胜平负').all()
     assert set(result['推荐等级']) <= {'核心重点', '可买优选', '综合观察'}
@@ -690,6 +695,24 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     assert result.loc[
         result['推荐等级'].eq('综合观察'), '建议仓位'
     ].eq('不投注').all()
+
+
+def test_daily_recommendations_reject_retained_stopped_snapshot():
+    predictions = pd.DataFrame([{
+        '赛事编号': '周日001', '比赛时间': '2099-08-30 18:00',
+        '联赛': '测试联赛', '主队': '主队', '客队': '客队',
+        '官方销售状态': '已退出当前在售列表', '同步时段': '停止推荐',
+        '盘口门控': '稳定', '胜平负首选': '胜', '胜平负首选概率': .70,
+        '模型主胜概率': .70, '模型平局概率': .18, '模型客胜概率': .12,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
+        '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 72.0%', '胜负模型类别': '英超专用模型',
+    }])
+
+    assert sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    ).empty
 
 
 def test_daily_recommendations_reject_high_lineup_warning():

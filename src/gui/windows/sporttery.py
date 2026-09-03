@@ -850,6 +850,7 @@ def build_daily_recommendations(
     excluded from the high-hit-rate daily list.
     """
     columns = [
+        '当日顺位', '相对安全等级', '行动结论',
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
         '最佳比分', '高倍候选',
         '推荐等级', '推荐性质', '正式主模型', '数据状态',
@@ -1023,6 +1024,11 @@ def build_daily_recommendations(
 
     candidates_by_day: dict[str, list[dict]] = {}
     for _, row in active.iterrows():
+        sale_state = str(row.get('官方销售状态') or '').strip()
+        sync_window = str(row.get('同步时段') or '').strip()
+        if sync_window == '停止推荐' or sale_state in {
+                '可能已停售', '已退出当前在售列表'}:
+            continue
         card_day = _ticket_card_date(row.get('比赛时间'), row.get('赛事编号'))
         day_text = card_day.isoformat() if card_day is not None else str(row.get('比赛时间') or '')[:10]
         market_candidates: list[tuple[str, str, str, float, float, float]] = []
@@ -1086,7 +1092,22 @@ def build_daily_recommendations(
                 or bool(draw_protection and monte_compare in draw_protection)
             )
             monte_conflict = not monte_aligned
-            supported, support_text = market_support(row, market, formal_compare)
+            formal_model = str(row.get('胜负模型类别') or '').strip()
+            # Legacy/imported reports without provenance keep their historical
+            # behavior. Only rows explicitly labelled as market-derived lose
+            # the independent-model validation claim.
+            score_model_status = str(row.get('比分模型状态') or '').strip()
+            market_derived = (
+                bool(score_model_status)
+                and '专用模型启用' not in score_model_status
+                if market == '让球胜平负'
+                else formal_model in {'市场基线', '通用/市场模型'}
+            )
+            if market_derived:
+                supported, trend_text = market_support(row, market, formal_compare)
+                support_text = f'同源趋势检查｜{trend_text}｜不计独立验证'
+            else:
+                supported, support_text = market_support(row, market, formal_compare)
             if not supported:
                 continue
             lineup_status = str(row.get('首发状态') or '')
@@ -1160,19 +1181,35 @@ def build_daily_recommendations(
             )
             display_grade = (
                 '平局双选保护' if draw_protection else
+                '蒙特反向观察' if monte_observation else
+                '市场同源观察' if market_derived else
                 '盘口观察' if handicap_observation else
                 decision.grade if decision.promoted else
-                '蒙特反向观察' if monte_observation else '综合观察'
+                '综合观察'
             )
+            safety_rank, safety_label, action = {
+                '核心重点': (5, 'A｜正式重点', '达到正式门槛，可优先考虑'),
+                '可买优选': (4, 'B｜正式优选', '达到正式门槛，谨慎考虑'),
+                '平局双选保护': (3, 'C｜保护方案', '仅作双选保护'),
+                '盘口观察': (2, 'D｜仅观察', '不建议投注'),
+                '综合观察': (2, 'D｜仅观察', '不建议投注'),
+                '蒙特反向观察': (0, 'E｜方向冲突', '不建议投注'),
+                '市场同源观察': (1, 'E｜同源信号', '不建议投注'),
+            }[display_grade]
             grade_rank = 2 if display_grade == '核心重点' else (
                 1 if display_grade == '可买优选' else 0
             )
             quality = (
-                grade_rank * 10.0 + decision.conservative_ev * 5.0
+                safety_rank * 100.0 + grade_rank * 10.0
+                + decision.conservative_ev * 5.0
                 + probability + margin
             )
             candidates_by_day.setdefault(day_text, []).append({
                 '_quality': quality,
+                '_safety_rank': safety_rank,
+                '当日顺位': 0,
+                '相对安全等级': safety_label,
+                '行动结论': action,
                 '比赛日期': day_text,
                 '赛事编号': row.get('赛事编号', ''),
                 '联赛': row.get('联赛', ''),
@@ -1215,6 +1252,10 @@ def build_daily_recommendations(
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
                     (
+                        '正式概率来自市场基线且蒙特方向相反；仅保留风险观察'
+                        if market_derived and monte_observation else
+                        '正式概率来自市场基线，与盘口属于同一信号；仅保留观察'
+                        if market_derived else
                         '正式模型与盘口同向，但蒙特反向，仅展示观察方向'
                         if monte_observation else
                         '三方同向但保守EV未达标，仅展示观察方向'
@@ -1240,8 +1281,10 @@ def build_daily_recommendations(
             continue
         rows.append(item)
         used_matches.add(number)
-    for row in rows:
+    for rank, row in enumerate(rows, start=1):
+        row['当日顺位'] = rank
         row.pop('_quality', None)
+        row.pop('_safety_rank', None)
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -1337,11 +1380,15 @@ def _half_time_combination_evaluation(
         + min(15.0, formal_margin * 150.0)
         + max(0.0, 10.0 - agreement_gap * 100.0),
     ))
-    model_source = str(row.get('半全场模型来源') or '').strip()
-    verified = model_source.endswith('专用半全场模型（已验证）')
+    model_source = str(row.get('半场模型来源') or '').strip()
+    verified = model_source.endswith('专用半场胜平负模型（已验证）')
     strict_reasons = []
     if not verified:
         strict_reasons.append('缺独立验证')
+    threshold = _combination_number(row, '半场模型高置信门槛')
+    if verified and (
+            not np.isfinite(threshold) or formal_probability < threshold):
+        strict_reasons.append('未达到半场模型高置信门槛')
     if formal_margin < 0.04:
         strict_reasons.append('方向领先不足4pp')
     if combined_odds < 1.45 or combined_odds > 2.20:
@@ -1793,7 +1840,7 @@ def build_half_time_combination_ledger(
 
 
 def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
-    """Persist the recommendations that were actually shown to the user."""
+    """Append every distinct recommendation shown; never rewrite audit history."""
     if frame.empty or '比赛日期' not in frame.columns:
         return
     DAILY_RECOMMENDATION_ROOT.mkdir(parents=True, exist_ok=True)
@@ -1802,33 +1849,17 @@ def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
         if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', day_text):
             continue
         path = DAILY_RECOMMENDATION_ROOT / f'{day_text}.csv'
-        combined = rows.copy().reset_index(drop=True)
-        preserving_past_card = day_text < date.today().isoformat()
-        if path.exists() and preserving_past_card:
-            # Lottery cards legitimately continue after midnight.  Preserve
-            # every recommendation already shown on the previous card and only
-            # append fixtures that were never frozen.  Historical cards may
-            # legitimately contain multiple legacy plays for one match; never
-            # collapse or reinterpret those rows with today's selection rules.
-            # Once no row from the old card is visible, this function receives
-            # no group for that day and the audit file becomes immutable.
-            existing = _load_daily_recommendation_snapshot(day_text)
-            if not existing.empty and '赛事编号' in combined.columns:
-                frozen_numbers = set(existing['赛事编号'].astype(str))
-                unseen = combined.loc[
-                    ~combined['赛事编号'].astype(str).isin(frozen_numbers)
-                ]
-                combined = pd.concat([existing, unseen], ignore_index=True, sort=False)
-        # During the active card, persist exactly the latest list shown.  One
-        # fixture owns one core play; a direction/play change replaces the old
-        # row instead of inflating yesterday's review.
-        keys = (
-            [column for column in ('赛事编号', '推荐玩法') if column in combined.columns]
-            if preserving_past_card else
-            (['赛事编号'] if '赛事编号' in combined.columns else [])
-        )
+        shown = rows.copy().reset_index(drop=True)
+        if '首次展示时间' not in shown.columns:
+            shown.insert(0, '首次展示时间', datetime.now().isoformat(timespec='seconds'))
+        existing = _load_daily_recommendation_snapshot(day_text)
+        combined = pd.concat([existing, shown], ignore_index=True, sort=False)
+        keys = [
+            column for column in ('赛事编号', '推荐玩法', '重点选项', '推荐性质')
+            if column in combined.columns
+        ]
         if keys:
-            combined = combined.drop_duplicates(keys, keep='last')
+            combined = combined.drop_duplicates(keys, keep='first')
         temporary = path.with_suffix('.tmp')
         combined.to_csv(temporary, index=False, encoding='utf-8-sig')
         temporary.replace(path)
