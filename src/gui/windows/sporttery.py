@@ -2951,7 +2951,10 @@ class SportteryPredictionsDialog(QDialog):
             parts = []
             result = str(row.get('胜负首选') or '').strip()
             handicap = str(row.get('让球首选/次选') or '').strip()
-            total = str(row.get('总进球首选') or '').strip()
+            # The combined direction must use the audited over/under model.
+            # Exact lottery-goal counts are derived from the score model and
+            # are too brittle to present as a primary direction.
+            total = str(row.get('大小球首选') or '').strip()
             if result:
                 parts.append(result)
             if handicap and handicap != '/':
@@ -2976,7 +2979,11 @@ class SportteryPredictionsDialog(QDialog):
         display['综合方向'] = display.apply(compact_direction, axis=1)
         display['风险提示'] = display.apply(compact_risk, axis=1)
         display['让球'] = display['让球首选/次选']
-        display['总进球'] = display['总进球首选']
+        # Keep the legacy column name for exports, but source it from the
+        # over/under model rather than the exact-score-derived goal count.
+        display['总进球'] = display.get(
+            '大小球首选', pd.Series('', index=display.index),
+        )
         display['半全场'] = display['半全场首选/次选']
         display['比分'] = display['比分情景（Top3/反向/高进球）']
         preferred = [
