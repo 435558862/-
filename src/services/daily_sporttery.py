@@ -26,6 +26,7 @@ from src.services.daily_learning import (
     predict_generic_probabilities,
     review_and_learn,
 )
+from src.services.value_selection import historical_calibration
 from src.services.odds_tracking import (
     market_quality_metrics,
     market_flow_gate,
@@ -1674,8 +1675,8 @@ def _predict_supported_match(
             result_prob = calibrated
             result_model_category = '欧战校准模型'
             prediction_basis = (
-                '官方赔率80% + 欧战历史/Elo校准20%'
-                if elo_complete else '官方赔率80% + 欧战历史校准20%（Elo缺失）'
+                '官方赔率50% + 欧战历史/Elo校准50%'
+                if elo_complete else '官方赔率50% + 欧战历史校准50%（Elo缺失）'
             )
             confidence = '中' if elo_complete else '较低'
             result_model_status = '欧战校准模型启用'
@@ -1886,6 +1887,9 @@ def _predict_supported_match(
     final_selection = _market_selection(
         float(np.max(result_prob)), selection_league,
     )
+    result_historical_accuracy, result_historical_samples = historical_calibration(
+        '胜平负', float(result_prob[result_index]),
+    )
     flow_gate = market_flow_gate(
         _field(raw, 'matchId'), result_pick, series=odds_series,
     )
@@ -1893,6 +1897,12 @@ def _predict_supported_match(
     # Strict recommendation gate: only two audited tiers can be called a pick.
     if advice not in ('精选主推', '高置信主推'):
         advice = '观察' if advice == '观察' else '跳过'
+    if (
+        result_historical_accuracy is None
+        or result_historical_samples < 30
+        or result_historical_accuracy < 0.60
+    ):
+        advice = '跳过'
     if flow_gate['state'] in ('conflict', 'unstable'):
         advice = '跳过'
     # The draw gate already passed a sealed chronological test. Do not require
@@ -1957,6 +1967,9 @@ def _predict_supported_match(
     handicap_best = ''
     handicap_pick = ''
     handicap_second_pick = ''
+    handicap_advice = '无盘口'
+    handicap_historical_accuracy = np.nan
+    handicap_historical_samples = 0
     if handicap_odds is not None:
         handicap_model_id = f'{league}让球胜负模型' if league else ''
         handicap_model = (
@@ -1982,6 +1995,23 @@ def _predict_supported_match(
         handicap_ranking = np.argsort(handicap_probability)[::-1]
         handicap_pick = OUTCOME_LABELS[int(handicap_ranking[0])]
         handicap_second_pick = OUTCOME_LABELS[int(handicap_ranking[1])]
+        handicap_pick_probability = float(handicap_probability[handicap_ranking[0]])
+        handicap_historical_accuracy, handicap_historical_samples = historical_calibration(
+            '让球胜平负', handicap_pick_probability,
+        )
+        if (
+            handicap_historical_accuracy is not None
+            and handicap_historical_samples >= 30
+            and handicap_historical_accuracy >= 0.55
+            and handicap_pick_probability >= 0.55
+        ):
+            handicap_advice = (
+                '高置信主推'
+                if handicap_historical_accuracy >= 0.60 and handicap_pick_probability >= 0.625
+                else '观察'
+            )
+        else:
+            handicap_advice = '跳过'
     # The comparison simulation is intentionally isolated from the official
     # odds/model pipeline. Real-score league/cross-league priors keep sparse
     # fixtures populated without feeding market or trained-model probabilities.
@@ -2140,6 +2170,8 @@ def _predict_supported_match(
         '估算球队': '、'.join(estimated_teams),
         '市场最高概率': float(market_prob.max()),
         '市场筛选阈值': final_selection['threshold'],
+        '胜平负历史命中率': result_historical_accuracy,
+        '胜平负历史样本数': result_historical_samples,
         '同阈值历史命中率': final_selection['accuracy'],
         '同阈值历史覆盖率': final_selection['coverage'],
         '筛选回测样本数': final_selection['samples'],
@@ -2164,6 +2196,9 @@ def _predict_supported_match(
             float(handicap_probability[handicap_ranking[1]]) if handicap_odds else np.nan
         ),
         '让球最大价值方向': handicap_best,
+        '让球建议状态': handicap_advice,
+        '让球历史命中率': handicap_historical_accuracy,
+        '让球历史样本数': handicap_historical_samples,
         '让球最大概率优势': (
             float(np.nanmax(handicap_edge)) if handicap_odds else np.nan
         ),

@@ -212,27 +212,20 @@ def model_result_is_allowed(model_category: str) -> bool:
 
 
 def model_result_blend_weight(model_category: str) -> float:
-    """Use the live winner: unproven, tied or weaker models get zero weight."""
+    """Return equal weight for a validated dedicated model and the market baseline."""
     if not STATUS_PATH.exists():
         return 0.0
     try:
         status = json.loads(STATUS_PATH.read_text(encoding='utf-8'))
         audit = status.get('accuracy_by_model', {}).get(model_category, {})
         samples = int(audit.get('samples') or 0)
-        edge = float(audit.get('edge_vs_market') or 0.0)
         if audit.get('action') == 'fallback_market':
             return 0.0
         # The market has thousands of observations behind it. A dedicated
         # model cannot displace it on a tiny sample or a tie.
         if samples < MODEL_GUARD_MIN_SAMPLES:
             return 0.0
-        if edge <= 0.0:
-            return 0.0
-        # A small positive audit edge earns a cautious share; stronger and
-        # better-sampled evidence may progressively take over the prediction.
-        sample_factor = min(1.0, samples / MODEL_GUARD_WINDOW)
-        edge_factor = min(1.0, edge / 0.05)
-        return float(sample_factor * edge_factor)
+        return 0.50
     except (OSError, ValueError, TypeError):
         return 0.0
 

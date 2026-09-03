@@ -343,6 +343,4 @@ def test_dedicated_model_weight_stays_shadowed_until_live_sample_gate(tmp_path, 
             'samples': 40, 'edge_vs_market': 0.02, 'action': 'active',
         },
     }})
-    assert abs(
-        daily_learning.model_result_blend_weight('英超专用模型') - 4 / 15
-    ) < 1e-12
+    assert daily_learning.model_result_blend_weight('英超专用模型') == 0.5

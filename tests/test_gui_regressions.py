@@ -678,7 +678,6 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     )
 
     assert len(result) == 6
-    assert result['当日顺位'].tolist() == list(range(1, 7))
     assert result['相对安全等级'].str.match(r'[A-E]｜').all()
     assert result.loc[
         result['推荐性质'].eq('观察/不投注'), '行动结论'
@@ -800,7 +799,7 @@ def test_daily_recommendations_keep_low_value_handicap_as_unstarred_observation(
     assert result.loc[0, '建议仓位'] == '不投注'
 
 
-def test_daily_recommendations_show_best_score_and_qualified_high_odds_candidate():
+def test_daily_recommendations_expose_two_leg_parlay_fields():
     predictions = pd.DataFrame([{
         '赛事编号': '周日003', '比赛时间': '2099-08-30 20:00',
         '联赛': '测试联赛', '主队': '主队', '客队': '客队',
@@ -819,5 +818,5 @@ def test_daily_recommendations_show_best_score_and_qualified_high_odds_candidate
 
     assert len(result) == 1
     assert result.loc[0, '最佳比分'] == '◎ 2-1（16.0%）'
-    assert result.loc[0, '高倍候选'].startswith('◆ 胜平负·负（SP 4.70')
-    assert '高风险' in result.loc[0, '高倍候选']
+    assert {'每日2串1', '2串1组合概率', '2串1组合SP'}.issubset(result.columns)
+    assert result.loc[0, '每日2串1'] == ''

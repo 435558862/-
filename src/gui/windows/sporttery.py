@@ -842,7 +842,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select up to six risk-adjusted fixtures per card day.
+    """Select three to five tiered fixtures per card day when available.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -850,9 +850,9 @@ def build_daily_recommendations(
     excluded from the high-hit-rate daily list.
     """
     columns = [
-        '当日顺位', '相对安全等级', '行动结论',
+        '相对安全等级', '行动结论',
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
-        '最佳比分', '高倍候选',
+        '最佳比分', '每日2串1', '2串1组合概率', '2串1组合SP',
         '推荐等级', '推荐性质', '正式主模型', '数据状态',
         '正式模型概率', '价值评估', '建议仓位',
         '盘口验证', '蒙特卡洛是否同向', '阵容验证',
@@ -862,7 +862,7 @@ def build_daily_recommendations(
         return pd.DataFrame(columns=columns)
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
     active = _sort_by_match_number(source).reset_index(drop=True)
-    allow_observation_conflicts = len(active) >= 6
+    allow_observation_conflicts = len(active) >= 3
 
     def number(row: pd.Series, column: str) -> float:
         value = pd.to_numeric(row.get(column), errors='coerce')
@@ -927,6 +927,7 @@ def build_daily_recommendations(
         no candidate on many fixtures rather than manufacturing a long shot.
         """
         candidates = []
+        fallback_candidates = []
 
         def consider(
                 market: str, label: str, probability_column: str,
@@ -941,6 +942,7 @@ def build_daily_recommendations(
                 return
             raw_ev = probability * odds - 1.0
             conservative_ev = max(0.01, probability - haircut) * odds - 1.0
+            fallback_candidates.append((raw_ev, probability, odds, market, label))
             if raw_ev < 0.05 or conservative_ev < -0.08:
                 return
             candidates.append((
@@ -963,7 +965,15 @@ def build_daily_recommendations(
                     probability_column, odds_column, 0.040,
                 )
         if not candidates:
-            return '—'
+            if not fallback_candidates:
+                return '—'
+            raw_ev, probability, odds, market, label = max(
+                fallback_candidates, key=lambda item: (item[0], item[1]),
+            )
+            return (
+                f'◇ {market}·{label}（SP {odds:.2f}｜模型{probability:.1%}｜'
+                f'理论EV {raw_ev:+.1%}｜高风险观察）'
+            )
         _, raw_ev, probability, odds, market, label = max(candidates)
         return (
             f'◆ {market}·{label}（SP {odds:.2f}｜模型{probability:.1%}｜'
@@ -1147,6 +1157,11 @@ def build_daily_recommendations(
                 market == '让球胜平负'
                 and probability >= 0.55 and not decision.promoted
             )
+            handicap_independent = (
+                market == '让球胜平负'
+                and str(row.get('让球建议状态') or '').strip()
+                in {'观察', '高置信主推', '精选主推'}
+            )
             # Keep the three-way cross-check intact, but do not let a strict
             # value gate reduce a usable daily card to one row. These rows
             # are explicitly observations (no stake) and are eligible only
@@ -1171,12 +1186,12 @@ def build_daily_recommendations(
                 and probability >= 0.45
                 and margin >= 0.08
             )
-            if not monte_aligned and not monte_observation:
+            if not monte_aligned and not monte_observation and not handicap_independent:
                 continue
             if (
                 not decision.promoted and not draw_protection
                 and not handicap_observation and not fallback_observation
-                and not monte_observation
+                and not monte_observation and not handicap_independent
             ):
                 continue
             lineup_text = (
@@ -1187,6 +1202,11 @@ def build_daily_recommendations(
                 '平局双选保护' if draw_protection else
                 '蒙特反向观察' if monte_observation else
                 '市场同源观察' if market_derived else
+                '核心重点' if (
+                    market == '让球胜平负'
+                    and str(row.get('让球建议状态') or '').strip()
+                    in {'高置信主推', '精选主推'}
+                ) else
                 '盘口观察' if handicap_observation else
                 decision.grade if decision.promoted else
                 '综合观察'
@@ -1211,7 +1231,6 @@ def build_daily_recommendations(
             candidates_by_day.setdefault(day_text, []).append({
                 '_quality': quality,
                 '_safety_rank': safety_rank,
-                '当日顺位': 0,
                 '相对安全等级': safety_label,
                 '行动结论': action,
                 '比赛日期': day_text,
@@ -1225,7 +1244,12 @@ def build_daily_recommendations(
                     else f'★ {choice}'
                 ),
                 '最佳比分': best_score(row),
-                '高倍候选': high_odds_reference(row),
+                '每日2串1': '',
+                '2串1组合概率': '',
+                '2串1组合SP': '',
+                '_pair_probability': probability,
+                '_pair_odds': official_odds,
+                '_pair_choice': choice,
                 '推荐等级': display_grade,
                 '推荐性质': (
                     '正式主推' if display_grade in ('核心重点', '可买优选')
@@ -1270,9 +1294,9 @@ def build_daily_recommendations(
                 ),
             })
     # Rank one recommendation per fixture within each card day. Each date
-    # gets its own six-slot target instead of competing with other dates in
-    # the same prediction frame; if fewer than six survive, keep the honest
-    # smaller result rather than borrowing rows from another date.
+    # gets its own five-slot target instead of competing with other dates in
+    # the same prediction frame; if fewer than three candidates survive, keep
+    # the honest smaller result rather than manufacturing picks.
     rows = []
     for day_text in sorted(candidates_by_day):
         ranked = sorted(
@@ -1281,19 +1305,53 @@ def build_daily_recommendations(
         )
         day_rows, used_matches = [], set()
         for item in ranked:
-            if len(day_rows) >= 6:
+            if len(day_rows) >= 5:
                 break
             number = str(item['赛事编号'])
             if number in used_matches:
                 continue
             day_rows.append(item)
             used_matches.add(number)
-        for rank, row in enumerate(day_rows, start=1):
-            row['当日顺位'] = rank
+        # Build one daily 2-leg high-SP combination from independent fixtures.
+        # Both legs need a meaningful probability; the pair is selected by
+        # positive theoretical EV, then by probability and price.
+        pairs = []
+        for left_index, left in enumerate(day_rows):
+            for right in day_rows[left_index + 1:]:
+                p1, p2 = left.get('_pair_probability'), right.get('_pair_probability')
+                o1, o2 = left.get('_pair_odds'), right.get('_pair_odds')
+                if not all(np.isfinite(float(v)) for v in (p1, p2, o1, o2)):
+                    continue
+                if min(float(p1), float(p2)) < 0.50 or min(float(o1), float(o2)) <= 1.0:
+                    continue
+                combined_probability = float(p1) * float(p2)
+                combined_odds = float(o1) * float(o2)
+                pairs.append((
+                    combined_probability * combined_odds - 1.0,
+                    combined_probability,
+                    combined_odds,
+                    left,
+                    right,
+                ))
+        if pairs:
+            _, pair_probability, pair_odds, left, right = max(
+                pairs, key=lambda item: (item[0], item[1], item[2]),
+            )
+            pair_text = (
+                f'{left["赛事编号"]} {left["_pair_choice"]}@{float(left["_pair_odds"]):.2f}'
+                f' × {right["赛事编号"]} {right["_pair_choice"]}@{float(right["_pair_odds"]):.2f}'
+            )
+            for item in (left, right):
+                item['每日2串1'] = pair_text
+                item['2串1组合概率'] = f'{pair_probability:.1%}'
+                item['2串1组合SP'] = f'{pair_odds:.2f}'
         rows.extend(day_rows)
     for row in rows:
         row.pop('_quality', None)
         row.pop('_safety_rank', None)
+        row.pop('_pair_probability', None)
+        row.pop('_pair_odds', None)
+        row.pop('_pair_choice', None)
     return pd.DataFrame(rows, columns=columns)
 
 
