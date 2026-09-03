@@ -1265,24 +1265,29 @@ def build_daily_recommendations(
                     )
                 ),
             })
-    # Rank one recommendation per fixture across the whole daily card. The
-    # card target is 6–8 rows; if fewer than six survive the three-way gate,
-    # the honest result is fewer rows rather than inventing a direction.
-    ranked = sorted(
-        (item for day_rows in candidates_by_day.values() for item in day_rows),
-        key=lambda item: item['_quality'], reverse=True,
-    )
-    rows, used_matches = [], set()
-    for item in ranked:
-        if len(rows) >= 8:
-            break
-        number = str(item['赛事编号'])
-        if number in used_matches:
-            continue
-        rows.append(item)
-        used_matches.add(number)
-    for rank, row in enumerate(rows, start=1):
-        row['当日顺位'] = rank
+    # Rank one recommendation per fixture within each card day. Each date
+    # gets its own 6–8 target instead of competing with other dates in the
+    # same prediction frame; if fewer than six survive, keep the honest
+    # smaller result rather than borrowing rows from another date.
+    rows = []
+    for day_text in sorted(candidates_by_day):
+        ranked = sorted(
+            candidates_by_day[day_text],
+            key=lambda item: item['_quality'], reverse=True,
+        )
+        day_rows, used_matches = [], set()
+        for item in ranked:
+            if len(day_rows) >= 8:
+                break
+            number = str(item['赛事编号'])
+            if number in used_matches:
+                continue
+            day_rows.append(item)
+            used_matches.add(number)
+        for rank, row in enumerate(day_rows, start=1):
+            row['当日顺位'] = rank
+        rows.extend(day_rows)
+    for row in rows:
         row.pop('_quality', None)
         row.pop('_safety_rank', None)
     return pd.DataFrame(rows, columns=columns)
