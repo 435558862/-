@@ -842,7 +842,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select six to eight tiered fixtures per card day when available.
+    """Select at most eight tiered fixtures across the whole visible card.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -1293,26 +1293,34 @@ def build_daily_recommendations(
                     )
                 ),
             })
-    # Rank one recommendation per fixture within each card day. Each date
-    # gets its own six-to-eight-slot target instead of competing with other
-    # dates in the same prediction frame. If fewer than six candidates survive,
-    # keep the honest smaller result rather than manufacturing a betting pick;
-    # low-tier rows remain explicitly labelled observation/no bet.
-    rows = []
-    for day_text in sorted(candidates_by_day):
-        ranked = sorted(
-            candidates_by_day[day_text],
-            key=lambda item: item['_quality'], reverse=True,
-        )
-        day_rows, used_matches = [], set()
-        for item in ranked:
-            if len(day_rows) >= 8:
-                break
-            number = str(item['赛事编号'])
-            if number in used_matches:
-                continue
-            day_rows.append(item)
-            used_matches.add(number)
+    # Rank all visible card dates together and keep one recommendation per
+    # fixture. The dialog has one global eight-row ceiling; otherwise two card
+    # dates could each contribute eight rows and unexpectedly expand the list.
+    ranked = sorted(
+        (
+            item
+            for day_candidates in candidates_by_day.values()
+            for item in day_candidates
+        ),
+        key=lambda item: item['_quality'], reverse=True,
+    )
+    rows, used_matches = [], set()
+    for item in ranked:
+        if len(rows) >= 8:
+            break
+        identity = (str(item['比赛日期']), str(item['赛事编号']))
+        if identity in used_matches:
+            continue
+        rows.append(item)
+        used_matches.add(identity)
+
+    # A 2-leg combination may only use selected fixtures from the same card
+    # date. Build it after the global cap so its displayed partner can never
+    # refer to a row that was discarded from the final eight.
+    selected_by_day: dict[str, list[dict]] = {}
+    for item in rows:
+        selected_by_day.setdefault(str(item['比赛日期']), []).append(item)
+    for day_rows in selected_by_day.values():
         # Build one daily 2-leg high-SP combination from independent fixtures.
         # Both legs need a meaningful probability; the pair is selected by
         # positive theoretical EV, then by probability and price.
@@ -1346,7 +1354,6 @@ def build_daily_recommendations(
                 item['每日2串1'] = pair_text
                 item['2串1组合概率'] = f'{pair_probability:.1%}'
                 item['2串1组合SP'] = f'{pair_odds:.2f}'
-        rows.extend(day_rows)
     for row in rows:
         row.pop('_quality', None)
         row.pop('_safety_rank', None)
@@ -2346,7 +2353,7 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '每日目标6～8场、正期望优先；核心重点与可买优选分级展示，'
+            '每日推荐合计最多8场、正期望优先；核心重点与可买优选分级展示，'
             '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
             '◎最佳比分和◆高倍候选为醒目参考，高倍项不等于重点；'
             '比分Top3和半全场前两项仅供参考；半场组合另设冻结盈亏账本。'

@@ -696,6 +696,32 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     ].eq('不投注').all()
 
 
+def test_daily_recommendations_cap_eight_across_multiple_card_dates():
+    predictions = pd.DataFrame([{
+        '赛事编号': f'{weekday}{index:03d}',
+        '比赛时间': f'2099-08-{day:02d} {10 + index:02d}:00',
+        '联赛': '测试联赛', '主队': f'主{day}-{index}',
+        '客队': f'客{day}-{index}', '盘口门控': '稳定',
+        '胜平负首选': '胜', '胜平负首选概率': 0.54 + index / 100,
+        '模型主胜概率': 0.54 + index / 100,
+        '模型平局概率': 0.28 - index / 200,
+        '模型客胜概率': 0.18 - index / 200,
+        '首次采集胜奖金': 1.90, '首次采集平奖金': 3.40,
+        '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
+        '官方平奖金': 3.50, '官方负奖金': 4.40,
+        '模拟胜负': '胜 62.0% / 平 23.0%',
+    } for day, weekday in ((30, '周日'), (31, '周一'))
+      for index in range(1, 8)])
+
+    result = sporttery_window.build_daily_recommendations(
+        predictions, future_only=False,
+    )
+
+    assert len(result) == 8
+    assert result[['比赛日期', '赛事编号']].drop_duplicates().shape[0] == 8
+    assert set(result['比赛日期']) == {'2099-08-30', '2099-08-31'}
+
+
 def test_daily_recommendations_reject_retained_stopped_snapshot():
     predictions = pd.DataFrame([{
         '赛事编号': '周日001', '比赛时间': '2099-08-30 18:00',
