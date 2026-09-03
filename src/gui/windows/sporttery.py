@@ -2906,10 +2906,6 @@ class SportteryPredictionsDialog(QDialog):
             simulated_handicap = first_choice(row.get('模拟让球'))
             parts.append(comparison('让球', primary_handicap, simulated_handicap))
 
-            primary_total = first_choice(row.get('竞彩总进球首选'))
-            simulated_total = first_choice(row.get('模拟竞彩总进球'))
-            parts.append(comparison('总进球', primary_total, simulated_total))
-
             primary_score = str(row.get('首选比分') or '').strip()
             simulated_match = re.match(
                 r'(\d+\+?-\d+\+?)', str(row.get('模拟Top3比分') or '').strip(),
