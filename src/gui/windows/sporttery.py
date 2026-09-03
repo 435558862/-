@@ -842,7 +842,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select at most eight risk-adjusted fixtures per card day.
+    """Select up to six risk-adjusted fixtures per card day.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -1266,8 +1266,8 @@ def build_daily_recommendations(
                 ),
             })
     # Rank one recommendation per fixture within each card day. Each date
-    # gets its own 6–8 target instead of competing with other dates in the
-    # same prediction frame; if fewer than six survive, keep the honest
+    # gets its own six-slot target instead of competing with other dates in
+    # the same prediction frame; if fewer than six survive, keep the honest
     # smaller result rather than borrowing rows from another date.
     rows = []
     for day_text in sorted(candidates_by_day):
@@ -1277,7 +1277,7 @@ def build_daily_recommendations(
         )
         day_rows, used_matches = [], set()
         for item in ranked:
-            if len(day_rows) >= 8:
+            if len(day_rows) >= 6:
                 break
             number = str(item['赛事编号'])
             if number in used_matches:
@@ -2283,7 +2283,7 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '每天目标6～8场、正期望优先；核心重点与可买优选分级展示，'
+            '每日保障6场优先、正期望优先；核心重点与可买优选分级展示，'
             '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
             '◎最佳比分和◆高倍候选为醒目参考，高倍项不等于重点；'
             '比分Top3和半全场前两项仅供参考；半场组合另设冻结盈亏账本。'
@@ -2539,6 +2539,12 @@ class SportteryPredictionsDialog(QDialog):
             self._summary.setToolTip(
                 f'后台盘口采集：{count}场，新增真实变化 {payload} 条。'
             )
+            # Odds pulse used to persist movement only. Re-run the prediction
+            # pipeline when a real change arrives so the live daily card can
+            # re-check market gates and direction before kickoff. The frozen
+            # snapshot writer keeps earlier displayed versions immutable.
+            if payload and not self._lineup_running and not self._foreground_sync_running:
+                self._start_lineup_supervision()
 
     def closeEvent(self, event):
         self._odds_pulse_timer.stop()
