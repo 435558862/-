@@ -842,7 +842,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select three to five tiered fixtures per card day when available.
+    """Select six to eight tiered fixtures per card day when available.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -1294,9 +1294,10 @@ def build_daily_recommendations(
                 ),
             })
     # Rank one recommendation per fixture within each card day. Each date
-    # gets its own five-slot target instead of competing with other dates in
-    # the same prediction frame; if fewer than three candidates survive, keep
-    # the honest smaller result rather than manufacturing picks.
+    # gets its own six-to-eight-slot target instead of competing with other
+    # dates in the same prediction frame. If fewer than six candidates survive,
+    # keep the honest smaller result rather than manufacturing a betting pick;
+    # low-tier rows remain explicitly labelled observation/no bet.
     rows = []
     for day_text in sorted(candidates_by_day):
         ranked = sorted(
@@ -1305,7 +1306,7 @@ def build_daily_recommendations(
         )
         day_rows, used_matches = [], set()
         for item in ranked:
-            if len(day_rows) >= 5:
+            if len(day_rows) >= 8:
                 break
             number = str(item['赛事编号'])
             if number in used_matches:
@@ -2345,7 +2346,7 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '每日保障6场优先、正期望优先；核心重点与可买优选分级展示，'
+            '每日目标6～8场、正期望优先；核心重点与可买优选分级展示，'
             '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
             '◎最佳比分和◆高倍候选为醒目参考，高倍项不等于重点；'
             '比分Top3和半全场前两项仅供参考；半场组合另设冻结盈亏账本。'

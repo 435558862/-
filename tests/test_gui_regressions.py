@@ -677,17 +677,17 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
         predictions, future_only=False,
     )
 
-    assert len(result) == 6
+    assert 6 <= len(result) <= 8
     assert result['相对安全等级'].str.match(r'[A-E]｜').all()
     assert result.loc[
         result['推荐性质'].eq('观察/不投注'), '行动结论'
     ].eq('不建议投注').all()
-    assert result['赛事编号'].nunique() == 6
+    assert result['赛事编号'].nunique() == len(result)
     assert result['推荐玩法'].eq('胜平负').all()
     assert set(result['推荐等级']) <= {'核心重点', '可买优选', '综合观察'}
     assert result['赛事编号'].tolist() == [
         '周日010', '周日009', '周日008', '周日007',
-        '周日006', '周日005',
+        '周日006', '周日005', '周日004', '周日003',
     ]
     assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
     assert result['盘口验证'].str.contains('支持|走强').all()
