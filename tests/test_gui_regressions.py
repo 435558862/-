@@ -548,7 +548,7 @@ def test_sporttery_table_keeps_only_compact_decision_columns():
         '让球', '总进球', '半全场', '比分', '风险提示',
     ]
     assert display.loc[0, '对阵'] == '主队 vs 客队'
-    assert display.loc[0, '综合方向'] == '胜负 胜（70.0%）'
+    assert display.loc[0, '综合方向'] == '胜（70.0%）'
     assert display.loc[0, '推荐性质'] == '正式主推'
     assert display.loc[0, '数据状态'] == '历史报告未标记来源'
     assert display.loc[0, '风险提示'] == '正常'

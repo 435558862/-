@@ -2953,11 +2953,11 @@ class SportteryPredictionsDialog(QDialog):
             handicap = str(row.get('让球首选/次选') or '').strip()
             total = str(row.get('总进球首选') or '').strip()
             if result:
-                parts.append(f'胜负 {result}')
+                parts.append(result)
             if handicap and handicap != '/':
-                parts.append(f'让球 {handicap.split("/", 1)[0]}')
+                parts.append(handicap.split("/", 1)[0])
             if total:
-                parts.append(f'进球 {total}')
+                parts.append(total)
             return '｜'.join(parts) or '数据待补'
 
         def compact_risk(row: pd.Series) -> str:
