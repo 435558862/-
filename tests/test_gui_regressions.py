@@ -24,7 +24,7 @@ def _app():
     return _APP
 
 
-def test_daily_recommendations_exposes_separate_half_time_review(monkeypatch):
+def test_daily_recommendations_keeps_half_time_review_inside_yesterday_review(monkeypatch):
     _app()
     monkeypatch.setattr(
         sporttery_window, 'build_daily_recommendations',
@@ -45,7 +45,7 @@ def test_daily_recommendations_exposes_separate_half_time_review(monkeypatch):
     labels = {button.text() for button in dialog.findChildren(QPushButton)}
 
     assert '昨日推荐复盘' in labels
-    assert '半场推荐复核' in labels
+    assert '半场推荐复核' not in labels
     assert '半场组合账本' in labels
 
 
