@@ -167,37 +167,9 @@ class SportteryMobileClient:
     def snapshot(self, output: Path) -> List[dict]:
         matches = self.selling_matches()
         output.parent.mkdir(parents=True, exist_ok=True)
-        # Keep every fixture already seen on today's lottery card, but never
-        # present an old price as a fresh market quote.  Missing fixtures retain
-        # identity/schedule metadata only; all price-bearing fields are removed.
-        if output.exists():
-            try:
-                cached = json.loads(output.read_text(encoding='utf-8'))
-                fresh_ids = {
-                    str(match.get('matchId') or '') for match in matches
-                    if match.get('matchId') is not None
-                }
-                stale_market_keys = {
-                    'had', 'hhad', 'ttg', 'crs', 'hafu', 'fixedBonus',
-                }
-                preserved = []
-                for cached_match in cached.get('matches') or []:
-                    match_id = str(cached_match.get('matchId') or '')
-                    if match_id and match_id in fresh_ids:
-                        continue
-                    item = {
-                        key: value for key, value in dict(cached_match).items()
-                        if key not in stale_market_keys
-                    }
-                    item['marketFresh'] = False
-                    preserved.append(item)
-                matches = [
-                    {**dict(match), 'marketFresh': True} for match in matches
-                ] + preserved
-            except (OSError, ValueError, TypeError):
-                logging.warning('无法读取今日比赛名单存档：%s', output)
-        else:
-            matches = [{**dict(match), 'marketFresh': True} for match in matches]
+        # A quote sync must never merge or reuse a prior snapshot. Every row
+        # returned here comes from this successful live fetch.
+        matches = [{**dict(match), 'marketFresh': True} for match in matches]
         output.write_text(json.dumps({
             'fetchedAt': datetime.now(timezone.utc).isoformat(),
             'source': SPORTTERY_MOBILE_PAGE,

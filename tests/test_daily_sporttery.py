@@ -113,7 +113,7 @@ class DailySportteryTests(unittest.TestCase):
         self.assertEqual(second, calculator)
         self.assertEqual(fetch.call_count, 3)
 
-    def test_refresh_keeps_fixture_but_never_reuses_stale_market(self):
+    def test_refresh_uses_only_live_fixture_rows(self):
         client = SportteryMobileClient(retries=1)
         with TemporaryDirectory() as directory:
             output = Path(directory) / 'today.json'
@@ -124,14 +124,10 @@ class DailySportteryTests(unittest.TestCase):
                     {'matchId': 2, 'had': {'h': '2.0'}},
             ]):
                 matches = client.snapshot(output)
-        self.assertEqual({row['matchId'] for row in matches}, {1, 2})
+        self.assertEqual({row['matchId'] for row in matches}, {2})
         second = next(row for row in matches if row['matchId'] == 2)
         self.assertEqual(second['had']['h'], '2.0')
         self.assertTrue(second['marketFresh'])
-        first = next(row for row in matches if row['matchId'] == 1)
-        self.assertFalse(first['marketFresh'])
-        self.assertNotIn('had', first)
-        self.assertNotIn('fixedBonus', first)
 
     def test_draw_calibration_uses_league_prior_without_breaking_sum(self):
         history = pd.DataFrame({'Result': ['D'] * 30 + ['H'] * 40 + ['A'] * 30})
