@@ -677,7 +677,7 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
         predictions, future_only=False,
     )
 
-    assert 6 <= len(result) <= 8
+    assert len(result) == 5
     assert result['相对安全等级'].str.match(r'[A-E]｜').all()
     assert result.loc[
         result['推荐性质'].eq('观察/不投注'), '行动结论'
@@ -686,8 +686,7 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     assert result['推荐玩法'].eq('胜平负').all()
     assert set(result['推荐等级']) <= {'核心重点', '可买优选', '综合观察'}
     assert result['赛事编号'].tolist() == [
-        '周日010', '周日009', '周日008', '周日007',
-        '周日006', '周日005', '周日004', '周日003',
+        '周日010', '周日009', '周日008', '周日007', '周日006',
     ]
     assert result['蒙特卡洛是否同向'].str.startswith('同向').all()
     assert result['盘口验证'].str.contains('支持|走强').all()
@@ -696,7 +695,7 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     ].eq('不投注').all()
 
 
-def test_daily_recommendations_cap_eight_across_multiple_card_dates():
+def test_daily_recommendations_keep_five_per_card_date_without_competing():
     predictions = pd.DataFrame([{
         '赛事编号': f'{weekday}{index:03d}',
         '比赛时间': f'2099-08-{day:02d} {10 + index:02d}:00',
@@ -710,16 +709,21 @@ def test_daily_recommendations_cap_eight_across_multiple_card_dates():
         '首次采集负奖金': 4.20, '官方胜奖金': 1.80,
         '官方平奖金': 3.50, '官方负奖金': 4.40,
         '模拟胜负': '胜 62.0% / 平 23.0%',
-    } for day, weekday in ((30, '周日'), (31, '周一'))
+    } for day, weekday in ((29, '周六'), (30, '周日'), (31, '周一'))
       for index in range(1, 8)])
 
     result = sporttery_window.build_daily_recommendations(
         predictions, future_only=False,
     )
 
-    assert len(result) == 8
-    assert result[['比赛日期', '赛事编号']].drop_duplicates().shape[0] == 8
-    assert set(result['比赛日期']) == {'2099-08-30', '2099-08-31'}
+    assert len(result) == 15
+    assert result[['比赛日期', '赛事编号']].drop_duplicates().shape[0] == 15
+    assert result['比赛日期'].value_counts().to_dict() == {
+        '2099-08-29': 5,
+        '2099-08-30': 5,
+        '2099-08-31': 5,
+    }
+    assert result.iloc[:5]['比赛日期'].eq('2099-08-29').all()
 
 
 def test_daily_recommendations_reject_retained_stopped_snapshot():

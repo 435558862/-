@@ -842,7 +842,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select at most eight tiered fixtures across the whole visible card.
+    """Select at most five tiered fixtures for each visible lottery card day.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -1293,30 +1293,29 @@ def build_daily_recommendations(
                     )
                 ),
             })
-    # Rank all visible card dates together and keep one recommendation per
-    # fixture. The dialog has one global eight-row ceiling; otherwise two card
-    # dates could each contribute eight rows and unexpectedly expand the list.
-    ranked = sorted(
-        (
-            item
-            for day_candidates in candidates_by_day.values()
-            for item in day_candidates
-        ),
-        key=lambda item: item['_quality'], reverse=True,
-    )
-    rows, used_matches = [], set()
-    for item in ranked:
-        if len(rows) >= 8:
-            break
-        identity = (str(item['比赛日期']), str(item['赛事编号']))
-        if identity in used_matches:
-            continue
-        rows.append(item)
-        used_matches.add(identity)
+    # Match the macOS card view: rank each lottery-card date independently and
+    # keep up to five fixtures for that date.  Dates never compete for one
+    # global quota, so tomorrow cannot hide recommendations purchasable today.
+    rows = []
+    for day_text in sorted(candidates_by_day):
+        ranked = sorted(
+            candidates_by_day[day_text],
+            key=lambda item: item['_quality'], reverse=True,
+        )
+        day_rows, used_matches = [], set()
+        for item in ranked:
+            if len(day_rows) >= 5:
+                break
+            number = str(item['赛事编号'])
+            if number in used_matches:
+                continue
+            day_rows.append(item)
+            used_matches.add(number)
+        rows.extend(day_rows)
 
     # A 2-leg combination may only use selected fixtures from the same card
-    # date. Build it after the global cap so its displayed partner can never
-    # refer to a row that was discarded from the final eight.
+    # date. Build it after the per-date selection so its displayed partner can
+    # never refer to a row discarded from that date's final five.
     selected_by_day: dict[str, list[dict]] = {}
     for item in rows:
         selected_by_day.setdefault(str(item['比赛日期']), []).append(item)
@@ -2353,7 +2352,7 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '每日推荐合计最多8场、正期望优先；核心重点与可买优选分级展示，'
+            '每个竞彩卡日最多5场、正期望优先；核心重点与可买优选分级展示，'
             '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
             '◎最佳比分和◆高倍候选为醒目参考，高倍项不等于重点；'
             '比分Top3和半全场前两项仅供参考；半场组合另设冻结盈亏账本。'
