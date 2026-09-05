@@ -29,6 +29,7 @@ storage/logs/
 storage/jingcai/lineups/
 storage/jingcai/raw/
 storage/jingcai/reports/
+storage/jingcai/forward_comparison/
 storage/backups/
 
 # Nested duplicate project copy inside tests/ (keep only test_*.py)

@@ -31,7 +31,7 @@ from src.services.odds_tracking import (
     format_market_flow, read_odds_series, record_odds_snapshots,
     record_official_history,
 )
-from src.services.presale_validation import presale_validation
+from src.services.market_evidence import assess_market
 from src.services.yesterday_review import _ticket_card_date, load_yesterday_hit_report
 from src.services.value_selection import evaluate_value, historical_calibration
 
@@ -843,7 +843,7 @@ def _priority_summary(predictions: pd.DataFrame) -> str:
 def build_daily_recommendations(
         predictions: pd.DataFrame, future_only: bool = True,
 ) -> pd.DataFrame:
-    """Select at most five tiered fixtures for each visible lottery card day.
+    """Select up to five fixtures per card day, formal picks before observations.
 
     The formal model owns the pick.  Market movement and the independent
     Monte Carlo model are vetoes, never alternative sources of a pick.  Exact
@@ -1005,8 +1005,10 @@ def build_daily_recommendations(
         # Respect the short-wave market state produced by market_flow_gate.
         # A reversal, oscillation, or unconfirmed rapid move is not a usable
         # confirmation signal for the daily card.
-        if any(word in gate for word in (
-                '冲突', '震荡', '不稳定', '反复', '过快', '等待确认', '暂不主推')):
+        # This stored gate describes HAD only. Handicap evidence is assessed
+        # from HHAD below and must not inherit another market's disagreement.
+        if market == '胜平负' and any(word in gate for word in (
+                '震荡', '不稳定', '反复', '过快', '等待确认', '暂不主推')):
             return False, gate or '盘口不稳定'
         codes = {'胜': 0, '平': 1, '负': 2}
         pick_index = codes.get(formal_pick)
@@ -1028,20 +1030,21 @@ def build_daily_recommendations(
         current = implied(row, current_columns)
         if opening is None or current is None:
             return False, '缺少初盘或当前盘口'
-        if int(np.argmax(current)) != pick_index:
-            return False, '当前盘口首选与正式模型不同向'
+        disagreement = int(np.argmax(current)) != pick_index or (
+            market == '胜平负' and '冲突' in gate
+        )
         movement = float(current[pick_index] - opening[pick_index])
         if movement < -0.015:
             return False, f'临场明显反向 {movement:+.1%}'
-        if movement < -0.005:
-            return False, f'正式方向走弱 {movement:+.1%}'
         if movement > 0.015:
-            state = '持续走强'
+            state = '较首次采集走强'
+        elif movement < -0.003:
+            state = '较首次采集轻微走弱'
         elif abs(movement) <= 0.003:
             state = '当前支持·去水概率基本不变'
         else:
             state = '当前支持·轻微走强'
-        return True, f'{state} {movement:+.1%}'
+        return True, f'{state} {movement:+.1%}' + ('｜盘口方向分歧' if disagreement else '')
 
     candidates_by_day: dict[str, list[dict]] = {}
     for _, row in active.iterrows():
@@ -1136,14 +1139,14 @@ def build_daily_recommendations(
                 kickoff - pd.Timedelta(minutes=10) if pd.notna(kickoff) else None
             )
             match_id = _match_identity(row.get('比赛ID'))
-            pre_text, pre_state = presale_validation(
+            evidence = assess_market(
                 recommendation_odds_series.get(match_id, []),
                 market, formal_compare, reference_deadline,
-                as_of=datetime.now(),
                 line=(line if market == '让球胜平负' else None),
             )
-            support_text = f'{support_text}｜参考截止前：{pre_text}'
-            if pre_state is False:
+            market_disagrees = '盘口方向分歧' in support_text
+            support_text = f'{support_text}｜走势核验：{evidence["text"]}'
+            if evidence['state'] is False:
                 continue
             lineup_conflict = str(row.get('阵容方向冲突')).strip().lower() in {
                 'true', '1', '1.0', 'yes', '是',
@@ -1220,6 +1223,7 @@ def build_daily_recommendations(
                 continue
             display_grade = (
                 '蒙特反向观察' if monte_conflict else
+                '盘口分歧观察' if market_disagrees else
                 '平局双选保护' if draw_protection else
                 '市场同源观察' if market_derived else
                 '盘口观察' if handicap_observation else
@@ -1235,6 +1239,7 @@ def build_daily_recommendations(
                 '综合观察': (2, 'D｜仅观察', '不建议投注'),
                 '蒙特反向观察': (0, 'E｜方向冲突', '不建议投注'),
                 '市场同源观察': (1, 'E｜同源信号', '不建议投注'),
+                '盘口分歧观察': (1, 'E｜盘口分歧', '不建议投注'),
             }[display_grade]
             grade_rank = 2 if display_grade == '核心重点' else (
                 1 if display_grade == '可买优选' else 0
@@ -1243,6 +1248,7 @@ def build_daily_recommendations(
                 safety_rank * 100.0 + grade_rank * 10.0
                 + decision.conservative_ev * 5.0
                 + probability + margin
+                + evidence['score']
             )
             candidates_by_day.setdefault(day_text, []).append({
                 '_quality': quality,
@@ -1288,6 +1294,8 @@ def build_daily_recommendations(
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
                     (
+                        '模型与盘口方向分歧，保留观察；当前缺少分歧策略的实战验证'
+                        if market_disagrees else
                         '正式概率来自市场基线且蒙特方向相反；仅保留风险观察'
                         if market_derived and monte_conflict else
                         '正式概率来自市场基线，与盘口属于同一信号；仅保留观察'
@@ -1301,9 +1309,8 @@ def build_daily_recommendations(
                     )
                 ),
             })
-    # Match the macOS card view: rank each lottery-card date independently and
-    # keep up to five fixtures for that date.  Dates never compete for one
-    # global quota, so tomorrow cannot hide recommendations purchasable today.
+    # Rank each card day independently, keeping one current market per fixture.
+    # Keep the strongest five; historical selections belong only in review.
     rows = []
     for day_text in sorted(candidates_by_day):
         ranked = sorted(
@@ -1493,7 +1500,7 @@ def _half_time_combination_evaluation(
             f'{label}¥{amount:.0f}' for label, amount in zip(labels, allocations)
         ),
         '策略状态': (
-            '达到正式门槛，将进入真实账本'
+            '达到正式门槛，将进入模拟账本'
             if not strict_reasons else '仅观察｜' + '；'.join(strict_reasons)
         ) + '｜' + calibration_text,
         '_calibration_text': calibration_text,
@@ -1834,6 +1841,7 @@ def build_half_time_combination_ledger(
     rows = []
     cumulative = 0.0
     settled_count = hits = 0
+    total_stake = settled_stake = 0.0
     for _, item in frozen.sort_values(['比赛日期', '赛事编号']).iterrows():
         match_id = _match_identity(item.get('比赛ID'))
         number = str(item.get('赛事编号') or '').strip()
@@ -1850,18 +1858,21 @@ def build_half_time_combination_ledger(
         amount = _combination_number(item, '示例本金')
         if not np.isfinite(amount) or amount <= 0:
             amount = float(example_stake)
-        if actual_half_full[:1] and actual_half_full[:1] in '胜平负':
+        total_stake += amount
+        valid_contract = target in ('胜', '平', '负') and np.isfinite(combined_odds) and combined_odds > 1.0
+        if valid_contract and actual_half_full[:1] and actual_half_full[:1] in '胜平负':
             hit = actual_half_full[:1] == target
             profit = amount * (combined_odds - 1.0) if hit else -amount
             cumulative += profit
             settled_count += 1
+            settled_stake += amount
             hits += int(hit)
             status = '✓ 命中' if hit else '✕ 未中'
             actual_text = f'半场{actual_half_full[:1]}'
             profit_text = f'{profit:+.0f}'
             cumulative_text = f'{cumulative:+.0f}'
         else:
-            status = '○ 延期/待定'
+            status = '○ 延期/待定' if valid_contract else '○ 账本数据异常·待核对'
             actual_text = '待官方赛果'
             profit_text = '待定'
             cumulative_text = f'{cumulative:+.0f}'
@@ -1880,13 +1891,12 @@ def build_half_time_combination_ledger(
             '结算状态': status,
         })
     total = len(rows)
-    settled_stake = settled_count * float(example_stake)
     summary = {
         'total': total,
         'settled': settled_count,
         'pending': total - settled_count,
         'hits': hits,
-        'stake': total * float(example_stake),
+        'stake': total_stake,
         'settled_stake': settled_stake,
         'profit': cumulative,
         'roi': cumulative / settled_stake if settled_stake else None,
@@ -1923,9 +1933,20 @@ def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
         # Review uses the exact most recently displayed list.  The append-only
         # file above remains available for audit and troubleshooting.
         latest = DAILY_RECOMMENDATION_ROOT / f'{day_text}.latest.csv'
+        previous_latest = pd.read_csv(latest) if latest.exists() else pd.DataFrame()
         latest_temporary = latest.with_suffix('.tmp')
         shown.to_csv(latest_temporary, index=False, encoding='utf-8-sig')
         latest_temporary.replace(latest)
+        # The daily review ledger is append-only across refreshes. Started
+        # fixtures must not disappear when later fixtures become candidates.
+        ledger_path = DAILY_RECOMMENDATION_ROOT / f'{day_text}.daylog.csv'
+        prior = pd.read_csv(ledger_path) if ledger_path.exists() else previous_latest
+        ledger = pd.concat([prior, shown], ignore_index=True, sort=False)
+        ledger['_choice'] = ledger['重点选项'].fillna('').astype(str).str.replace(r'^[★·\s]+', '', regex=True)
+        ledger = ledger.drop_duplicates(['赛事编号', '推荐玩法', '_choice'], keep='first').drop(columns='_choice')
+        temporary = ledger_path.with_suffix('.tmp')
+        ledger.to_csv(temporary, index=False, encoding='utf-8-sig')
+        temporary.replace(ledger_path)
 
 
 def _load_daily_recommendation_snapshot(day: str) -> pd.DataFrame:
@@ -1952,7 +1973,10 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
         return pd.DataFrame(columns=columns), review_date
     recommendations = _load_daily_recommendation_snapshot(review_date)
     latest_path = DAILY_RECOMMENDATION_ROOT / f'{review_date}.latest.csv'
-    if latest_path.exists():
+    daylog_path = DAILY_RECOMMENDATION_ROOT / f'{review_date}.daylog.csv'
+    if daylog_path.exists():
+        recommendations = pd.read_csv(daylog_path)
+    elif latest_path.exists():
         recommendations = pd.read_csv(latest_path)
     elif not recommendations.empty:
         # Old files did not store batch boundaries.  Their last five rows are
@@ -2238,7 +2262,7 @@ class HalfTimeCombinationLedgerDialog(QDialog):
     def __init__(self, predictions: pd.DataFrame, parent=None):
         super().__init__(parent)
         self._predictions = predictions.copy()
-        self.setWindowTitle('半场组合策略与真实盈亏账本')
+        self.setWindowTitle('半场组合策略与模拟盈亏账本')
         self.setWindowFlags(
             Qt.WindowType.Window | Qt.WindowType.WindowMinimizeButtonHint
             | Qt.WindowType.WindowMaximizeButtonHint | Qt.WindowType.WindowCloseButtonHint
@@ -2250,6 +2274,18 @@ class HalfTimeCombinationLedgerDialog(QDialog):
         candidates = build_half_time_combinations(predictions)
         _save_half_time_combination_snapshot(candidates)
         ledger, summary = build_half_time_combination_ledger()
+        active = _upcoming_predictions(predictions)
+        evaluated = [_half_time_combination_evaluation(row, HALF_TIME_COMBINATION_STAKE)
+                     for _, row in active.iterrows()]
+        aligned = [item for item in evaluated if item is not None]
+        rejected = sum(not item['_strict'] for item in aligned)
+        diagnostic = QLabel(
+            f'未开赛{len(active)}场｜三方同向且数据齐全{len(aligned)}场｜'
+            f'通过正式门槛{len(aligned) - rejected}场｜'
+            f'同向但未过门槛{rejected}场。具体原因见观察结论；上方观察项不等于正式推荐。'
+        )
+        diagnostic.setWordWrap(True)
+        root.addWidget(diagnostic)
         observation_title = QLabel(
             '今日相对最优观察（只比较方向稳定性，不计入命中率与ROI）'
         )
@@ -2282,7 +2318,7 @@ class HalfTimeCombinationLedgerDialog(QDialog):
                 item.setFont(font)
             root.addWidget(observation_table)
 
-        ledger_title = QLabel('正式组合推荐与冻结真实盈亏账本')
+        ledger_title = QLabel('正式组合推荐与冻结模拟盈亏账本（非实际投注收益）')
         ledger_title.setStyleSheet('font-size:13px;font-weight:600;padding-top:4px;')
         root.addWidget(ledger_title)
         roi = summary.get('roi')
@@ -2353,7 +2389,7 @@ class DailyRecommendationsDialog(QDialog):
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         notice = QLabel(
-            '每个竞彩卡日最多5场、正期望优先；核心重点与可买优选分级展示，'
+            '默认只看今天最看好的最多5场；正式精选优先，不足时补次选／观察；历史记录仅在复盘查看。'
             '三方同向但价值不足、或蒙特反向时灰色显示观察且建议不投注；'
             '◎最佳比分和◆高倍候选为醒目参考，高倍项不等于重点；'
             '比分Top3和半全场前两项仅供参考；半场组合另设冻结盈亏账本。'
@@ -2366,15 +2402,34 @@ class DailyRecommendationsDialog(QDialog):
         combination_button = QPushButton('半场组合账本')
         combination_button.clicked.connect(self._open_half_time_combinations)
         header.addWidget(combination_button)
+        forward_button = QPushButton('新旧向前对照')
+        forward_button.clicked.connect(self._open_forward_comparison)
+        header.addWidget(forward_button)
         root.addLayout(header)
         self._review_dialog = None
         self._half_time_review_dialog = None
         self._combination_dialog = None
         frame = build_daily_recommendations(predictions)
         _save_daily_recommendation_snapshot(frame)
+        try:
+            from src.services.forward_comparison import freeze
+            freeze(predictions)
+        except (OSError, ValueError, TypeError, KeyError) as error:
+            root.addWidget(QLabel(f'向前对照冻结失败：{error}'))
         _save_half_time_observation_snapshot(
             build_half_time_observations(predictions),
         )
+        today = pd.Timestamp.now(tz='Asia/Shanghai').date().isoformat()
+        dates = {today} | set(frame.get('比赛日期', pd.Series(dtype=str)).astype(str))
+        frame = frame.copy()
+        frame.insert(0, '精选分类', frame.get('推荐等级', pd.Series(index=frame.index, dtype=str)).map(
+            lambda grade: '正式精选' if grade in ('核心重点', '可买优选') else '次选／观察'
+        ))
+        day_picker = QComboBox(self)
+        day_picker.addItems(sorted(dates))
+        day_picker.setCurrentText(today)
+        header.addWidget(QLabel('竞彩日期'))
+        header.addWidget(day_picker)
         if frame.empty:
             root.addWidget(QLabel('当前没有达到推荐门槛的选项。'))
             return
@@ -2417,6 +2472,15 @@ class DailyRecommendationsDialog(QDialog):
                 item.setFont(font)
         root.addWidget(table)
 
+        def show_day(day):
+            date_column = frame.columns.get_loc('比赛日期')
+            for index in range(table.rowCount()):
+                item = table.item(index, date_column)
+                table.setRowHidden(index, item is None or item.text() != day)
+        day_picker.currentTextChanged.connect(show_day)
+        table.horizontalHeader().sortIndicatorChanged.connect(lambda *args: show_day(day_picker.currentText()))
+        show_day(today)
+
     def _open_yesterday_review(self):
         if self._review_dialog is not None:
             self._review_dialog.close()
@@ -2425,6 +2489,26 @@ class DailyRecommendationsDialog(QDialog):
         self._review_dialog.show()
         self._review_dialog.raise_()
         self._review_dialog.activateWindow()
+
+    def _open_forward_comparison(self):
+        from src.services.forward_comparison import report
+        dialog = QDialog(self)
+        dialog.setWindowTitle('新旧规则严格向前对照（模拟账本）')
+        dialog.resize(1100, 380)
+        layout = QVBoxLayout(dialog)
+        note = QLabel('从启用日起，首次打开每日推荐时冻结当时可用比赛。新旧规则使用相同输入；'
+                      '每场正式推荐按1单位模拟，观察项分开统计；未结算不计ROI。'
+                      '此处比较筛选规则，未进行历史模型重新训练；无赛前快照不补造历史结果。')
+        note.setWordWrap(True)
+        layout.addWidget(note)
+        try:
+            data = report()
+            for column in ('ROI', '命中率'):
+                data[column] = data[column].map(lambda value: f'{value:.1%}' if pd.notna(value) else '待结算')
+            layout.addWidget(ExcelTable(dialog, data, readonly=True, supports_sorting=True))
+        except (OSError, ValueError, KeyError) as error:
+            layout.addWidget(QLabel(f'对照数据读取失败：{error}'))
+        dialog.exec()
 
     def _open_half_time_combinations(self):
         if self._combination_dialog is not None:

@@ -708,7 +708,7 @@ def test_daily_recommendations_fill_card_with_explicit_observations():
     ].eq('不投注').all()
 
 
-def test_daily_recommendations_keep_five_per_card_date_without_competing():
+def test_daily_recommendations_keep_best_five_per_day():
     predictions = pd.DataFrame([{
         '赛事编号': f'{weekday}{index:03d}',
         '比赛时间': f'2099-08-{day:02d} {10 + index:02d}:00',

@@ -23,6 +23,13 @@ def raw_match(match_id, h='1.58', d='3.55', a='4.65', update='20:02:46',
 
 class OddsTrackingTests(unittest.TestCase):
 
+    def test_unchanged_price_keeps_low_frequency_freshness_confirmation(self):
+        match = raw_match(1)
+        self.assertEqual(odds_tracking.record_odds_snapshots([match], path=self.path, captured_at='2026-08-13T10:00:00+08:00'), 1)
+        self.assertEqual(odds_tracking.record_odds_snapshots([match], path=self.path, captured_at='2026-08-13T10:05:00+08:00'), 0)
+        self.assertEqual(odds_tracking.record_odds_snapshots([match], path=self.path, captured_at='2026-08-13T10:15:00+08:00'), 1)
+        self.assertEqual(len(odds_tracking.read_odds_series(self.path)['1']), 2)
+
     def test_official_history_records_full_had_and_handicap_opening(self):
         history = {
             'leagueAllName': '测试联赛', 'homeTeamAllName': '主队',

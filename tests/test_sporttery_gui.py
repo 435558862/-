@@ -188,7 +188,7 @@ def test_daily_recommendation_snapshot_preserves_every_displayed_list(monkeypatc
     assert latest['赛事编号'].tolist() == ['周六002']
 
 
-def test_yesterday_review_uses_only_latest_recommendation_batch(monkeypatch, tmp_path):
+def test_yesterday_review_keeps_recommendations_across_refreshes(monkeypatch, tmp_path):
     monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
     first = pd.DataFrame([{
         '比赛日期': '2099-08-29', '赛事编号': '周六001',
@@ -212,8 +212,8 @@ def test_yesterday_review_uses_only_latest_recommendation_batch(monkeypatch, tmp
 
     review, _ = sporttery_module.build_yesterday_recommendation_review()
 
-    assert review['赛事编号'].tolist() == ['周六002']
-    assert review.loc[0, '命中状态'] == '✓ 命中'
+    assert review['赛事编号'].tolist() == ['周六001', '周六002']
+    assert review.loc[1, '命中状态'] == '✓ 命中'
 
 
 def test_previous_card_merges_still_visible_after_midnight_matches(monkeypatch, tmp_path):

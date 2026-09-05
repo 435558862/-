@@ -221,7 +221,7 @@ def record_odds_snapshots(
         path: Path = HISTORY_PATH,
         captured_at: Optional[str] = None,
 ) -> int:
-    """Append fresh odds observations; skip rows identical to the last stored.
+    """Append changes and at most one unchanged confirmation per 15 minutes.
 
     Returns the number of appended observations. Never raises.
     """
@@ -238,6 +238,7 @@ def record_odds_snapshots(
             return 0
 
         previous: Dict[str, tuple] = {}
+        previous_time = {}
         if path.exists() and path.stat().st_size > 0:
             with path.open('r', encoding='utf-8') as handle:
                 for line in handle:
@@ -249,15 +250,24 @@ def record_odds_snapshots(
                     except ValueError:
                         continue
                     previous[str(stored.get('match_id', ''))] = _latest_key(stored)
+                    previous_time[str(stored.get('match_id', ''))] = stored.get('captured_at')
 
         path.parent.mkdir(parents=True, exist_ok=True)
         appended = 0
         with path.open('a', encoding='utf-8') as handle:
             for observation in observations:
                 if previous.get(observation['match_id']) == _latest_key(observation):
-                    continue
+                    try:
+                        elapsed = (datetime.fromisoformat(captured_at.replace('Z', '+00:00'))
+                                   - datetime.fromisoformat(str(previous_time.get(observation['match_id'])).replace('Z', '+00:00'))).total_seconds()
+                    except (ValueError, TypeError):
+                        elapsed = 0
+                    if elapsed < 900:
+                        continue
                 observation = {'captured_at': captured_at, **observation}
                 handle.write(json.dumps(observation, ensure_ascii=False) + '\n')
+                previous[observation['match_id']] = _latest_key(observation)
+                previous_time[observation['match_id']] = captured_at
                 appended += 1
         return appended
     except Exception:

@@ -47,3 +47,23 @@ def test_legacy_handicap_label_cannot_promote_observations(change):
     assert item['推荐等级'] not in {'核心重点', '可买优选'}
     assert not item['重点选项'].startswith('★')
     assert item['建议仓位'] == '不投注'
+
+
+def test_market_favorite_disagreement_stays_visible_as_observation():
+    row = candidate()
+    row['盘口门控'] = '盘口流向平·与模型胜冲突'
+    row['官方让平奖金'] = row['首次采集让平奖金'] = 1.6
+    result = sporttery.build_daily_recommendations(pd.DataFrame([row]))
+    assert len(result) == 1
+    assert result.iloc[0]['推荐等级'] == '盘口分歧观察'
+    assert result.iloc[0]['建议仓位'] == '不投注'
+
+
+def test_market_evidence_affects_ranking_within_grade(monkeypatch):
+    monkeypatch.setattr(sporttery, 'read_odds_series', lambda **kw: {'1': [1], '2': [2]})
+    monkeypatch.setattr(sporttery, 'assess_market', lambda rows, *a, **kw: {
+        'state': True, 'text': '走势核验', 'score': .04 if rows == [2] else 0})
+    first = dict(candidate(), 比赛ID=1)
+    second = dict(candidate(), 比赛ID=2, 赛事编号='周六002')
+    result = sporttery.build_daily_recommendations(pd.DataFrame([first, second]))
+    assert result.iloc[0]['赛事编号'] == '周六002'
