@@ -85,3 +85,27 @@ def test_first_confirmed_lineup_does_not_invent_probability_adjustment():
     assert '已确认首发' in analysis['summary']
     assert analysis['home_penalty'] == 0
     assert analysis['away_goalkeeper_changed'] is False
+
+
+def test_repoll_does_not_compare_lineup_with_itself():
+    from copy import deepcopy
+    current = _record(_fixture(), '1')
+    current['captured_at'] = '2026-09-05T18:00:00+08:00'
+    previous = deepcopy(current)
+    previous['fixture_id'] = 98
+    previous['captured_at'] = '2026-09-01T18:00:00+08:00'
+    previous['home']['starters'][1]['id'] = 999
+    first = _analyse(current, [previous])
+    repeated = _analyse(current, [previous, deepcopy(current)])
+    assert first['home_rotation'] == 1
+    assert repeated == first
+
+
+def test_later_lineup_is_not_used_as_historical_evidence():
+    from copy import deepcopy
+    current = _record(_fixture(), '1')
+    current['captured_at'] = '2026-09-05T18:00:00+08:00'
+    future = deepcopy(current)
+    future['fixture_id'] = 100
+    future['captured_at'] = '2026-09-06T18:00:00+08:00'
+    assert _analyse(current, [future])['home_rotation'] is None

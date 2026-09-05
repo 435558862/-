@@ -265,6 +265,11 @@ def _team(side, history):
 
 
 def _analyse(record, history):
+    # Repeated polling must compare with earlier matches, never with this
+    # fixture's already-saved starting eleven (which hides all rotation).
+    history = [match for match in history
+               if str(match.get('fixture_id')) != str(record.get('fixture_id'))
+               and str(match.get('captured_at', '')) < str(record.get('captured_at', ''))]
     home, away = _team(record['home'], history), _team(record['away'], history)
     def penalty(value):
         result = value['missing_core'] + (1.5 if value['goalkeeper_changed'] else 0)
@@ -275,6 +280,12 @@ def _analyse(record, history):
     if len(history) < 3:
         shift = 0.0
     parts = [f'已确认首发 {record["home"]["formation"] or "未知"}/{record["away"]["formation"] or "未知"}']
+    counts = [sum((match.get(key) or {}).get('team_id') == record[side]['team_id']
+                  for match in history for key in ('home', 'away'))
+              for side in ('home', 'away')]
+    parts.append(f'历史首发 主{counts[0]}场/客{counts[1]}场')
+    if min(counts) < 3:
+        parts.append('历史不足，核心缺阵判断未就绪')
     if home['rotation'] is not None and away['rotation'] is not None:
         parts.append(f'轮换 主{home["rotation"]}/客{away["rotation"]}')
     if home['missing_core'] or away['missing_core']:
@@ -321,7 +332,8 @@ def fetch_lineup_analysis(matches):
                     -timedelta(hours=3) <= until_kickoff <= timedelta(minutes=90)):
                 continue
             day = kickoff.date().isoformat()
-            catalogs.setdefault(day, _catalog(day))
+            if day not in catalogs:
+                catalogs[day] = _catalog(day)
             fixture = _match_fixture(raw, catalogs[day])
             if fixture:
                 matched.append((raw, fixture))

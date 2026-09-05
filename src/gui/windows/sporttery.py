@@ -31,6 +31,7 @@ from src.services.odds_tracking import (
     format_market_flow, read_odds_series, record_odds_snapshots,
     record_official_history,
 )
+from src.services.presale_validation import presale_validation
 from src.services.yesterday_review import _ticket_card_date, load_yesterday_hit_report
 from src.services.value_selection import evaluate_value, historical_calibration
 
@@ -852,10 +853,10 @@ def build_daily_recommendations(
     columns = [
         '相对安全等级', '行动结论',
         '比赛日期', '赛事编号', '联赛', '对阵', '推荐玩法', '重点选项',
-        '最佳比分', '每日2串1', '2串1组合概率', '2串1组合SP',
+        '最佳比分',
         '推荐等级', '推荐性质', '正式主模型', '数据状态',
         '正式模型概率', '价值评估', '建议仓位',
-        '盘口验证', '蒙特卡洛是否同向', '阵容验证',
+        '盘口验证', '蒙特卡洛是否同向',
         '比分参考', '半全场参考', '入选理由',
     ]
     if predictions.empty:
@@ -863,6 +864,12 @@ def build_daily_recommendations(
     source = _upcoming_predictions(predictions) if future_only else predictions.copy()
     active = _sort_by_match_number(source).reset_index(drop=True)
     allow_observation_conflicts = len(active) >= 3
+    try:
+        recommendation_odds_series = read_odds_series(
+            max_rows_per_match=300, keep_opening=True,
+        )
+    except (OSError, ValueError, TypeError):
+        recommendation_odds_series = {}
 
     def number(row: pd.Series, column: str) -> float:
         value = pd.to_numeric(row.get(column), errors='coerce')
@@ -1124,8 +1131,23 @@ def build_daily_recommendations(
                 supported, support_text = market_support(row, market, formal_compare)
             if not supported:
                 continue
-            lineup_status = str(row.get('首发状态') or '')
-            lineup_conflict = bool(row.get('阵容方向冲突'))
+            kickoff = pd.to_datetime(row.get('比赛时间'), errors='coerce')
+            reference_deadline = (
+                kickoff - pd.Timedelta(minutes=10) if pd.notna(kickoff) else None
+            )
+            match_id = _match_identity(row.get('比赛ID'))
+            pre_text, pre_state = presale_validation(
+                recommendation_odds_series.get(match_id, []),
+                market, formal_compare, reference_deadline,
+                as_of=datetime.now(),
+                line=(line if market == '让球胜平负' else None),
+            )
+            support_text = f'{support_text}｜参考截止前：{pre_text}'
+            if pre_state is False:
+                continue
+            lineup_conflict = str(row.get('阵容方向冲突')).strip().lower() in {
+                'true', '1', '1.0', 'yes', '是',
+            }
             lineup_warning = str(row.get('阵容预警级别') or '无')
             if lineup_conflict or lineup_warning == '高':
                 continue
@@ -1139,7 +1161,9 @@ def build_daily_recommendations(
             )
             if not np.isfinite(empirical_accuracy) or not np.isfinite(empirical_samples):
                 learned_accuracy, learned_samples = historical_calibration(
-                    market, probability,
+                    market, probability, selection=formal_compare,
+                    handicap_line=(line if market == '让球胜平负' else None),
+                    as_of=datetime.now(),
                 )
                 if learned_accuracy is not None:
                     empirical_accuracy = learned_accuracy
@@ -1194,23 +1218,15 @@ def build_daily_recommendations(
                 and not monte_observation and not handicap_independent
             ):
                 continue
-            lineup_text = (
-                f'已确认·预警{lineup_warning}' if lineup_status == '已确认'
-                else '未确认·不调整模型'
-            )
             display_grade = (
+                '蒙特反向观察' if monte_conflict else
                 '平局双选保护' if draw_protection else
-                '蒙特反向观察' if monte_observation else
                 '市场同源观察' if market_derived else
-                '核心重点' if (
-                    market == '让球胜平负'
-                    and str(row.get('让球建议状态') or '').strip()
-                    in {'高置信主推', '精选主推'}
-                ) else
                 '盘口观察' if handicap_observation else
                 decision.grade if decision.promoted else
                 '综合观察'
             )
+            officially_promoted = display_grade in {'核心重点', '可买优选'}
             safety_rank, safety_label, action = {
                 '核心重点': (5, 'A｜正式重点', '达到正式门槛，可优先考虑'),
                 '可买优选': (4, 'B｜正式优选', '达到正式门槛，谨慎考虑'),
@@ -1239,17 +1255,10 @@ def build_daily_recommendations(
                 '对阵': f'{row.get("主队", "")} vs {row.get("客队", "")}',
                 '推荐玩法': '胜平负双选' if draw_protection else market,
                 '重点选项': (
-                    f'· {draw_protection or choice}'
-                    if draw_protection or handicap_observation or fallback_observation or monte_observation
-                    else f'★ {choice}'
+                    f'★ {choice}' if officially_promoted
+                    else f'· {draw_protection or choice}'
                 ),
                 '最佳比分': best_score(row),
-                '每日2串1': '',
-                '2串1组合概率': '',
-                '2串1组合SP': '',
-                '_pair_probability': probability,
-                '_pair_odds': official_odds,
-                '_pair_choice': choice,
                 '推荐等级': display_grade,
                 '推荐性质': (
                     '正式主推' if display_grade in ('核心重点', '可买优选')
@@ -1268,24 +1277,23 @@ def build_daily_recommendations(
                 '建议仓位': (
                     '仅作平局保护，不计单选仓位'
                     if draw_protection else f'≤{decision.stake_fraction:.1%}本金'
-                    if decision.stake_fraction > 0 else '不投注'
+                    if officially_promoted and decision.stake_fraction > 0 else '不投注'
                 ),
                 '盘口验证': support_text,
                 '蒙特卡洛是否同向': (
                     f'同向（蒙特：{monte_pick}）'
                     if monte_aligned else f'反向观察（蒙特：{monte_pick}）'
                 ),
-                '阵容验证': lineup_text,
                 '比分参考': score_reference(row),
                 '半全场参考': half_full_reference(row),
                 '入选理由': (
                     (
                         '正式概率来自市场基线且蒙特方向相反；仅保留风险观察'
-                        if market_derived and monte_observation else
+                        if market_derived and monte_conflict else
                         '正式概率来自市场基线，与盘口属于同一信号；仅保留观察'
                         if market_derived else
                         '正式模型与盘口同向，但蒙特反向，仅展示观察方向'
-                        if monte_observation else
+                        if monte_conflict else
                         '三方同向但保守EV未达标，仅展示观察方向'
                         if handicap_observation or fallback_observation else
                         f'{display_grade}；正式模型定方向；领先第二方向{margin:.1%}；'
@@ -1313,52 +1321,9 @@ def build_daily_recommendations(
             used_matches.add(number)
         rows.extend(day_rows)
 
-    # A 2-leg combination may only use selected fixtures from the same card
-    # date. Build it after the per-date selection so its displayed partner can
-    # never refer to a row discarded from that date's final five.
-    selected_by_day: dict[str, list[dict]] = {}
-    for item in rows:
-        selected_by_day.setdefault(str(item['比赛日期']), []).append(item)
-    for day_rows in selected_by_day.values():
-        # Build one daily 2-leg high-SP combination from independent fixtures.
-        # Both legs need a meaningful probability; the pair is selected by
-        # positive theoretical EV, then by probability and price.
-        pairs = []
-        for left_index, left in enumerate(day_rows):
-            for right in day_rows[left_index + 1:]:
-                p1, p2 = left.get('_pair_probability'), right.get('_pair_probability')
-                o1, o2 = left.get('_pair_odds'), right.get('_pair_odds')
-                if not all(np.isfinite(float(v)) for v in (p1, p2, o1, o2)):
-                    continue
-                if min(float(p1), float(p2)) < 0.50 or min(float(o1), float(o2)) <= 1.0:
-                    continue
-                combined_probability = float(p1) * float(p2)
-                combined_odds = float(o1) * float(o2)
-                pairs.append((
-                    combined_probability * combined_odds - 1.0,
-                    combined_probability,
-                    combined_odds,
-                    left,
-                    right,
-                ))
-        if pairs:
-            _, pair_probability, pair_odds, left, right = max(
-                pairs, key=lambda item: (item[0], item[1], item[2]),
-            )
-            pair_text = (
-                f'{left["赛事编号"]} {left["_pair_choice"]}@{float(left["_pair_odds"]):.2f}'
-                f' × {right["赛事编号"]} {right["_pair_choice"]}@{float(right["_pair_odds"]):.2f}'
-            )
-            for item in (left, right):
-                item['每日2串1'] = pair_text
-                item['2串1组合概率'] = f'{pair_probability:.1%}'
-                item['2串1组合SP'] = f'{pair_odds:.2f}'
     for row in rows:
         row.pop('_quality', None)
         row.pop('_safety_rank', None)
-        row.pop('_pair_probability', None)
-        row.pop('_pair_odds', None)
-        row.pop('_pair_choice', None)
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -1398,6 +1363,7 @@ def _half_time_combination_evaluation(
     ], dtype=float)
     if (
             not np.isfinite(formal).all() or not np.isfinite(monte).all()
+            or np.any(formal < 0) or np.any(monte < 0)
             or formal.sum() <= 0 or monte.sum() <= 0
     ):
         return None
@@ -1434,10 +1400,26 @@ def _half_time_combination_evaluation(
     formal_sorted = np.sort(formal)
     formal_margin = float(formal_sorted[-1] - formal_sorted[-2])
     agreement_gap = abs(formal_probability - monte_probability)
-    conservative_probability = min(formal_probability, monte_probability) - 0.03
+    half_accuracy, half_samples = historical_calibration(
+        '半场胜平负', formal_probability, selection=target,
+        as_of=datetime.now(),
+    )
+    calibrated_probability = formal_probability
+    if half_accuracy is not None and half_samples >= 80:
+        weight = min(0.5, half_samples / 400.0)
+        calibrated_probability = min(
+            formal_probability,
+            (1.0 - weight) * formal_probability + weight * half_accuracy,
+        )
+    calibration_text = (
+        f'同方向同概率区间{half_samples}场，命中{half_accuracy:.1%}，校准后{calibrated_probability:.1%}'
+        if half_accuracy is not None and half_samples >= 80
+        else f'半场校准样本不足（{half_samples}/80），尚未证明实时命中率'
+    )
+    conservative_probability = max(0.0, min(calibrated_probability, monte_probability) - 0.03)
     model_edge = conservative_probability - break_even
     raw_ev = conservative_probability * combined_odds - 1.0
-    formal_ev = formal_probability * combined_odds - 1.0
+    formal_ev = calibrated_probability * combined_odds - 1.0
     monte_ev = monte_probability * combined_odds - 1.0
     relative_score = min(100.0, max(
         0.0,
@@ -1487,7 +1469,7 @@ def _half_time_combination_evaluation(
         '_strict_score': strict_score,
         '_relative_score': relative_score,
         '_observation_rank': (
-            formal_probability + monte_probability + formal_margin - agreement_gap
+            calibrated_probability + monte_probability + formal_margin - agreement_gap
         ),
         '_raw_ev': raw_ev,
         '比赛日期': day_text,
@@ -1513,7 +1495,8 @@ def _half_time_combination_evaluation(
         '策略状态': (
             '达到正式门槛，将进入真实账本'
             if not strict_reasons else '仅观察｜' + '；'.join(strict_reasons)
-        ),
+        ) + '｜' + calibration_text,
+        '_calibration_text': calibration_text,
         '模型来源': model_source,
         '冻结时间': datetime.now().isoformat(timespec='seconds'),
     }
@@ -1549,7 +1532,7 @@ def build_half_time_combinations(
         if item is None or not item['_strict']:
             continue
         item['半场含金量'] = f'{item["_strict_score"]:.0f}/100'
-        item['策略状态'] = '三方同向候选｜高方差｜先记账验证'
+        item['策略状态'] = '三方同向候选｜高方差｜先记账验证｜' + item['_calibration_text']
         item['_quality'] = item['_strict_score'] + item['_raw_ev']
         candidates_by_day.setdefault(item['比赛日期'], []).append(item)
 
@@ -1821,7 +1804,6 @@ def _save_half_time_combination_snapshot(frame: pd.DataFrame) -> None:
         combined.to_csv(temporary, index=False, encoding='utf-8-sig')
         temporary.replace(path)
 
-
 def build_half_time_combination_ledger(
         example_stake: float = HALF_TIME_COMBINATION_STAKE,
 ) -> tuple[pd.DataFrame, dict]:
@@ -1938,6 +1920,13 @@ def _save_daily_recommendation_snapshot(frame: pd.DataFrame) -> None:
         combined.to_csv(temporary, index=False, encoding='utf-8-sig')
         temporary.replace(path)
 
+        # Review uses the exact most recently displayed list.  The append-only
+        # file above remains available for audit and troubleshooting.
+        latest = DAILY_RECOMMENDATION_ROOT / f'{day_text}.latest.csv'
+        latest_temporary = latest.with_suffix('.tmp')
+        shown.to_csv(latest_temporary, index=False, encoding='utf-8-sig')
+        latest_temporary.replace(latest)
+
 
 def _load_daily_recommendation_snapshot(day: str) -> pd.DataFrame:
     path = DAILY_RECOMMENDATION_ROOT / f'{day}.csv'
@@ -1962,6 +1951,14 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
     if not review_date:
         return pd.DataFrame(columns=columns), review_date
     recommendations = _load_daily_recommendation_snapshot(review_date)
+    latest_path = DAILY_RECOMMENDATION_ROOT / f'{review_date}.latest.csv'
+    if latest_path.exists():
+        recommendations = pd.read_csv(latest_path)
+    elif not recommendations.empty:
+        # Old files did not store batch boundaries.  Their last five rows are
+        # the closest recoverable equivalent of the final per-day list.
+        recommendations = recommendations.tail(5).copy().reset_index(drop=True)
+        recommendations['推荐等级'] = '旧版记录·最后5条推定'
     if recommendations.empty:
         # Never apply today's thresholds retroactively.  Without a frozen
         # snapshot there is no honest way to know what the user saw yesterday.
@@ -2035,8 +2032,12 @@ def build_yesterday_recommendation_review() -> tuple[pd.DataFrame, str]:
             choices = set(selected) & set('胜平负')
             hit = bool(actual and actual in choices)
             result = f'{selected or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
-        elif market == '胜平负·平局':
-            hit = '→ 平（命中）' in result
+        elif market in ('胜负', '胜平负', '胜平负·平局'):
+            actual_match = re.search(r'→\s*([胜平负])', result)
+            actual = actual_match.group(1) if actual_match else ''
+            pick = selected.replace('·', '').strip()
+            hit = bool(actual and pick == actual)
+            result = f'{pick or "—"} → {actual or "—"}（{"命中" if hit else "未中"}）'
         else:
             hit = '（命中）' in result
         failure_reason = ''
@@ -2540,6 +2541,8 @@ class SportteryPredictionsDialog(QDialog):
         ).fillna('').astype(str)
         pending = minutes.between(-15, 90) & status.ne('已确认')
         if not pending.any():
+            # Keep waking up so fixtures can enter the lineup window later.
+            self._lineup_timer.start(15 * 60 * 1000)
             return
         interval = lineup_poll_interval_seconds(float(minutes.loc[pending].min()))
         self._lineup_timer.start(max(1_000, int(interval * 1000)))
@@ -2550,6 +2553,7 @@ class SportteryPredictionsDialog(QDialog):
 
     def _start_lineup_supervision(self):
         if self._lineup_running or self._foreground_sync_running:
+            self._lineup_timer.start(60 * 1000)
             return
         self._lineup_running = True
         self._lineup_result_timer.start()

@@ -81,9 +81,10 @@ def _settled_calibration_rows(path_text: str, modified_ns: int) -> pd.DataFrame:
 
 def historical_calibration(
         market: str, probability: float,
-        *, path: Path | None = None,
+        *, path: Path | None = None, selection: str | None = None,
+        handicap_line: float | None = None, as_of=None,
 ) -> tuple[float | None, int]:
-    """Return a chronological settled-bin hit rate without using open games."""
+    """Return a direction-specific, chronological settled-bin hit rate."""
     target = path or SETTLED_PATH
     try:
         modified_ns = target.stat().st_mtime_ns
@@ -92,6 +93,19 @@ def historical_calibration(
     frame = _settled_calibration_rows(str(target), modified_ns)
     if frame.empty:
         return None, 0
+    if as_of is not None and 'settled_at' in frame.columns:
+        cutoff = pd.to_datetime(as_of, errors='coerce')
+        settled = pd.to_datetime(frame['settled_at'], errors='coerce')
+        if pd.notna(cutoff):
+            if getattr(cutoff, 'tzinfo', None) is not None:
+                cutoff = cutoff.tz_localize(None)
+            try:
+                settled = settled.dt.tz_localize(None)
+            except (TypeError, AttributeError):
+                pass
+            frame = frame.loc[settled.notna() & settled.le(cutoff)].copy()
+            if frame.empty:
+                return None, 0
     if market == '胜平负':
         required = {'predicted_result', 'result_hit', 'model_p_home', 'model_p_draw', 'model_p_away'}
         if not required.issubset(frame.columns):
@@ -102,15 +116,43 @@ def historical_calibration(
             mask = frame['predicted_result'].astype(str).eq(label)
             probabilities.loc[mask] = pd.to_numeric(frame.loc[mask, column], errors='coerce')
         hits = pd.to_numeric(frame['result_hit'], errors='coerce')
+        direction_valid = (
+            frame['predicted_result'].astype(str).eq(str(selection))
+            if selection in labels else pd.Series(True, index=frame.index)
+        )
     elif market == '让球胜平负':
         required = {'handicap_probability', 'handicap_hit'}
         if not required.issubset(frame.columns):
             return None, 0
         probabilities = pd.to_numeric(frame['handicap_probability'], errors='coerce')
         hits = pd.to_numeric(frame['handicap_hit'], errors='coerce')
+        direction_valid = pd.Series(True, index=frame.index)
+        if selection in {'胜', '平', '负'} and 'predicted_handicap' in frame.columns:
+            normalized = frame['predicted_handicap'].astype(str).str.replace('让', '', regex=False)
+            direction_valid &= normalized.eq(str(selection))
+        if handicap_line is not None and 'handicap_line' in frame.columns:
+            lines = pd.to_numeric(frame['handicap_line'], errors='coerce')
+            direction_valid &= lines.sub(float(handicap_line)).abs().le(1e-9)
+    elif market == '半场胜平负':
+        required = {'half_p_home', 'half_p_draw', 'half_p_away',
+                    'actual_half_full', 'half_model_source', 'settled_at'}
+        if not required.issubset(frame.columns):
+            return None, 0
+        columns = ['half_p_home', 'half_p_draw', 'half_p_away']
+        distribution = frame[columns].apply(pd.to_numeric, errors='coerce')
+        good = distribution.notna().all(axis=1) & distribution.ge(0).all(axis=1)
+        good &= distribution.sum(axis=1).between(0.99, 1.01)
+        predicted = distribution.fillna(-1).idxmax(axis=1).map(dict(zip(columns, ('胜', '平', '负'))))
+        probabilities = distribution.max(axis=1)
+        actual = frame['actual_half_full'].astype(str).str[0]
+        hits = predicted.eq(actual).astype(float)
+        direction_valid = good & actual.isin(['胜', '平', '负'])
+        direction_valid &= frame['half_model_source'].astype(str).str.endswith('专用半场胜平负模型（已验证）')
+        if selection in {'胜', '平', '负'}:
+            direction_valid &= predicted.eq(selection)
     else:
         return None, 0
-    valid = probabilities.notna() & hits.notna() & probabilities.between(
+    valid = direction_valid & probabilities.notna() & hits.notna() & probabilities.between(
         max(0.0, float(probability) - 0.05), min(1.0, float(probability) + 0.05),
     )
     sample = pd.DataFrame({'probability': probabilities[valid], 'hit': hits[valid]})

@@ -18,6 +18,19 @@ from src.preprocessing.utils.inputs import construct_inputs_by_teams
 _APP = None
 
 
+def test_lineup_supervisor_wakes_before_matches_enter_window(monkeypatch):
+    from types import SimpleNamespace
+    calls = []
+    timer = SimpleNamespace(stop=lambda: None, start=calls.append)
+    window = SimpleNamespace(
+        _lineup_timer=timer,
+        _predictions=pd.DataFrame([{'比赛时间': '2099-09-05 18:00', '首发状态': '未获取'}]),
+    )
+    monkeypatch.setattr(sporttery_window, 'lineup_api_configured', lambda: True)
+    sporttery_window.SportteryPredictionsDialog._schedule_lineup_supervision(window)
+    assert calls and 0 < calls[-1] <= 15 * 60 * 1000
+
+
 def _app():
     global _APP
     _APP = QApplication.instance() or QApplication([])
@@ -829,7 +842,7 @@ def test_daily_recommendations_keep_low_value_handicap_as_unstarred_observation(
     assert result.loc[0, '建议仓位'] == '不投注'
 
 
-def test_daily_recommendations_expose_two_leg_parlay_fields():
+def test_daily_recommendations_keep_best_score_without_parlay_fields():
     predictions = pd.DataFrame([{
         '赛事编号': '周日003', '比赛时间': '2099-08-30 20:00',
         '联赛': '测试联赛', '主队': '主队', '客队': '客队',
@@ -848,5 +861,4 @@ def test_daily_recommendations_expose_two_leg_parlay_fields():
 
     assert len(result) == 1
     assert result.loc[0, '最佳比分'] == '◎ 2-1（16.0%）'
-    assert {'每日2串1', '2串1组合概率', '2串1组合SP'}.issubset(result.columns)
-    assert result.loc[0, '每日2串1'] == ''
+    assert not {'每日2串1', '2串1组合概率', '2串1组合SP', '阵容验证'} & set(result.columns)

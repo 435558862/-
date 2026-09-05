@@ -184,6 +184,36 @@ def test_daily_recommendation_snapshot_preserves_every_displayed_list(monkeypatc
 
     assert frozen['赛事编号'].tolist() == ['周六001', '周六002']
     assert frozen['首次展示时间'].notna().all()
+    latest = pd.read_csv(tmp_path / '2099-08-29.latest.csv')
+    assert latest['赛事编号'].tolist() == ['周六002']
+
+
+def test_yesterday_review_uses_only_latest_recommendation_batch(monkeypatch, tmp_path):
+    monkeypatch.setattr(sporttery_module, 'DAILY_RECOMMENDATION_ROOT', tmp_path)
+    first = pd.DataFrame([{
+        '比赛日期': '2099-08-29', '赛事编号': '周六001',
+        '联赛': '测试', '对阵': '甲 vs 乙', '推荐玩法': '胜平负',
+        '重点选项': '★ 胜',
+    }])
+    latest = pd.DataFrame([{
+        '比赛日期': '2099-08-29', '赛事编号': '周六002',
+        '联赛': '测试', '对阵': '丙 vs 丁', '推荐玩法': '胜平负',
+        '重点选项': '★ 负',
+    }])
+    sporttery_module._save_daily_recommendation_snapshot(first)
+    sporttery_module._save_daily_recommendation_snapshot(latest)
+    monkeypatch.setattr(
+        sporttery_module, 'load_yesterday_hit_report',
+        lambda: (pd.DataFrame([{
+            '赛事编号': '周六002', '完场比分': '0-1',
+            '胜负': '胜 → 负（命中）',
+        }]), {'date': '2099-08-29'}),
+    )
+
+    review, _ = sporttery_module.build_yesterday_recommendation_review()
+
+    assert review['赛事编号'].tolist() == ['周六002']
+    assert review.loc[0, '命中状态'] == '✓ 命中'
 
 
 def test_previous_card_merges_still_visible_after_midnight_matches(monkeypatch, tmp_path):
@@ -333,6 +363,19 @@ def test_half_time_combination_uses_inverse_odds_equal_return_math():
     assert result.loc[0, '组合玩法'] == '平胜@5.20 / 平平@5.30 / 平负@7.00'
     assert result.loc[0, '半场含金量'].endswith('/100')
     assert 'EV +' in result.loc[0, '模型优势']
+
+
+def test_half_combination_downgrades_when_real_history_is_overconfident(monkeypatch):
+    monkeypatch.setattr(sporttery_module, 'historical_calibration', lambda *a, **kw: (.35, 400))
+    result = sporttery_module.build_half_time_combinations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    assert result.empty
+    observations = sporttery_module.build_half_time_observations(
+        _half_time_combination_prediction(), future_only=False,
+    )
+    assert len(observations) == 1
+    assert '校准后50.0%' in observations.iloc[0]['观察结论']
 
 
 def test_half_time_combination_rejects_market_derived_model():
